@@ -3,31 +3,104 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { user } = useAuth();
+  const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: '#007AFF', // Primary blue for active tabs
+        tabBarInactiveTintColor: '#8E8E93', // Medium gray for inactive tabs - more visible
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E8E8E8',
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 8,
+          paddingHorizontal: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
+          marginBottom: 0,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol 
+              size={focused ? 26 : 24} 
+              name="house.fill" 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      {/* Explore tab - only for users/customers */}
+      {!isHelperOrBusiness && (
+        <Tabs.Screen
+          name="explore"
+          options={{
+            title: 'Explore',
+            tabBarIcon: ({ color, focused }) => (
+              <IconSymbol 
+                size={focused ? 26 : 24} 
+                name="magnifyingglass" 
+                color={color} 
+              />
+            ),
+          }}
+        />
+      )}
+      <Tabs.Screen
+        name="requests"
+        options={{
+          title: isHelperOrBusiness ? 'Requests' : 'Requests',
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol 
+              size={focused ? 26 : 24} 
+              name="list.bullet" 
+              color={color} 
+            />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="chat"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Chat',
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol 
+              size={focused ? 26 : 24} 
+              name="message.fill" 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol 
+              size={focused ? 26 : 24} 
+              name="person.fill" 
+              color={color} 
+            />
+          ),
         }}
       />
     </Tabs>

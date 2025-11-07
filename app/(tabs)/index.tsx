@@ -1,98 +1,611 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  FlatList,
+  Alert,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
+import { useApp } from '@/contexts/AppContext';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+
+const SERVICES = [
+  { id: '1', name: 'Cleaning', icon: '🧹', color: '#E3F2FD' },
+  { id: '2', name: 'Cooking', icon: '👨‍🍳', color: '#E8F5E9' },
+  { id: '3', name: 'Babysitting', icon: '👶', color: '#FFF3E0' },
+  { id: '4', name: 'Elderly Care', icon: '👴', color: '#F3E5F5' },
+  { id: '5', name: 'All-Rounder', icon: '🛠️', color: '#E0F2F1' },
+  { id: '6', name: '24/7 Live-in', icon: '🏠', color: '#FCE4EC' },
+];
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const { user } = useAuth();
+  const { getServiceRequests, applyToServiceRequest } = useApp();
+  const [searchQuery, setSearchQuery] = useState('');
+  const serviceRequests = getServiceRequests();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+  // For helpers/businesses, redirect directly to requests tab
+  useEffect(() => {
+    if (user?.userType === 'helper' || user?.userType === 'business') {
+      router.replace('/(tabs)/requests');
+    }
+  }, [user?.userType, router]);
+
+  // If helper/business, show loading while redirecting
+  if (user?.userType === 'helper' || user?.userType === 'business') {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ThemedText>Loading...</ThemedText>
+        </View>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+    );
+  }
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const renderServiceCard = ({ item }: { item: typeof SERVICES[0] }) => (
+    <TouchableOpacity
+      style={[styles.serviceCard, { backgroundColor: item.color }]}
+      onPress={() => router.push(`/services/${item.id}`)}
+    >
+      <Text style={styles.serviceIcon}>{item.icon}</Text>
+      <ThemedText style={styles.serviceName}>{item.name}</ThemedText>
+    </TouchableOpacity>
+  );
+
+  const handleApply = async (requestId: string) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please login to apply');
+      return;
+    }
+
+    const request = serviceRequests.find((r) => r.id === requestId);
+    if (request?.applicants?.includes(user.id)) {
+      Alert.alert('Already Applied', 'You have already applied to this service request');
+      return;
+    }
+
+    try {
+      await applyToServiceRequest(requestId, user.id);
+      Alert.alert('Success', 'You have successfully applied to this service request!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to apply. Please try again.');
+    }
+  };
+
+  const handleContact = (request: any) => {
+    router.push(`/chat/${request.userId}`);
+  };
+
+  const renderRequestCard = (request: any) => {
+    const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
+    const hasApplied = request.applicants?.includes(user?.id || '');
+    const isOpen = request.status === 'open';
+
+    if (isHelperOrBusiness) {
+      return (
+        <View key={request.id} style={styles.requestCard}>
+          <View style={styles.requestHeader}>
+            <View style={styles.requestHeaderInfo}>
+              <ThemedText type="subtitle" style={styles.requestTitle}>
+                {request.serviceName}
+              </ThemedText>
+              <View style={styles.userInfoRow}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{request.userName.charAt(0).toUpperCase()}</Text>
+                </View>
+                <ThemedText style={styles.requestUser}>{request.userName}</ThemedText>
+              </View>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
+              <Text style={styles.statusText}>{request.status}</Text>
+            </View>
+          </View>
+          <ThemedText style={styles.requestDescription} numberOfLines={2}>
+            {request.description}
+          </ThemedText>
+          <View style={styles.requestDetails}>
+            <View style={styles.detailRow}>
+              <IconSymbol name="location.fill" size={14} color="#007AFF" />
+              <ThemedText style={styles.detailText}>{request.location}</ThemedText>
+            </View>
+            {request.budget && (
+              <View style={styles.detailRow}>
+                <IconSymbol name="dollarsign.circle.fill" size={14} color="#007AFF" />
+                <ThemedText style={styles.detailText}>₨{request.budget}</ThemedText>
+              </View>
+            )}
+          </View>
+          {isOpen && !hasApplied && (
+            <View style={styles.requestActions}>
+              <TouchableOpacity
+                style={styles.contactButton}
+                onPress={() => handleContact(request)}
+              >
+                <IconSymbol name="message.fill" size={16} color="#007AFF" />
+                <Text style={styles.contactButtonText}>Contact</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyButton}
+                onPress={() => handleApply(request.id)}
+              >
+                <Text style={styles.applyButtonText}>Apply Now</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {hasApplied && (
+            <View style={styles.appliedBadge}>
+              <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
+              <Text style={styles.appliedText}>Applied</Text>
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    // For users - original card
+    return (
+      <TouchableOpacity
+        key={request.id}
+        style={styles.requestCard}
+        onPress={() => router.push(`/requests/${request.id}`)}
+      >
+        <View style={styles.requestHeader}>
+          <ThemedText type="subtitle" style={styles.requestTitle}>
+            {request.serviceName}
+          </ThemedText>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
+            <Text style={styles.statusText}>{request.status}</Text>
+          </View>
+        </View>
+        <ThemedText style={styles.requestDescription} numberOfLines={2}>
+          {request.description}
         </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <View style={styles.requestFooter}>
+          <ThemedText style={styles.requestLocation}>📍 {request.location}</ThemedText>
+          {request.budget && (
+            <ThemedText style={styles.requestBudget}>₨{request.budget}</ThemedText>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return '#E8F5E9';
+      case 'in_progress': return '#E3F2FD';
+      case 'completed': return '#F5F5F5';
+      default: return '#FFEBEE';
+    }
+  };
+
+  return (
+    <ThemedView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <ThemedText style={styles.greeting}>{getGreeting()},</ThemedText>
+            <ThemedText type="title" style={styles.userName}>
+              {user?.name || 'User'}
+            </ThemedText>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/notifications')}>
+            <IconSymbol name="bell.fill" size={24} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <IconSymbol name="magnifyingglass" size={20} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={
+              user?.userType === 'user'
+                ? 'Search for helpers or businesses...'
+                : 'Search service requests...'
+            }
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        {/* For Users/Customers */}
+        {user?.userType === 'user' && (
+          <>
+            {/* Quick Actions */}
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => router.push('/requests/create')}
+            >
+              <IconSymbol name="plus.circle.fill" size={24} color="#FFFFFF" />
+              <Text style={styles.quickActionText}>Post a Service Request</Text>
+            </TouchableOpacity>
+
+            {/* Services */}
+            <View style={styles.section}>
+              <ThemedText type="subtitle" style={styles.sectionTitle}>
+                Services
+              </ThemedText>
+              <FlatList
+                data={SERVICES}
+                renderItem={renderServiceCard}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.servicesContainer}
+              />
+            </View>
+
+            {/* My Service Requests */}
+            {serviceRequests.filter((r) => r.userId === user?.id).length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText type="subtitle" style={styles.sectionTitle}>
+                    My Service Requests
+                  </ThemedText>
+                  <TouchableOpacity onPress={() => router.push('/requests')}>
+                    <ThemedText style={styles.seeAll}>See All</ThemedText>
+                  </TouchableOpacity>
+                </View>
+                {serviceRequests
+                  .filter((r) => r.userId === user?.id)
+                  .slice(0, 3)
+                  .map((request) => (
+                    <View key={request.id}>{renderRequestCard(request)}</View>
+                  ))}
+              </View>
+            )}
+          </>
+        )}
+
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  greeting: {
+    fontSize: 16,
+    opacity: 0.6,
+    marginBottom: 4,
+    color: '#666',
+    fontWeight: '500',
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1A1A1A',
+  },
+  quickActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    borderRadius: 16,
+    padding: 18,
+    marginHorizontal: 20,
+    marginBottom: 24,
+    gap: 10,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  quickActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  section: {
+    marginBottom: 32,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#1A1A1A',
+  },
+  seeAll: {
+    fontSize: 15,
+    color: '#007AFF',
+    fontWeight: '700',
+  },
+  servicesContainer: {
+    gap: 16,
+    paddingRight: 20,
+  },
+  serviceCard: {
+    width: 110,
+    height: 110,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  serviceIcon: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  serviceName: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#1A1A1A',
+  },
+  requestCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  requestHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  requestTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    flex: 1,
+    color: '#1A1A1A',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  requestDescription: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 14,
+    lineHeight: 20,
+    color: '#666',
+  },
+  requestFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  requestLocation: {
+    fontSize: 13,
+    opacity: 0.6,
+    color: '#666',
+    fontWeight: '500',
+  },
+  requestBudget: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  emptyCardText: {
+    fontSize: 14,
+    opacity: 0.6,
+    color: '#666',
+    textAlign: 'center',
+  },
+  quickActionButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 16,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  quickActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  requestHeaderInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  userInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 6,
   },
-  stepContainer: {
+  avatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E3F2FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  requestUser: {
+    fontSize: 13,
+    opacity: 0.7,
+    color: '#666',
+    fontWeight: '500',
+  },
+  requestDetails: {
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  contactButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E3F2FD',
+    padding: 12,
+    borderRadius: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  contactButtonText: {
+    color: '#1976D2',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  applyButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  appliedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 12,
+    gap: 6,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  appliedText: {
+    color: '#2E7D32',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 100,
   },
 });

@@ -60,7 +60,13 @@ export default function HomeScreen() {
   const renderServiceCard = ({ item }: { item: typeof SERVICES[0] }) => (
     <TouchableOpacity
       style={[styles.serviceCard, { backgroundColor: item.color }]}
-      onPress={() => router.push(`/services/${item.id}`)}
+      onPress={() => {
+        // Navigate to explore screen with service filter, or create request
+        router.push({
+          pathname: '/(tabs)/explore',
+          params: { service: item.name }
+        });
+      }}
     >
       <Text style={styles.serviceIcon}>{item.icon}</Text>
       <ThemedText style={styles.serviceName}>{item.name}</ThemedText>
@@ -106,9 +112,9 @@ export default function HomeScreen() {
               </ThemedText>
               <View style={styles.userInfoRow}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{request.userName.charAt(0).toUpperCase()}</Text>
+                  <Text style={styles.avatarText}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
                 </View>
-                <ThemedText style={styles.requestUser}>{request.userName}</ThemedText>
+                <ThemedText style={styles.requestUser}>{request.userName || 'Unknown'}</ThemedText>
               </View>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
@@ -238,10 +244,18 @@ export default function HomeScreen() {
               <Text style={styles.quickActionText}>Post a Service Request</Text>
             </TouchableOpacity>
 
-            {/* Services */}
+            {/* Services - Prominent Section */}
             <View style={styles.section}>
-              <ThemedText type="subtitle" style={styles.sectionTitle}>
-                Services
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle" style={styles.sectionTitle}>
+                  Browse Services
+                </ThemedText>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+                  <ThemedText style={styles.seeAll}>View All</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <ThemedText style={styles.sectionDescription}>
+                Find trusted helpers and businesses for your household needs
               </ThemedText>
               <FlatList
                 data={SERVICES}
@@ -343,6 +357,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginHorizontal: 20,
+    marginTop: 8,
     marginBottom: 24,
     gap: 10,
     shadowColor: '#007AFF',
@@ -370,8 +385,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 8,
     color: '#1A1A1A',
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
   },
   seeAll: {
     fontSize: 15,
@@ -480,25 +501,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     color: '#666',
     textAlign: 'center',
-  },
-  quickActionButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 16,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  quickActionText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
   },
   requestHeaderInfo: {
     flex: 1,

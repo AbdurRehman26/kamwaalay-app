@@ -9,7 +9,7 @@ import {
   FlatList,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { ThemedView } from '@/components/themed-view';
@@ -77,6 +77,10 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'helpers' | 'businesses'>('all');
   const serviceRequests = getServiceRequests();
+  
+  // Get service filter from route params
+  const routeParams = useLocalSearchParams();
+  const serviceFilter = routeParams?.service as string | undefined;
 
   // For helpers/businesses, redirect to requests tab (which shows service requests)
   useEffect(() => {
@@ -104,7 +108,7 @@ export default function ExploreScreen() {
     >
       <View style={styles.cardHeader}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+          <Text style={styles.avatarText}>{(item.name || 'U').charAt(0).toUpperCase()}</Text>
         </View>
         <View style={styles.cardInfo}>
           <ThemedText type="subtitle" style={styles.cardName}>
@@ -178,15 +182,20 @@ export default function ExploreScreen() {
     </TouchableOpacity>
   );
 
-  const filteredHelpers = MOCK_HELPERS.filter((h) =>
-    h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    h.service.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter helpers and businesses based on search query and service filter
+  const filteredHelpers = MOCK_HELPERS.filter((h) => {
+    const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      h.service.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesService = !serviceFilter || h.service.toLowerCase() === serviceFilter.toLowerCase();
+    return matchesSearch && matchesService;
+  });
 
-  const filteredBusinesses = MOCK_BUSINESSES.filter((b) =>
-    b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.service.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBusinesses = MOCK_BUSINESSES.filter((b) => {
+    const matchesSearch = b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.service.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesService = !serviceFilter || b.service.toLowerCase() === serviceFilter.toLowerCase();
+    return matchesSearch && matchesService;
+  });
 
   return (
     <ThemedView style={styles.container}>
@@ -194,11 +203,21 @@ export default function ExploreScreen() {
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
-            Explore
+            {serviceFilter ? `${serviceFilter} Services` : 'Explore'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            Find helpers and businesses near you
+            {serviceFilter 
+              ? `Find ${serviceFilter.toLowerCase()} helpers and businesses near you`
+              : 'Find helpers and businesses near you'}
           </ThemedText>
+          {serviceFilter && (
+            <TouchableOpacity
+              style={styles.clearFilterButton}
+              onPress={() => router.push('/(tabs)/explore')}
+            >
+              <ThemedText style={styles.clearFilterText}>Clear Filter</ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Search Bar */}
@@ -285,6 +304,19 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     opacity: 0.7,
+  },
+  clearFilterButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+  },
+  clearFilterText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '600',
   },
   searchContainer: {
     flexDirection: 'row',

@@ -2,14 +2,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function OTPVerifyScreen() {
@@ -17,7 +17,22 @@ export default function OTPVerifyScreen() {
   const [timer, setTimer] = useState(60);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const router = useRouter();
-  const { verifyOTP, user } = useAuth();
+  const { verifyOTP, resendOTP, user } = useAuth();
+
+  // If user is already verified, redirect to appropriate screen
+  useEffect(() => {
+    if (user && user.isVerified === true) {
+      if (user.onboardingStatus === 'completed') {
+        router.replace('/(tabs)');
+      } else if (user.onboardingStatus === 'in_progress') {
+        router.replace('/onboarding/start');
+      } else if (user.userType) {
+        router.replace('/onboarding/start');
+      } else {
+        router.replace('/auth/user-type');
+      }
+    }
+  }, [user, router]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -63,16 +78,27 @@ export default function OTPVerifyScreen() {
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to verify OTP. Please try again.');
+    } catch (error: any) {
+      // Display backend error message
+      const errorMessage = error.message || error.error || 'Failed to verify OTP. Please try again.';
+      Alert.alert('Error', errorMessage);
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
     }
   };
 
-  const handleResend = () => {
-    setTimer(60);
-    setOtp(['', '', '', '', '', '']);
-    inputRefs.current[0]?.focus();
-    // In a real app, this would resend the OTP
+  const handleResend = async () => {
+    try {
+      await resendOTP();
+      setTimer(60);
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+      Alert.alert('Success', 'OTP has been resent. Please check your email or phone.');
+    } catch (error: any) {
+      // Display backend error message
+      const errorMessage = error.message || error.error || 'Failed to resend OTP. Please try again.';
+      Alert.alert('Error', errorMessage);
+    }
   };
 
   return (
@@ -87,11 +113,22 @@ export default function OTPVerifyScreen() {
               <Text style={styles.logoText}>🔐</Text>
             </View>
             <Text style={styles.title}>
-              Verify Your Phone
+              {user?.email && (!user?.phoneNumber || user.phoneNumber.trim() === '') 
+                ? 'Verify Your Email' 
+                : 'Verify Your Phone'}
             </Text>
             <Text style={styles.subtitle}>
-              We've sent a 6-digit code to{'\n'}
-              <Text style={styles.phoneNumber}>+92 {user?.phoneNumber || 'your number'}</Text>
+              {user?.email && (!user?.phoneNumber || user.phoneNumber.trim() === '') ? (
+                <>
+                  We've sent a 6-digit code to{'\n'}
+                  <Text style={styles.phoneNumber}>{user.email}</Text>
+                </>
+              ) : (
+                <>
+                  We've sent a 6-digit code to{'\n'}
+                  <Text style={styles.phoneNumber}>+92 {user?.phoneNumber || 'your number'}</Text>
+                </>
+              )}
             </Text>
             <View style={styles.demoHint}>
               <Text style={styles.demoHintText}>💡 Demo: Enter any 6-digit code (e.g., 123456)</Text>
@@ -115,6 +152,11 @@ export default function OTPVerifyScreen() {
                 keyboardType="number-pad"
                 maxLength={1}
                 selectTextOnFocus
+                autoComplete="off"
+                textContentType="none"
+                autoCorrect={false}
+                spellCheck={false}
+                importantForAutofill="no"
               />
             ))}
           </View>

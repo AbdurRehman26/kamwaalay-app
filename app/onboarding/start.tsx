@@ -46,7 +46,7 @@ export default function OnboardingStartScreen() {
           </ThemedText>
         </View>
 
-        <View style={styles.form}>
+        <View style={styles.form} nativeID="onboarding-form" data-form="onboarding">
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>
               {user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'} *
@@ -57,6 +57,15 @@ export default function OnboardingStartScreen() {
               placeholderTextColor="#999"
               value={name}
               onChangeText={setName}
+              autoComplete="name"
+              textContentType="name"
+              autoCorrect={false}
+              spellCheck={false}
+              importantForAutofill="yes"
+              nativeID="name-input"
+              accessibilityLabel={user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
+              data-autocomplete="name"
+              data-content-type="name"
             />
           </View>
 
@@ -70,6 +79,15 @@ export default function OnboardingStartScreen() {
               autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
+              autoComplete="email"
+              textContentType="emailAddress"
+              autoCorrect={false}
+              spellCheck={false}
+              importantForAutofill="yes"
+              nativeID="email-input"
+              accessibilityLabel="Email Address"
+              data-autocomplete="email"
+              data-content-type="emailAddress"
             />
           </View>
         </View>

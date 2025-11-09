@@ -30,7 +30,7 @@ export default function RequestsScreen() {
   
   // For helpers/businesses: filter requests
   const allRequests = serviceRequests;
-  const openRequests = allRequests.filter((r) => r.status === 'open');
+  const openRequests = allRequests.filter((r) => r.status === 'open' || r.status === 'pending');
   const appliedRequests = allRequests.filter((r) => 
     r.applicants && r.applicants.includes(user?.id || '')
   );
@@ -105,13 +105,13 @@ export default function RequestsScreen() {
             {isHelperOrBusiness && (
               <View style={styles.userInfo}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{request.userName.charAt(0).toUpperCase()}</Text>
+                  <Text style={styles.avatarText}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
                 </View>
-                <ThemedText style={styles.cardUser}>{request.userName}</ThemedText>
+                <ThemedText style={styles.cardUser}>{request.userName || 'Unknown'}</ThemedText>
               </View>
             )}
             {user?.userType === 'user' && (
-              <ThemedText style={styles.cardUser}>by {request.userName}</ThemedText>
+              <ThemedText style={styles.cardUser}>by {request.userName || 'Unknown'}</ThemedText>
             )}
           </View>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>

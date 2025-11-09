@@ -28,8 +28,10 @@ export default function PhoneLoginScreen() {
     try {
       await login(phoneNumber);
       router.push('/auth/otp-verify');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
+    } catch (error: any) {
+      // Display backend error message
+      const errorMessage = error.message || error.error || 'Failed to send OTP. Please try again.';
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -72,6 +74,11 @@ export default function PhoneLoginScreen() {
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 maxLength={10}
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+                autoCorrect={false}
+                spellCheck={false}
+                importantForAutofill="yes"
               />
             </View>
 
@@ -88,6 +95,14 @@ export default function PhoneLoginScreen() {
               disabled={phoneNumber.length < 10}
             >
               <Text style={styles.buttonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Sign Up Link */}
+          <View style={styles.signUpContainer}>
+            <Text style={styles.signUpText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+              <Text style={styles.signUpLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
 
@@ -229,6 +244,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  signUpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  signUpText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  signUpLink: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '600',
   },
   termsText: {
     fontSize: 12,

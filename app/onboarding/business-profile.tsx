@@ -17,7 +17,8 @@ export default function BusinessProfileScreen() {
   const router = useRouter();
   const { user, completeOnboarding } = useAuth();
   const [businessName, setBusinessName] = useState('');
-  const [bio, setBio] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
+  const [businessDescription, setBusinessDescription] = useState('');
 
   const handleContinue = async () => {
     if (!businessName.trim()) {
@@ -34,7 +35,8 @@ export default function BusinessProfileScreen() {
       businessName,
       ownerName: user.name,
       email: user.email,
-      bio,
+      bio: businessDescription,
+      businessAddress,
       serviceOfferings: [],
       locations: [],
     };
@@ -64,6 +66,27 @@ export default function BusinessProfileScreen() {
               placeholderTextColor="#999"
               value={businessName}
               onChangeText={setBusinessName}
+              autoComplete="organization"
+              textContentType="organizationName"
+              autoCorrect={false}
+              spellCheck={false}
+              importantForAutofill="yes"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Business Address (Optional)</ThemedText>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your business address"
+              placeholderTextColor="#999"
+              value={businessAddress}
+              onChangeText={setBusinessAddress}
+              autoComplete="street-address"
+              textContentType="fullStreetAddress"
+              autoCorrect={false}
+              spellCheck={false}
+              importantForAutofill="yes"
             />
           </View>
 
@@ -75,8 +98,13 @@ export default function BusinessProfileScreen() {
               placeholderTextColor="#999"
               multiline
               numberOfLines={4}
-              value={bio}
-              onChangeText={setBio}
+              value={businessDescription}
+              onChangeText={setBusinessDescription}
+              autoComplete="off"
+              textContentType="none"
+              autoCorrect={false}
+              spellCheck={false}
+              importantForAutofill="no"
             />
           </View>
         </View>
@@ -100,6 +128,8 @@ export default function BusinessProfileScreen() {
               businessName,
               ownerName: user?.name || '',
               email: user?.email,
+              businessAddress,
+              bio: businessDescription,
               serviceOfferings: [],
               locations: [],
             };

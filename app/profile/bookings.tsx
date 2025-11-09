@@ -112,10 +112,10 @@ export default function BookingsScreen() {
               <View style={styles.userInfoRow}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {booking.userName.charAt(0).toUpperCase()}
+                    {(booking.userName || 'U').charAt(0).toUpperCase()}
                   </Text>
                 </View>
-                <ThemedText style={styles.cardUser}>{booking.userName}</ThemedText>
+                <ThemedText style={styles.cardUser}>{booking.userName || 'Unknown'}</ThemedText>
               </View>
             )}
             {isUser && booking.applicants && booking.applicants.length > 0 && (

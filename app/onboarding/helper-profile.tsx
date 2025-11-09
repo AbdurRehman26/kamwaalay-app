@@ -61,6 +61,11 @@ export default function HelperProfileScreen() {
               numberOfLines={4}
               value={bio}
               onChangeText={setBio}
+              autoComplete="off"
+              textContentType="none"
+              autoCorrect={false}
+              spellCheck={false}
+              importantForAutofill="no"
             />
           </View>
 
@@ -72,6 +77,11 @@ export default function HelperProfileScreen() {
               placeholderTextColor="#999"
               value={experience}
               onChangeText={setExperience}
+              autoComplete="off"
+              textContentType="none"
+              autoCorrect={false}
+              spellCheck={false}
+              importantForAutofill="no"
             />
           </View>
         </View>

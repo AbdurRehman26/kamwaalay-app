@@ -17,22 +17,25 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/auth/phone-login');
-          },
-        },
-      ]
-    );
+  const handleLogout = async () => {
+    console.log('Logout button clicked - starting immediate logout');
+    try {
+      // Navigate first to ensure we get to login screen
+      console.log('Navigating to login screen first...');
+      router.replace('/auth/phone-login');
+      
+      // Small delay to let navigation start
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Then call logout function to clear state and storage
+      console.log('Calling logout function...');
+      await logout();
+      console.log('Logout function completed');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force navigation even if logout fails
+      router.replace('/auth/phone-login');
+    }
   };
 
   const menuItems = [
@@ -122,7 +125,13 @@ export default function ProfileScreen() {
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}
-              onPress={item.onPress}
+              onPress={() => {
+                console.log('Menu item pressed:', item.id);
+                if (item.onPress) {
+                  item.onPress();
+                }
+              }}
+              activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
                 <IconSymbol

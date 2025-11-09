@@ -131,7 +131,7 @@ export default function EditProfileScreen() {
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
-                  {name.charAt(0).toUpperCase() || user?.name?.charAt(0).toUpperCase() || 'U'}
+                  {(name || user?.name || 'U').charAt(0).toUpperCase()}
                 </Text>
               </View>
               <TouchableOpacity style={styles.changePhotoButton}>

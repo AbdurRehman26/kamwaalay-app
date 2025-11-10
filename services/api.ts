@@ -196,18 +196,58 @@ class ApiService {
       const url = buildApiUrl(endpoint, params);
       const headers = await this.buildHeaders(includeAuth);
       
+      console.log('[API] POST request', {
+        url,
+        endpoint,
+        hasBody: !!body,
+        bodyKeys: body ? Object.keys(body) : [],
+        includeAuth,
+      });
+
       const response = await fetch(url, {
         method: 'POST',
         headers,
         body: body ? JSON.stringify(body) : undefined,
       });
 
-      return await this.handleResponse<T>(response);
+      console.log('[API] POST response received', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      });
+
+      const result = await this.handleResponse<T>(response);
+      console.log('[API] POST response processed', {
+        url,
+        success: result.success,
+        hasData: !!result.data,
+        hasError: !!result.error,
+        message: result.message,
+      });
+
+      return result;
     } catch (error: any) {
-      // POST request error
+      // POST request error - provide more specific error messages
+      let errorMessage = 'Network error occurred';
+      if (error.message) {
+        if (error.message.includes('Network request failed') || error.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to server. Please check your internet connection.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      console.error('[API] POST request error', {
+        endpoint,
+        url: buildApiUrl(endpoint, params),
+        error: errorMessage,
+        originalError: error,
+      });
       return {
         success: false,
-        error: error.message || 'Network error occurred',
+        error: errorMessage,
       };
     }
   }

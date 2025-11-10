@@ -14,11 +14,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RequestsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { getServiceRequests, applyToServiceRequest } = useApp();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'my' | 'all' | 'open' | 'applied'>(
     user?.userType === 'user' ? 'my' : 'all'
@@ -87,7 +89,8 @@ export default function RequestsScreen() {
   };
 
   const handleContact = (request: any) => {
-    router.push(`/chat/${request.userId}`);
+    const userName = request.userName || 'User';
+    router.push(`/chat/${request.userId}?name=${encodeURIComponent(userName)}`);
   };
 
   const handleContactApplicants = (request: any, event?: any) => {
@@ -96,6 +99,7 @@ export default function RequestsScreen() {
     }
     if (request.applicants && request.applicants.length > 0) {
       // Navigate to chat with the first applicant
+      // Name will be looked up in the chat detail screen
       router.push(`/chat/${request.applicants[0]}`);
     } else {
       Alert.alert('No Applicants', 'There are no applicants to contact yet.');
@@ -255,9 +259,10 @@ export default function RequestsScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ThemedView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
           {user?.userType === 'user' ? 'My Service Requests' : 'Service Requests'}
         </ThemedText>
@@ -332,7 +337,11 @@ export default function RequestsScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+      >
         {filteredRequests.length > 0 ? (
           <View style={styles.content}>
             {filteredRequests.map((request) => renderRequestCard(request))}
@@ -365,11 +374,16 @@ export default function RequestsScreen() {
           </View>
         )}
       </ScrollView>
-    </ThemedView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
@@ -379,7 +393,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 20,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
@@ -391,8 +405,6 @@ const styles = StyleSheet.create({
   },
   addButton: {
     padding: 4,
-    marginRight: 8,
-    marginTop: 16,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -422,11 +434,12 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     gap: 12,
+    backgroundColor: '#FFFFFF',
   },
   tab: {
-    marginTop: 20,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,

@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
@@ -31,12 +32,26 @@ const SERVICES = [
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { getServiceRequests, applyToServiceRequest } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [myServiceRequests, setMyServiceRequests] = useState<ServiceRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const serviceRequests = getServiceRequests();
+
+  // Show loading while auth is loading
+  if (isAuthLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ThemedView style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+          </View>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
 
   // For helpers/businesses, redirect directly to requests tab
   useEffect(() => {
@@ -113,11 +128,14 @@ export default function HomeScreen() {
   // If helper/business, show loading while redirecting
   if (user?.userType === 'helper' || user?.userType === 'business') {
     return (
-      <ThemedView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ThemedText>Loading...</ThemedText>
-        </View>
-      </ThemedView>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ThemedView style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <ThemedText style={styles.loadingText}>Redirecting...</ThemedText>
+          </View>
+        </ThemedView>
+      </SafeAreaView>
     );
   }
 
@@ -272,8 +290,13 @@ export default function HomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ThemedView style={styles.container}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -292,19 +315,15 @@ export default function HomeScreen() {
           <IconSymbol name="magnifyingglass" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder={
-              user?.userType === 'user'
-                ? 'Search for helpers or businesses...'
-                : 'Search service requests...'
-            }
+            placeholder="Search for helpers or businesses..."
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
 
-        {/* For Users/Customers */}
-        {user?.userType === 'user' && (
+        {/* For Users/Customers - Show content if user is null or user type is 'user' */}
+        {(!user || user?.userType === 'user' || user?.userType === undefined) && (
           <>
             {/* Quick Actions */}
             <TouchableOpacity
@@ -375,18 +394,26 @@ export default function HomeScreen() {
           </>
         )}
 
-      </ScrollView>
-    </ThemedView>
+        </ScrollView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
     flexDirection: 'row',

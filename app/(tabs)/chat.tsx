@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,51 +10,94 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useApp } from '@/contexts/AppContext';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-// Mock chat data
-const MOCK_CHATS = [
-  {
-    id: '1',
-    name: 'Fatima Ali',
-    lastMessage: 'I can start from tomorrow',
-    time: '2m ago',
-    unread: 2,
-    avatar: '👩‍🍳',
-  },
-  {
-    id: '2',
-    name: 'HomeCare Services',
-    lastMessage: 'Thank you for your interest',
-    time: '1h ago',
-    unread: 0,
-    avatar: '🏢',
-  },
-  {
-    id: '3',
-    name: 'Ahmed Khan',
-    lastMessage: 'When would you like me to come?',
-    time: '3h ago',
-    unread: 1,
-    avatar: '👨‍💼',
-  },
-];
+interface ChatItem {
+  id: string;
+  name: string;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  avatar: string;
+}
 
 export default function ChatScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { getHelpers, getServiceRequests } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredChats = MOCK_CHATS.filter((chat) =>
+  // Build chat list from actual data
+  const chats = useMemo(() => {
+    const chatMap = new Map<string, ChatItem>();
+    const helpers = getHelpers();
+    const serviceRequests = getServiceRequests();
+
+    if (user?.userType === 'user') {
+      // For users: show chats with helpers who applied to their requests
+      serviceRequests
+        .filter((r) => r.userId === user?.id)
+        .forEach((request) => {
+          if (request.applicants && request.applicants.length > 0) {
+            request.applicants.forEach((applicantId: string) => {
+              if (!chatMap.has(applicantId)) {
+                const helper = helpers.find((h: any) => {
+                  const helperId = h.user_id?.toString() || h.id?.toString() || '';
+                  return helperId === applicantId;
+                });
+
+                if (helper) {
+                  const helperName = helper.name || 
+                                   helper.user?.name || 
+                                   helper.profile?.name ||
+                                   (helper.first_name && helper.last_name ? `${helper.first_name} ${helper.last_name}` : helper.first_name || helper.last_name) ||
+                                   'Helper';
+                  const avatarText = helperName.charAt(0).toUpperCase();
+                  
+                  chatMap.set(applicantId, {
+                    id: applicantId,
+                    name: helperName,
+                    lastMessage: `Applied to your ${request.serviceName} request`,
+                    time: 'Recently',
+                    unread: 0,
+                    avatar: avatarText,
+                  });
+                }
+              }
+            });
+          }
+        });
+    } else {
+      // For helpers/businesses: show chats with users who created requests
+      serviceRequests.forEach((request) => {
+        const userId = request.userId?.toString() || '';
+        if (userId && !chatMap.has(userId)) {
+          chatMap.set(userId, {
+            id: userId,
+            name: request.userName || 'User',
+            lastMessage: `Service request: ${request.serviceName}`,
+            time: 'Recently',
+            unread: 0,
+            avatar: (request.userName || 'U').charAt(0).toUpperCase(),
+          });
+        }
+      });
+    }
+
+    return Array.from(chatMap.values());
+  }, [user, getHelpers, getServiceRequests]);
+
+  const filteredChats = chats.filter((chat) =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderChatItem = ({ item }: { item: typeof MOCK_CHATS[0] }) => (
+  const renderChatItem = ({ item }: { item: ChatItem }) => (
     <TouchableOpacity
       style={styles.chatItem}
-      onPress={() => router.push(`/chat/${item.id}`)}
+      onPress={() => router.push(`/chat/${item.id}?name=${encodeURIComponent(item.name)}`)}
     >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.avatar}</Text>

@@ -27,7 +27,7 @@ export default function PhoneLoginScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
 
   // Clear unverified user data when component mounts to allow fresh login
   useEffect(() => {
@@ -50,6 +50,13 @@ export default function PhoneLoginScreen() {
   }, []);
 
   const handleContinue = async () => {
+    console.log('[PhoneLogin] handleContinue called', {
+      loginMethod,
+      authMethod,
+      phoneNumber: loginMethod === 'phone' ? phoneNumber : undefined,
+      email: loginMethod === 'email' ? `${email.substring(0, 3)}***` : undefined,
+    });
+
     // Clear any previous error
     setErrorMessage(null);
     setIsLoading(true);
@@ -58,12 +65,14 @@ export default function PhoneLoginScreen() {
       // Validate inputs based on login method
       if (loginMethod === 'phone') {
         if (phoneNumber.length < 10) {
+          console.log('[PhoneLogin] Validation failed: phone number too short');
           Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
           setIsLoading(false);
           return;
         }
       } else {
         if (!email.trim() || !email.includes('@')) {
+          console.log('[PhoneLogin] Validation failed: invalid email');
           Alert.alert('Invalid Email', 'Please enter a valid email address');
           setIsLoading(false);
           return;
@@ -72,6 +81,7 @@ export default function PhoneLoginScreen() {
 
       // Validate password if using password auth
       if (authMethod === 'password' && !password.trim()) {
+        console.log('[PhoneLogin] Validation failed: password required');
         Alert.alert('Required', 'Please enter your password');
         setIsLoading(false);
         return;
@@ -97,22 +107,69 @@ export default function PhoneLoginScreen() {
         loginData.password = password;
       }
 
+      console.log('[PhoneLogin] Calling login function');
       const result = await login(loginData);
+      console.log('[PhoneLogin] Login result:', {
+        hasResult: !!result,
+        requiresOTP: result?.requiresOTP,
+      });
 
       // If OTP is required, navigate to OTP verify screen
       if (authMethod === 'otp' && result?.requiresOTP) {
+        console.log('[PhoneLogin] Navigating to OTP verify screen');
         router.push('/auth/otp-verify');
+      } else if (!result || !result.requiresOTP) {
+        // Login successful with token - user should be saved and verified
+        // Wait a moment for state to update, then navigate
+        console.log('[PhoneLogin] Login successful - waiting for user state update');
+        
+        // Use a small delay to allow state to update, then check user and navigate
+        setTimeout(async () => {
+          // Re-fetch user from AsyncStorage to get the latest state
+          try {
+            const userData = await AsyncStorage.getItem('user');
+            if (userData) {
+              const parsedUser = JSON.parse(userData);
+              console.log('[PhoneLogin] User from storage after login:', {
+                hasUser: !!parsedUser,
+                isVerified: parsedUser.isVerified,
+                onboardingStatus: parsedUser.onboardingStatus,
+              });
+              
+              if (parsedUser && parsedUser.isVerified) {
+                if (parsedUser.onboardingStatus === 'completed') {
+                  console.log('[PhoneLogin] Navigating to tabs');
+                  router.replace('/(tabs)');
+                } else {
+                  console.log('[PhoneLogin] Navigating to onboarding');
+                  router.replace('/onboarding/start');
+                }
+              } else {
+                // Fallback: navigation will be handled by _layout.tsx
+                console.log('[PhoneLogin] User not verified yet - _layout.tsx will handle navigation');
+              }
+            } else {
+              console.log('[PhoneLogin] No user in storage - _layout.tsx will handle navigation');
+            }
+          } catch (error) {
+            console.error('[PhoneLogin] Error reading user from storage:', error);
+            // Fallback: navigation will be handled by _layout.tsx
+          }
+        }, 500);
       }
-      // If login is successful (result is undefined and no requiresOTP), 
-      // navigation will be handled by AuthContext based on user state
-      // No need to navigate to OTP screen if login was successful with token
     } catch (error: any) {
       // Extract backend error message
       const errorMsg = error.message || error.error || 'Login failed. Please try again.';
+      console.error('[PhoneLogin] Error in handleContinue:', {
+        message: errorMsg,
+        error: error,
+        stack: error.stack,
+      });
       setErrorMessage(errorMsg);
       Alert.alert('Error', errorMsg);
     } finally {
       setIsLoading(false);
+      console.log('[PhoneLogin] handleContinue completed');
     }
   };
 

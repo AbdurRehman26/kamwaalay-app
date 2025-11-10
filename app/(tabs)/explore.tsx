@@ -167,7 +167,7 @@ export default function ExploreScreen() {
           </View>
           <TouchableOpacity
             style={styles.contactButton}
-            onPress={() => router.push(`/chat/${helperId}`)}
+            onPress={() => router.push(`/chat/${helperId}?name=${encodeURIComponent(helperName)}`)}
           >
             <IconSymbol name="message.fill" size={20} color="#007AFF" />
           </TouchableOpacity>

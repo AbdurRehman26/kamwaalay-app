@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -179,6 +180,14 @@ function RootLayoutNav() {
             <Stack.Screen name="about" options={{ headerShown: false }} />
             <Stack.Screen name="requests/create" options={{ headerShown: false }} />
             <Stack.Screen name="requests/[id]" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="chat/[id]" 
+              options={{ 
+                headerShown: true,
+                title: 'Chat',
+                headerBackTitleVisible: false,
+              }} 
+            />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );
@@ -187,13 +196,15 @@ function RootLayoutNav() {
 export default function RootLayout() {
   // Force light mode - always use DefaultTheme
   return (
-    <ThemeProvider value={DefaultTheme}>
-      <AuthProvider>
-        <AppProvider>
-          <RootLayoutNav />
-          <StatusBar style="dark" />
-        </AppProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={DefaultTheme}>
+        <AuthProvider>
+          <AppProvider>
+            <RootLayoutNav />
+            <StatusBar style="dark" />
+          </AppProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

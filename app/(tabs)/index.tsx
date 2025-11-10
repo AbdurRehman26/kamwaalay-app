@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -39,35 +39,8 @@ export default function HomeScreen() {
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const serviceRequests = getServiceRequests();
 
-  // Show loading while auth is loading
-  if (isAuthLoading) {
-    return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ThemedView style={styles.container}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>Loading...</ThemedText>
-          </View>
-        </ThemedView>
-      </SafeAreaView>
-    );
-  }
-
-  // For helpers/businesses, redirect directly to requests tab
-  useEffect(() => {
-    if (user?.userType === 'helper' || user?.userType === 'business') {
-      router.replace('/(tabs)/requests');
-    }
-  }, [user?.userType, router]);
-
-  // Fetch user's own service requests (bookings) from API
-  useEffect(() => {
-    if (user?.userType === 'user' && user?.id) {
-      loadMyServiceRequests();
-    }
-  }, [user?.id, user?.userType]);
-
-  const loadMyServiceRequests = async () => {
+  // Define loadMyServiceRequests using useCallback to avoid recreating it on every render
+  const loadMyServiceRequests = useCallback(async () => {
     try {
       setIsLoadingRequests(true);
       const response = await apiService.get(
@@ -123,7 +96,35 @@ export default function HomeScreen() {
     } finally {
       setIsLoadingRequests(false);
     }
-  };
+  }, [user?.id, serviceRequests]);
+
+  // For helpers/businesses, redirect directly to requests tab
+  useEffect(() => {
+    if (user?.userType === 'helper' || user?.userType === 'business') {
+      router.replace('/(tabs)/requests');
+    }
+  }, [user?.userType, router]);
+
+  // Fetch user's own service requests (bookings) from API
+  useEffect(() => {
+    if (user?.userType === 'user' && user?.id) {
+      loadMyServiceRequests();
+    }
+  }, [user?.id, user?.userType, loadMyServiceRequests]);
+
+  // Show loading while auth is loading
+  if (isAuthLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ThemedView style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+          </View>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
 
   // If helper/business, show loading while redirecting
   if (user?.userType === 'helper' || user?.userType === 'business') {

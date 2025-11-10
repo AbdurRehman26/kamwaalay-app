@@ -6,6 +6,33 @@ import { API_ENDPOINTS } from '@/constants/api';
 export type UserType = 'user' | 'helper' | 'business' | null;
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed';
 
+/**
+ * Helper function to extract onboarding status from API response
+ * Handles both boolean fields (is_onboarded, onboarded) and status strings (onboarding_status, onboardingStatus)
+ */
+function extractOnboardingStatus(apiData: any, fallback: OnboardingStatus = 'not_started'): OnboardingStatus {
+  // Check for boolean fields first (is_onboarded, onboarded)
+  if (apiData?.is_onboarded === true || apiData?.onboarded === true) {
+    return 'completed';
+  }
+  if (apiData?.is_onboarded === false || apiData?.onboarded === false) {
+    // If explicitly false, check if there's a status field
+    const status = apiData?.onboarding_status || apiData?.onboardingStatus;
+    if (status && typeof status === 'string') {
+      return status as OnboardingStatus;
+    }
+    return 'not_started';
+  }
+  
+  // Check for status string fields (onboarding_status, onboardingStatus)
+  const status = apiData?.onboarding_status || apiData?.onboardingStatus;
+  if (status && typeof status === 'string') {
+    return status as OnboardingStatus;
+  }
+  
+  return fallback;
+}
+
 export interface User {
   id: string;
   phoneNumber: string;
@@ -219,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             userType: userDataFromApi.role || userDataFromApi.userType || null,
             name: userDataFromApi.name,
             profileImage: userDataFromApi.profile_image || userDataFromApi.profileImage,
-            onboardingStatus: userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || 'not_started',
+            onboardingStatus: extractOnboardingStatus(userDataFromApi, 'not_started'),
           };
 
           // Save token to AsyncStorage
@@ -253,7 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: data.email || userDataFromApi.email,
             userType: userDataFromApi.role || userDataFromApi.userType || null,
             name: userDataFromApi.name,
-            onboardingStatus: userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || 'not_started',
+            onboardingStatus: extractOnboardingStatus(userDataFromApi, 'not_started'),
             isVerified: false, // User needs to verify OTP
           };
           
@@ -283,7 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: data.email || response.data?.email,
             userType: response.data?.role || response.data?.userType || null,
             name: response.data?.name,
-            onboardingStatus: response.data?.onboarding_status || response.data?.onboardingStatus || 'not_started',
+            onboardingStatus: extractOnboardingStatus(response.data, 'not_started'),
             isVerified: false,
           };
           await saveUser(tempUser);
@@ -335,7 +362,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.email || userDataFromApi.email,
           name: data.name || userDataFromApi.name,
           userType: data.role || userDataFromApi.role || null,
-          onboardingStatus: userDataFromApi.onboarding_status || 'not_started',
+          onboardingStatus: extractOnboardingStatus(userDataFromApi, 'not_started'),
           isVerified: false, // User needs to verify OTP after signup
         };
 
@@ -439,7 +466,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userType: userDataFromApi.role || userDataFromApi.userType || user.userType,
           name: userDataFromApi.name || user.name,
           profileImage: userDataFromApi.profile_image || userDataFromApi.profileImage,
-          onboardingStatus: userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || user.onboardingStatus,
+          onboardingStatus: extractOnboardingStatus(userDataFromApi, user.onboardingStatus || 'not_started'),
           isVerified: true, // OTP verified successfully
         };
         
@@ -614,6 +641,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         const responseData = response.data;
         const userDataFromApi = responseData.user || responseData;
+        // Extract onboarding status from API response, but prefer userData.onboardingStatus if explicitly provided
+        const onboardingStatusFromApi = extractOnboardingStatus(userDataFromApi, user.onboardingStatus || 'not_started');
         const updatedUser = { 
           ...user, 
           ...userDataFromApi,
@@ -622,8 +651,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           phoneNumber: userDataFromApi.phone || userDataFromApi.phoneNumber || user.phoneNumber,
           email: userDataFromApi.email || user.email || userData.email,
           name: userDataFromApi.name || user.name || userData.name,
-          // Preserve onboardingStatus from userData if provided
-          onboardingStatus: userData.onboardingStatus || userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || user.onboardingStatus,
+          // Use onboardingStatus from userData if explicitly provided, otherwise use API response
+          onboardingStatus: userData.onboardingStatus || onboardingStatusFromApi,
         };
         await saveUser(updatedUser);
       } else {
@@ -660,7 +689,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (profileResponse.success && profileResponse.data) {
           // Update user with profile response data
-          const updatedUserFromProfile = { ...user, ...profileResponse.data };
+          const profileResponseData = profileResponse.data.user || profileResponse.data;
+          const updatedUserFromProfile = { 
+            ...user, 
+            ...profileResponseData,
+            // Extract onboarding status from API response
+            onboardingStatus: extractOnboardingStatus(profileResponseData, user.onboardingStatus || 'not_started'),
+          };
           await saveUser(updatedUserFromProfile);
         } else {
           // Fallback to local update
@@ -700,11 +735,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await apiService.post(endpoint, apiData);
 
         if (response.success && response.data) {
+          const responseData = response.data.user || response.data;
           const updatedUser = {
             ...user,
-            ...response.data.user,
+            ...responseData,
             profileData,
-            onboardingStatus: 'completed' as OnboardingStatus,
+            // Extract onboarding status from API response, default to 'completed' for onboarding completion
+            onboardingStatus: extractOnboardingStatus(responseData, 'completed'),
             name: 'name' in profileData ? profileData.name : profileData.ownerName,
           };
           await saveUser(updatedUser);

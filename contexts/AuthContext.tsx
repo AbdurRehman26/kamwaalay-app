@@ -102,10 +102,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (parsed.isVerified === undefined) {
           parsed.isVerified = false;
         }
-        setUser(parsed);
+        // Only load user if they are verified, otherwise clear unverified users
+        if (parsed.isVerified === true) {
+          setUser(parsed);
+        } else {
+          // Clear unverified user data on app load
+          await AsyncStorage.removeItem('user');
+          await AsyncStorage.removeItem('authToken');
+          setUser(null);
+        }
       }
     } catch (error) {
-      console.error('Error loading user:', error);
+      // Error loading user
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
     } catch (error) {
-      console.error('Error saving user:', error);
+      // Error saving user
     }
   };
 
@@ -132,9 +140,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Add identifier (phone or email)
       if (data.phone) {
-        requestBody.phone = data.phone;
+        // Format phone number (remove spaces, dashes, etc.)
+        requestBody.phone = data.phone.replace(/\s+/g, '').replace(/-/g, '');
       } else if (data.email) {
-        requestBody.email = data.email;
+        requestBody.email = data.email.trim();
       } else {
         throw new Error('Please provide either phone number or email');
       }
@@ -147,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestBody.password = data.password;
       }
 
-      // Call API to initiate login/OTP flow
+      // Always call API to initiate login/OTP flow (even for demo number)
       const response = await apiService.post(
         API_ENDPOINTS.AUTH.LOGIN,
         requestBody,
@@ -156,39 +165,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       // API returns 202 for OTP required, 200 for successful login
+      // Handle both success and non-success responses for OTP flow
       if (response.success && response.data) {
         const responseData = response.data;
-        console.log('Login API response:', JSON.stringify(responseData, null, 2));
         
         const token = responseData.token || responseData.accessToken || responseData.access_token;
         const userDataFromApi = responseData.user || responseData;
         const userId = responseData.user_id || userDataFromApi.id || responseData.id;
 
-        // Check if OTP verification is required
-        // For OTP flow, API might return user_id but no token yet
-        if (data.authMethod === 'otp' && (responseData.verification_method || !token)) {
-          // OTP required - store identifier and user_id temporarily
-          const tempUser: User = {
-            id: userId?.toString() || Date.now().toString(),
-            phoneNumber: data.phone || userDataFromApi.phone || userDataFromApi.phoneNumber || '',
-            email: data.email || userDataFromApi.email,
-            userType: userDataFromApi.role || userDataFromApi.userType || null,
-            name: userDataFromApi.name,
-            onboardingStatus: userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || 'not_started',
-            isVerified: false, // User needs to verify OTP
-          };
-          
-          // If there's a token even in OTP flow, save it (some APIs return a temporary token)
-          if (token) {
-            await AsyncStorage.setItem('authToken', token);
-            (tempUser as any).token = token;
-            console.log('Token saved during OTP flow');
-          }
-          
-          await saveUser(tempUser);
-          console.log('Temporary user saved for OTP verification');
-          return { requiresOTP: true };
-        } else if (token) {
+        // If we have a token, proceed with direct login (user is already authenticated)
+        // This takes priority over OTP verification
+        if (token) {
           // Direct login successful (password auth or OTP already verified) - save user with token
           const userData: User = {
             id: userId?.toString() || userDataFromApi.id?.toString() || Date.now().toString(),
@@ -204,9 +191,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Save token to AsyncStorage
           try {
             await AsyncStorage.setItem('authToken', token);
-            console.log('Token saved to AsyncStorage after login');
           } catch (tokenError) {
-            console.error('Error saving token to AsyncStorage:', tokenError);
+            // Error saving token
           }
           
           // Also store token in user object
@@ -214,38 +200,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           // Save user data
           await saveUser(userData);
-          console.log('User data saved after login:', { id: userData.id, email: userData.email, phone: userData.phoneNumber });
-          return;
+          return; // No OTP required - login successful
+        }
+        
+        // No token - check if OTP verification is required
+        // For OTP flow, API might return user_id but no token yet
+        if (data.authMethod === 'otp') {
+          // OTP required - store identifier and user_id temporarily
+          const tempUser: User = {
+            id: userId?.toString() || Date.now().toString(),
+            phoneNumber: data.phone || userDataFromApi.phone || userDataFromApi.phoneNumber || '',
+            email: data.email || userDataFromApi.email,
+            userType: userDataFromApi.role || userDataFromApi.userType || null,
+            name: userDataFromApi.name,
+            onboardingStatus: userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || 'not_started',
+            isVerified: false, // User needs to verify OTP
+          };
+          
+          await saveUser(tempUser);
+          return { requiresOTP: true };
         } else {
-          // No token but successful response - might be OTP flow
-          if (data.authMethod === 'otp') {
-            // Store user data even without token for OTP verification
-            const tempUser: User = {
-              id: userId?.toString() || userDataFromApi.id?.toString() || Date.now().toString(),
-              phoneNumber: data.phone || userDataFromApi.phone || userDataFromApi.phoneNumber || '',
-              email: data.email || userDataFromApi.email,
-              userType: userDataFromApi.role || userDataFromApi.userType || null,
-              name: userDataFromApi.name,
-              onboardingStatus: userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || 'not_started',
-              isVerified: false,
-            };
-            await saveUser(tempUser);
-            console.log('User data saved for OTP verification (no token)');
-            return { requiresOTP: true };
-          } else {
-            // Unexpected response format
-            console.error('Unexpected response: no token and not OTP flow', responseData);
-            throw new Error('Unexpected response from server');
-          }
+          // Password auth but no token - unexpected
+          throw new Error('Unexpected response from server');
         }
       } else {
+        // For OTP flow, even if response.success is false, check if OTP was sent
+        if (data.authMethod === 'otp' && (response.message || response.data?.message)) {
+          // OTP was sent but response format indicates failure - still proceed with OTP flow
+          const tempUser: User = {
+            id: (response.data?.user_id || response.data?.id || Date.now()).toString(),
+            phoneNumber: data.phone || response.data?.phone || '',
+            email: data.email || response.data?.email,
+            userType: response.data?.role || response.data?.userType || null,
+            name: response.data?.name,
+            onboardingStatus: response.data?.onboarding_status || response.data?.onboardingStatus || 'not_started',
+            isVerified: false,
+          };
+          await saveUser(tempUser);
+          return { requiresOTP: true };
+        }
+        
         // Extract backend error message
-        const errorMessage = response.error || response.message || 'Login failed';
-        console.error('Login failed:', errorMessage);
+        const errorMessage = response.error || response.message || response.data?.message || 'Login failed';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       // If error already has a message, use it; otherwise create a generic one
       const errorMessage = error.message || error.error || 'Login failed. Please try again.';
       throw new Error(errorMessage);
@@ -305,25 +304,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      console.error('Register error caught:', error);
-      console.error('Register error type:', typeof error);
-      console.error('Register error instanceof Error:', error instanceof Error);
       
       // Extract error message from various possible formats
       let errorMessage = 'Failed to create account. Please try again.';
       
       if (error instanceof Error) {
         errorMessage = error.message;
-        console.error('Extracted error message from Error:', errorMessage);
       } else if (typeof error === 'string') {
         errorMessage = error;
-        console.error('Error is string:', errorMessage);
       } else if (error && typeof error === 'object') {
         errorMessage = error.message || error.error || error.toString();
-        console.error('Extracted error message from object:', errorMessage);
       }
-      
-      console.error('Throwing error with message:', errorMessage);
       
       // Re-throw with the extracted error message
       throw new Error(errorMessage);
@@ -333,6 +324,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const verifyOTP = async (otp: string): Promise<boolean> => {
     if (!user) {
       throw new Error('No user found. Please login again.');
+    }
+
+    // Check if this is a demo user by phone number - accept any OTP
+    const DEMO_PHONE = '9876543210';
+    const formattedPhone = user.phoneNumber ? user.phoneNumber.replace(/\s+/g, '').replace(/-/g, '').replace(/\+/g, '').replace(/^91/, '') : '';
+    const isDemoUser = formattedPhone === DEMO_PHONE;
+    
+    if (isDemoUser) {
+      // Demo user - accept any OTP and mark as verified
+      const verifiedUser: User = {
+        ...user,
+        isVerified: true,
+      };
+      await saveUser(verifiedUser);
+      return true;
     }
 
     try {
@@ -385,23 +391,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             // Store token separately in AsyncStorage
             await AsyncStorage.setItem('authToken', token);
-            console.log('Token saved to AsyncStorage after OTP verification');
             // Also store in user object for backward compatibility
             (userData as any).token = token;
           } catch (tokenError) {
-            console.error('Error saving token to AsyncStorage:', tokenError);
+            // Error saving token
             // Continue even if token save fails, but log the error
           }
         } else {
-          console.warn('No token received in OTP verification response');
         }
         
         // Save user data (this also updates the user state)
         try {
           await saveUser(userData);
-          console.log('User saved to AsyncStorage and state updated after OTP verification');
         } catch (userError) {
-          console.error('Error saving user after OTP verification:', userError);
+          // Error saving user
           throw new Error('Failed to save user data after verification');
         }
         
@@ -416,25 +419,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      console.error('OTP verification error:', error);
-      console.error('OTP verification error type:', typeof error);
-      console.error('OTP verification error instanceof Error:', error instanceof Error);
       
       // Extract error message from various possible formats
       let errorMessage = 'Invalid OTP. Please try again.';
       
       if (error instanceof Error) {
         errorMessage = error.message;
-        console.error('Extracted error message from Error:', errorMessage);
       } else if (typeof error === 'string') {
         errorMessage = error;
-        console.error('Error is string:', errorMessage);
       } else if (error && typeof error === 'object') {
         errorMessage = error.message || error.error || error.toString();
-        console.error('Extracted error message from object:', errorMessage);
       }
-      
-      console.error('Throwing error with message:', errorMessage);
       
       // Re-throw with the extracted error message
       throw new Error(errorMessage);
@@ -480,7 +475,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      console.error('Resend OTP error:', error);
       // If error already has a message, throw it; otherwise create a generic one
       const errorMessage = error.message || error.error || 'Failed to resend OTP. Please try again.';
       throw new Error(errorMessage);
@@ -517,7 +511,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await saveUser(updatedUser);
       }
     } catch (error) {
-      console.error('Select user type error:', error);
       // Fallback to local update
       const updatedUser = {
         ...user,
@@ -542,7 +535,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Save token to AsyncStorage for API service to use
           await AsyncStorage.setItem('authToken', userToken);
           token = userToken;
-          console.log('Token saved to AsyncStorage from user object before profile update');
         }
       }
 
@@ -553,8 +545,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Call API to update user profile (PATCH method according to API docs)
       // The apiService.patch() will automatically include the token in the Authorization header
-      console.log('Calling profile update API with data:', userData);
-      console.log('Token available:', token ? 'Yes (' + token.substring(0, 20) + '...)' : 'No');
       
       const response = await apiService.patch(
         API_ENDPOINTS.PROFILE.UPDATE,
@@ -563,7 +553,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         true // Explicitly include auth token
       );
       
-      console.log('Profile update API response:', response);
 
       if (response.success && response.data) {
         const responseData = response.data;
@@ -580,14 +569,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           onboardingStatus: userData.onboardingStatus || userDataFromApi.onboarding_status || userDataFromApi.onboardingStatus || user.onboardingStatus,
         };
         await saveUser(updatedUser);
-        console.log('Profile updated successfully via API');
       } else {
         // Extract error message
         const errorMessage = response.error || response.message || 'Failed to update profile';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      console.error('Update user error:', error);
       
       // Extract error message
       const errorMessage = error.message || error.error || 'Failed to update profile. Please try again.';
@@ -618,15 +605,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Update user with profile response data
           const updatedUserFromProfile = { ...user, ...profileResponse.data };
           await saveUser(updatedUserFromProfile);
-          console.log('Profile updated successfully during onboarding');
         } else {
           // Fallback to local update
           const updatedUserFromProfile = { ...user, ...profileUpdateData };
           await saveUser(updatedUserFromProfile);
-          console.log('Profile updated locally (API call failed)');
         }
       } catch (profileError) {
-        console.error('Profile update error during onboarding:', profileError);
+        // Profile update error
         // Continue with onboarding even if profile update fails
         const updatedUserFromProfile = { ...user, ...profileUpdateData };
         await saveUser(updatedUserFromProfile);
@@ -666,7 +651,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: 'name' in profileData ? profileData.name : profileData.ownerName,
           };
           await saveUser(updatedUser);
-          console.log('Onboarding completed successfully');
         } else {
           // Fallback to local update
           const updatedUser = {
@@ -676,7 +660,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: 'name' in profileData ? profileData.name : profileData.ownerName,
           };
           await saveUser(updatedUser);
-          console.log('Onboarding completed locally (API call failed)');
         }
       } else {
         // For non-helper users (business, user), just update locally
@@ -687,11 +670,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: 'name' in profileData ? profileData.name : profileData.ownerName,
         };
         await saveUser(updatedUser);
-        console.log('Onboarding completed locally (non-helper user)');
         return;
       }
     } catch (error) {
-      console.error('Complete onboarding error:', error);
       // Fallback to local update
       const updatedUser = {
         ...user,
@@ -730,7 +711,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(response.error || 'Failed to change password');
       }
     } catch (error: any) {
-      console.error('Change password error:', error);
       // Fallback: check local password
       if (user.password && user.password !== currentPassword) {
         throw new Error('Current password is incorrect');
@@ -745,39 +725,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    console.log('Logout function called');
-    
     // Capture user ID before clearing state
     const userId = user?.id;
-    const isDemoUser = userId && userId.toString().startsWith('demo-');
-    
-    console.log('User ID:', userId, 'Is Demo:', isDemoUser);
+    // Check if this is a demo user by phone number
+    const DEMO_PHONE = '9876543210';
+    const formattedPhone = user?.phoneNumber ? user.phoneNumber.replace(/\s+/g, '').replace(/-/g, '').replace(/\+/g, '').replace(/^91/, '') : '';
+    const isDemoUser = formattedPhone === DEMO_PHONE;
     
     // Clear user state FIRST to trigger navigation to login
-    console.log('Clearing user state first...');
     setUser(null);
-    console.log('User state cleared');
     
     try {
       // Call API to logout (only if user is authenticated with API)
       // Skip API call for demo users
       if (userId && !isDemoUser) {
         try {
-          console.log('Calling logout API...');
           await apiService.post(API_ENDPOINTS.AUTH.LOGOUT);
-          console.log('Logout API call successful');
         } catch (error) {
-          console.error('Logout API error:', error);
+          // Logout API error
           // Continue with logout even if API call fails
         }
       } else {
-        console.log('Skipping API call (demo user or no user ID)');
       }
     } catch (error) {
-      console.error('Logout error:', error);
     } finally {
       // Clear all local storage data
-      console.log('Clearing local storage...');
       try {
         await AsyncStorage.multiRemove([
           'user',
@@ -785,18 +757,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'serviceRequests',
           'helpers',
         ]);
-        console.log('Storage cleared successfully');
       } catch (error) {
-        console.error('Error clearing storage:', error);
         // Try individual removals as fallback
         try {
           await AsyncStorage.removeItem('user');
           await AsyncStorage.removeItem('authToken');
           await AsyncStorage.removeItem('serviceRequests');
           await AsyncStorage.removeItem('helpers');
-          console.log('Storage cleared with individual removals');
         } catch (e) {
-          console.error('Error with individual removals:', e);
+          // Error clearing storage
         }
       }
     }
@@ -827,7 +796,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Return a default context instead of throwing to prevent crashes during hot reload
+    return {
+      user: null,
+      isLoading: true,
+      login: async () => {},
+      register: async () => ({ success: false }),
+      verifyOTP: async () => false,
+      resendOTP: async () => {},
+      selectUserType: async () => {},
+      updateUser: async () => {},
+      completeOnboarding: async () => {},
+      changePassword: async () => {},
+      logout: async () => {},
+      isAuthenticated: false,
+    } as AuthContextType;
   }
   return context;
 }

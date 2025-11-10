@@ -18,21 +18,17 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    console.log('Logout button clicked - starting immediate logout');
     try {
       // Navigate first to ensure we get to login screen
-      console.log('Navigating to login screen first...');
       router.replace('/auth/phone-login');
       
       // Small delay to let navigation start
       await new Promise(resolve => setTimeout(resolve, 50));
       
       // Then call logout function to clear state and storage
-      console.log('Calling logout function...');
       await logout();
-      console.log('Logout function completed');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Logout error
       // Force navigation even if logout fails
       router.replace('/auth/phone-login');
     }
@@ -126,7 +122,6 @@ export default function ProfileScreen() {
               key={item.id}
               style={styles.menuItem}
               onPress={() => {
-                console.log('Menu item pressed:', item.id);
                 if (item.onPress) {
                   item.onPress();
                 }

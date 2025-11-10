@@ -7,8 +7,8 @@ import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppProvider } from '@/contexts/AppContext';
 
-// Suppress browser extension errors
-if (typeof window !== 'undefined') {
+// Suppress browser extension errors (web only)
+if (typeof window !== 'undefined' && typeof window.onerror !== 'undefined') {
   const originalError = window.onerror;
   window.onerror = function(message, source, lineno, colno, error) {
     // Suppress errors from browser extension content scripts
@@ -33,50 +33,55 @@ if (typeof window !== 'undefined') {
     return false;
   };
 
-  // Also handle unhandled promise rejections
-  const originalUnhandledRejection = window.onunhandledrejection;
-  window.onunhandledrejection = function(event) {
-    if (
-      event.reason &&
-      typeof event.reason === 'object' &&
-      event.reason.message &&
-      (event.reason.message.includes('content_script.js') ||
-       event.reason.message.includes('Cannot read properties of undefined') ||
-       event.reason.message.includes("reading 'control'") ||
-       event.reason.message.includes('ControlLooksLikePasswordCredentialField') ||
-       event.reason.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
-       event.reason.message.includes('ControlLooksLikeOneTimeCodeField') ||
-       event.reason.message.includes('ControlUniqueID') ||
-       event.reason.message.includes('ControlIsLabeledUsernameField'))
-    ) {
-      event.preventDefault(); // Suppress the error
-      return;
-    }
-    // Call original handler if it exists
-    if (originalUnhandledRejection) {
-      return originalUnhandledRejection.call(this, event);
-    }
-  };
+  // Also handle unhandled promise rejections (web only)
+  if (typeof window.onunhandledrejection !== 'undefined') {
+    const originalUnhandledRejection = window.onunhandledrejection;
+    window.onunhandledrejection = function(event) {
+      if (
+        event.reason &&
+        typeof event.reason === 'object' &&
+        event.reason.message &&
+        (event.reason.message.includes('content_script.js') ||
+         event.reason.message.includes('Cannot read properties of undefined') ||
+         event.reason.message.includes("reading 'control'") ||
+         event.reason.message.includes('ControlLooksLikePasswordCredentialField') ||
+         event.reason.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
+         event.reason.message.includes('ControlLooksLikeOneTimeCodeField') ||
+         event.reason.message.includes('ControlUniqueID') ||
+         event.reason.message.includes('ControlIsLabeledUsernameField'))
+      ) {
+        event.preventDefault(); // Suppress the error
+        return;
+      }
+      // Call original handler if it exists
+      if (originalUnhandledRejection) {
+        return originalUnhandledRejection.call(this, event);
+      }
+    };
+  }
 
   // Add global error event listener for more comprehensive error catching
-  window.addEventListener('error', function(event) {
-    if (
-      event.message &&
-      (event.message.includes('content_script.js') ||
-       event.message.includes('Cannot read properties of undefined') ||
-       event.message.includes("reading 'control'") ||
-       event.message.includes('ControlLooksLikePasswordCredentialField') ||
-       event.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
-       event.message.includes('ControlLooksLikeOneTimeCodeField') ||
-       event.message.includes('ControlUniqueID') ||
-       event.message.includes('ControlIsLabeledUsernameField') ||
-       event.filename?.includes('content_script.js'))
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      return false;
-    }
-  }, true); // Use capture phase to catch errors early
+  // Only add event listener if window.addEventListener exists (web only)
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('error', function(event: ErrorEvent) {
+      if (
+        event.message &&
+        (event.message.includes('content_script.js') ||
+         event.message.includes('Cannot read properties of undefined') ||
+         event.message.includes("reading 'control'") ||
+         event.message.includes('ControlLooksLikePasswordCredentialField') ||
+         event.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
+         event.message.includes('ControlLooksLikeOneTimeCodeField') ||
+         event.message.includes('ControlUniqueID') ||
+         event.message.includes('ControlIsLabeledUsernameField') ||
+         event.filename?.includes('content_script.js'))
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    }, true); // Use capture phase to catch errors early
+  }
 }
 
 export const unstable_settings = {
@@ -93,7 +98,6 @@ function RootLayoutNav() {
 
     // Ensure router is available
     if (!router) {
-      console.warn('Router not available');
       return;
     }
 
@@ -107,18 +111,24 @@ function RootLayoutNav() {
         try {
           router.replace('/auth/phone-login');
         } catch (error) {
-          console.error('Navigation error:', error);
+          // Navigation error
         }
       }
     }
     // If user exists but is not verified, redirect to OTP verify screen
+    // But ONLY if we're not on login/signup screens (allow users to login fresh)
     else if (user && user.isVerified === false) {
+      // Don't redirect if user is on login or signup screens - let them login fresh
+      if (currentPath === 'auth/phone-login' || currentPath === 'auth/signup') {
+        // User is on login/signup screen - don't redirect, let them login
+        return;
+      }
       // Only navigate if we're not already on the OTP verify screen
       if (currentPath !== 'auth/otp-verify') {
         try {
           router.replace('/auth/otp-verify');
         } catch (error) {
-          console.error('Navigation error:', error);
+          // Navigation error
         }
       }
     }
@@ -135,7 +145,7 @@ function RootLayoutNav() {
           router.replace('/auth/user-type');
         }
       } catch (error) {
-        console.error('Navigation error:', error);
+        // Navigation error
       }
     }
     // If user exists and is verified but not in auth group, and is in tabs, that's fine
@@ -144,7 +154,7 @@ function RootLayoutNav() {
       try {
         router.replace('/auth/otp-verify');
       } catch (error) {
-        console.error('Navigation error:', error);
+        // Navigation error
       }
     }
   }, [user, isLoading, segments, router]);
@@ -168,6 +178,7 @@ function RootLayoutNav() {
             <Stack.Screen name="privacy" options={{ headerShown: false }} />
             <Stack.Screen name="about" options={{ headerShown: false }} />
             <Stack.Screen name="requests/create" options={{ headerShown: false }} />
+            <Stack.Screen name="requests/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );

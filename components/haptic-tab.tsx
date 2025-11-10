@@ -18,7 +18,7 @@ export function HapticTab(props: BottomTabBarButtonProps) {
       }
       onPressIn?.(ev);
     } catch (error) {
-      console.error('HapticTab error:', error);
+      // HapticTab error
       onPressIn?.(ev);
     }
   };

@@ -123,7 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
     } catch (error) {
-      console.error('Error loading app data:', error);
+      // Error loading app data
       // Fallback to local storage
       try {
         const requests = await AsyncStorage.getItem('serviceRequests');
@@ -150,7 +150,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setHelpers([]);
         }
       } catch (localError) {
-        console.error('Error loading from local storage:', localError);
+        // Error loading from local storage
       }
     }
   };
@@ -214,7 +214,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
       }
     } catch (error) {
-      console.error('Add service request error:', error);
+      // Add service request error
       // Fallback to local creation
       const newRequest: ServiceRequest = {
         ...requestData,
@@ -255,7 +255,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
       }
     } catch (error) {
-      console.error('Apply to service request error:', error);
+      // Apply to service request error
       // Fallback to local update
       const updated = serviceRequests.map((req) =>
         req.id === requestId
@@ -286,7 +286,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
+    // Return a default context instead of throwing to prevent crashes during hot reload
+    return {
+      serviceRequests: [],
+      helpers: [],
+      addServiceRequest: async () => {},
+      applyToServiceRequest: async () => {},
+      getServiceRequests: () => [],
+      getHelpers: () => [],
+    } as AppContextType;
   }
   return context;
 }

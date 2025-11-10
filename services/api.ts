@@ -35,7 +35,6 @@ class ApiService {
       // First, check for token stored separately
       const authToken = await AsyncStorage.getItem('authToken');
       if (authToken) {
-        console.log('Token found in authToken key');
         return authToken;
       }
       
@@ -46,7 +45,6 @@ class ApiService {
           const user = JSON.parse(userData);
           const token = user.token || null;
           if (token) {
-            console.log('Token found in user object, saving to authToken key');
             // Save token to separate key for future use
             const existing = await AsyncStorage.getItem('authToken');
             if (!existing) {
@@ -55,14 +53,13 @@ class ApiService {
             return token;
           }
         } catch (parseError) {
-          console.error('Error parsing user data:', parseError);
+          // Error parsing user data
         }
       }
       
-      console.warn('No token found in storage');
       return null;
     } catch (error) {
-      console.error('Error getting auth token:', error);
+      // Error getting auth token
       return null;
     }
   }
@@ -80,12 +77,7 @@ class ApiService {
       const token = await this.getAuthToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log('Authorization header added with token:', token.substring(0, 20) + '...');
-      } else {
-        console.warn('No token available for Authorization header');
       }
-    } else {
-      console.log('Auth not included in headers (includeAuth=false)');
     }
 
     return headers;
@@ -112,7 +104,7 @@ class ApiService {
         }
       }
     } catch (error) {
-      console.error('Error parsing response:', error);
+      // Error parsing response
       data = {};
     }
 
@@ -183,7 +175,7 @@ class ApiService {
 
       return await this.handleResponse<T>(response);
     } catch (error: any) {
-      console.error('GET request error:', error);
+      // GET request error
       return {
         success: false,
         error: error.message || 'Network error occurred',
@@ -212,7 +204,7 @@ class ApiService {
 
       return await this.handleResponse<T>(response);
     } catch (error: any) {
-      console.error('POST request error:', error);
+      // POST request error
       return {
         success: false,
         error: error.message || 'Network error occurred',
@@ -241,7 +233,7 @@ class ApiService {
 
       return await this.handleResponse<T>(response);
     } catch (error: any) {
-      console.error('PUT request error:', error);
+      // PUT request error
       return {
         success: false,
         error: error.message || 'Network error occurred',
@@ -270,7 +262,7 @@ class ApiService {
 
       return await this.handleResponse<T>(response);
     } catch (error: any) {
-      console.error('PATCH request error:', error);
+      // PATCH request error
       return {
         success: false,
         error: error.message || 'Network error occurred',
@@ -297,7 +289,7 @@ class ApiService {
 
       return await this.handleResponse<T>(response);
     } catch (error: any) {
-      console.error('DELETE request error:', error);
+      // DELETE request error
       return {
         success: false,
         error: error.message || 'Network error occurred',

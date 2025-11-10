@@ -8,6 +8,7 @@ import {
   TextInput,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,9 @@ import { useApp } from '@/contexts/AppContext';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { apiService } from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api';
+import { ServiceRequest } from '@/contexts/AuthContext';
 
 const SERVICES = [
   { id: '1', name: 'Cleaning', icon: '🧹', color: '#E3F2FD' },
@@ -30,6 +34,8 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { getServiceRequests, applyToServiceRequest } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+  const [myServiceRequests, setMyServiceRequests] = useState<ServiceRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const serviceRequests = getServiceRequests();
 
   // For helpers/businesses, redirect directly to requests tab
@@ -38,6 +44,71 @@ export default function HomeScreen() {
       router.replace('/(tabs)/requests');
     }
   }, [user?.userType, router]);
+
+  // Fetch user's own service requests (bookings) from API
+  useEffect(() => {
+    if (user?.userType === 'user' && user?.id) {
+      loadMyServiceRequests();
+    }
+  }, [user?.id, user?.userType]);
+
+  const loadMyServiceRequests = async () => {
+    try {
+      setIsLoadingRequests(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.BOOKINGS.LIST,
+        undefined,
+        undefined,
+        true // Requires authentication
+      );
+
+      if (response.success && response.data) {
+        let rawBookings = [];
+        
+        // Handle different response formats
+        if (response.data.bookings) {
+          rawBookings = Array.isArray(response.data.bookings.data)
+            ? response.data.bookings.data
+            : (Array.isArray(response.data.bookings) ? response.data.bookings : []);
+        } else if (Array.isArray(response.data)) {
+          rawBookings = response.data;
+        } else if (response.data.data) {
+          rawBookings = Array.isArray(response.data.data) ? response.data.data : [];
+        }
+
+        // Map API booking format to app ServiceRequest format
+        const requests: ServiceRequest[] = rawBookings.map((booking: any) => ({
+          id: booking.id?.toString() || Date.now().toString(),
+          userId: booking.user_id?.toString() || booking.user?.id?.toString() || user?.id || '',
+          userName: booking.user?.name || booking.name || user?.name || 'Unknown',
+          serviceName: booking.service_type
+            ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
+            : booking.service_name || 'Service',
+          description: booking.special_requirements || booking.description || '',
+          location: booking.area || booking.location || '',
+          budget: booking.monthly_rate || booking.budget || booking.price,
+          status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
+          createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
+          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
+                     booking.applicants ||
+                     [],
+        }));
+
+        setMyServiceRequests(requests);
+      } else {
+        // Fallback to context data
+        const contextRequests = serviceRequests.filter((r) => r.userId === user?.id);
+        setMyServiceRequests(contextRequests);
+      }
+    } catch (error) {
+      // Error loading my service requests
+      // Fallback to context data
+      const contextRequests = serviceRequests.filter((r) => r.userId === user?.id);
+      setMyServiceRequests(contextRequests);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
 
   // If helper/business, show loading while redirecting
   if (user?.userType === 'helper' || user?.userType === 'business') {
@@ -268,24 +339,39 @@ export default function HomeScreen() {
             </View>
 
             {/* My Service Requests */}
-            {serviceRequests.filter((r) => r.userId === user?.id).length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <ThemedText type="subtitle" style={styles.sectionTitle}>
-                    My Service Requests
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle" style={styles.sectionTitle}>
+                  My Service Requests
+                </ThemedText>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
+                  <ThemedText style={styles.seeAll}>See All</ThemedText>
+                </TouchableOpacity>
+              </View>
+              {isLoadingRequests ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#007AFF" />
+                  <ThemedText style={styles.loadingText}>Loading requests...</ThemedText>
+                </View>
+              ) : myServiceRequests.length > 0 ? (
+                myServiceRequests.slice(0, 3).map((request) => (
+                  <View key={request.id}>{renderRequestCard(request)}</View>
+                ))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
+                  <ThemedText style={styles.emptyCardText}>
+                    You haven't created any service requests yet
                   </ThemedText>
-                  <TouchableOpacity onPress={() => router.push('/requests')}>
-                    <ThemedText style={styles.seeAll}>See All</ThemedText>
+                  <TouchableOpacity
+                    style={styles.createRequestButton}
+                    onPress={() => router.push('/requests/create')}
+                  >
+                    <Text style={styles.createRequestButtonText}>Create Your First Request</Text>
                   </TouchableOpacity>
                 </View>
-                {serviceRequests
-                  .filter((r) => r.userId === user?.id)
-                  .slice(0, 3)
-                  .map((request) => (
-                    <View key={request.id}>{renderRequestCard(request)}</View>
-                  ))}
-              </View>
-            )}
+              )}
+            </View>
           </>
         )}
 
@@ -605,9 +691,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   loadingContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 100,
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    opacity: 0.6,
+    color: '#666',
+  },
+  createRequestButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  createRequestButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  FlatList,
   Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -16,67 +15,40 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-// Mock data for helpers and businesses
-const MOCK_HELPERS = [
-  {
-    id: '1',
-    name: 'Fatima Ali',
-    service: 'Cooking',
-    rating: 4.8,
-    reviews: 127,
-    price: 15000,
-    location: 'Karachi',
-    distance: '2.3 km',
-    experience: '5 years',
-    bio: 'Expert in Pakistani cuisine and traditional dishes',
-  },
-  {
-    id: '2',
-    name: 'Ahmed Khan',
-    service: 'Cleaning',
-    rating: 4.9,
-    reviews: 203,
-    price: 12000,
-    location: 'Lahore',
-    distance: '1.8 km',
-    experience: '7 years',
-    bio: 'Professional house cleaning with eco-friendly products',
-  },
-  {
-    id: '3',
-    name: 'Ayesha Malik',
-    service: 'Babysitting',
-    rating: 4.7,
-    reviews: 89,
-    price: 20000,
-    location: 'Islamabad',
-    distance: '3.5 km',
-    experience: '8 years',
-    bio: 'Experienced babysitter with first aid certification',
-  },
-];
-
-const MOCK_BUSINESSES = [
-  {
-    id: '1',
-    name: 'HomeCare Services',
-    service: 'All-Rounder',
-    rating: 4.6,
-    reviews: 76,
-    price: 18000,
-    location: 'Karachi',
-    distance: '4.2 km',
-    bio: 'Professional home care services',
-  },
-];
+interface Helper {
+  id: string | number;
+  name?: string;
+  user?: {
+    id: string | number;
+    name?: string;
+    email?: string;
+  };
+  bio?: string;
+  experience_years?: number;
+  services?: Array<{
+    id?: string | number;
+    service_type?: string;
+    monthly_rate?: number;
+    location_id?: number;
+    location?: {
+      id?: number;
+      name?: string;
+    };
+    area?: string;
+  }>;
+  area?: string;
+  rating?: number;
+  reviews_count?: number;
+  profile_image?: string;
+}
 
 export default function ExploreScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { getServiceRequests } = useApp();
+  const { getHelpers } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'helpers' | 'businesses'>('all');
-  const serviceRequests = getServiceRequests();
+  const helpers = getHelpers();
   
   // Get service filter from route params
   const routeParams = useLocalSearchParams();
@@ -99,103 +71,143 @@ export default function ExploreScreen() {
     );
   }
 
+  // Helper function to get helper name
+  const getHelperName = (helper: Helper) => {
+    return helper.name || helper.user?.name || 'Unknown';
+  };
+
+  // Helper function to get helper ID
+  const getHelperId = (helper: Helper) => {
+    return helper.id?.toString() || helper.user?.id?.toString() || '';
+  };
+
+  // Helper function to get primary service
+  const getPrimaryService = (helper: Helper) => {
+    if (helper.services && helper.services.length > 0) {
+      const serviceType = helper.services[0].service_type || '';
+      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+    }
+    return 'Helper';
+  };
+
+  // Helper function to get price
+  const getPrice = (helper: Helper) => {
+    if (helper.services && helper.services.length > 0) {
+      return helper.services[0].monthly_rate || 0;
+    }
+    return 0;
+  };
+
+  // Helper function to get location
+  const getLocation = (helper: Helper) => {
+    if (helper.services && helper.services.length > 0) {
+      const service = helper.services[0];
+      const locationName = service.location?.name || '';
+      const area = service.area || helper.area || '';
+      
+      if (locationName && area) {
+        return `${locationName}, ${area}`;
+      } else if (locationName) {
+        return locationName;
+      } else if (area) {
+        return area;
+      }
+      return 'Location not specified';
+    }
+    // Check if area is at helper level
+    if (helper.area) {
+      return helper.area;
+    }
+    return 'Location not specified';
+  };
+
   // For users/customers - show helpers and businesses
-  const renderHelperCard = (item: typeof MOCK_HELPERS[0]) => (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.card}
-      onPress={() => router.push(`/profile/helper/${item.id}` as any)}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(item.name || 'U').charAt(0).toUpperCase()}</Text>
-        </View>
-        <View style={styles.cardInfo}>
-          <ThemedText type="subtitle" style={styles.cardName}>
-            {item.name}
-          </ThemedText>
-          <ThemedText style={styles.cardService}>{item.service}</ThemedText>
-          <View style={styles.ratingContainer}>
-            <IconSymbol name="star.fill" size={14} color="#FFC107" />
-            <ThemedText style={styles.rating}>{item.rating}</ThemedText>
-            <ThemedText style={styles.reviews}>({item.reviews} reviews)</ThemedText>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.contactButton}
-          onPress={() => router.push(`/chat/${item.id}`)}
-        >
-          <IconSymbol name="message.fill" size={20} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
-      <ThemedText style={styles.cardBio} numberOfLines={2}>
-        {item.bio}
-      </ThemedText>
-      <View style={styles.cardFooter}>
-        <View style={styles.locationContainer}>
-          <IconSymbol name="location.fill" size={14} color="#999" />
-          <ThemedText style={styles.location}>{item.distance} away</ThemedText>
-        </View>
-        <ThemedText style={styles.price}>₨{item.price}/month</ThemedText>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderHelperCard = (item: Helper) => {
+    const helperId = getHelperId(item);
+    const helperName = getHelperName(item);
+    const service = getPrimaryService(item);
+    const price = getPrice(item);
+    const location = getLocation(item);
+    const rating = typeof item.rating === 'number' ? item.rating : (typeof item.rating === 'string' ? parseFloat(item.rating) : 0);
+    const reviewsCount = typeof item.reviews_count === 'number' ? item.reviews_count : (typeof item.reviews_count === 'string' ? parseInt(item.reviews_count, 10) : 0);
+    const bio = item.bio || 'No bio available';
+    const experience = item.experience_years ? `${item.experience_years} years` : '';
 
-  const renderBusinessCard = (item: typeof MOCK_BUSINESSES[0]) => (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.card}
-      onPress={() => router.push(`/profile/business/${item.id}` as any)}
-    >
-      <View style={styles.cardHeader}>
-        <View style={[styles.avatar, { backgroundColor: '#FFF3E0' }]}>
-          <Text style={styles.avatarText}>🏢</Text>
-        </View>
-        <View style={styles.cardInfo}>
-          <ThemedText type="subtitle" style={styles.cardName}>
-            {item.name}
-          </ThemedText>
-          <ThemedText style={styles.cardService}>{item.service}</ThemedText>
-          <View style={styles.ratingContainer}>
-            <IconSymbol name="star.fill" size={14} color="#FFC107" />
-            <ThemedText style={styles.rating}>{item.rating}</ThemedText>
-            <ThemedText style={styles.reviews}>({item.reviews} reviews)</ThemedText>
+    return (
+      <TouchableOpacity
+        key={helperId}
+        style={styles.card}
+        onPress={() => router.push(`/profile/helper/${helperId}` as any)}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.avatar}>
+            {item.profile_image ? (
+              <Image source={{ uri: item.profile_image }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{helperName.charAt(0).toUpperCase()}</Text>
+            )}
           </View>
+          <View style={styles.cardInfo}>
+            <ThemedText type="subtitle" style={styles.cardName}>
+              {helperName}
+            </ThemedText>
+            <ThemedText style={styles.cardService}>{service}</ThemedText>
+            {experience && (
+              <ThemedText style={styles.experience}>{experience} experience</ThemedText>
+            )}
+            <View style={styles.ratingContainer}>
+              <IconSymbol name="star.fill" size={14} color="#FFC107" />
+              <ThemedText style={styles.rating}>
+                {isNaN(rating) ? '0.0' : rating.toFixed(1)}
+              </ThemedText>
+              {reviewsCount > 0 && (
+                <ThemedText style={styles.reviews}>({reviewsCount} reviews)</ThemedText>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.contactButton}
+            onPress={() => router.push(`/chat/${helperId}`)}
+          >
+            <IconSymbol name="message.fill" size={20} color="#007AFF" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.contactButton}
-          onPress={() => router.push(`/chat/${item.id}`)}
-        >
-          <IconSymbol name="message.fill" size={20} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
-      <ThemedText style={styles.cardBio} numberOfLines={2}>
-        {item.bio}
-      </ThemedText>
-      <View style={styles.cardFooter}>
-        <View style={styles.locationContainer}>
-          <IconSymbol name="location.fill" size={14} color="#999" />
-          <ThemedText style={styles.location}>{item.distance} away</ThemedText>
+        <ThemedText style={styles.cardBio} numberOfLines={2}>
+          {bio}
+        </ThemedText>
+        <View style={styles.cardFooter}>
+          <View style={styles.locationContainer}>
+            <IconSymbol name="location.fill" size={14} color="#999" />
+            <ThemedText style={styles.location}>{location}</ThemedText>
+          </View>
+          {price > 0 && (
+            <ThemedText style={styles.price}>₨{price.toLocaleString()}/month</ThemedText>
+          )}
         </View>
-        <ThemedText style={styles.price}>₨{item.price}/month</ThemedText>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
-  // Filter helpers and businesses based on search query and service filter
-  const filteredHelpers = MOCK_HELPERS.filter((h) => {
-    const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      h.service.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesService = !serviceFilter || h.service.toLowerCase() === serviceFilter.toLowerCase();
+  // Filter helpers based on search query and service filter
+  const filteredHelpers = helpers.filter((h: Helper) => {
+    const helperName = getHelperName(h).toLowerCase();
+    const service = getPrimaryService(h).toLowerCase();
+    const bio = (h.bio || '').toLowerCase();
+    
+    const matchesSearch = searchQuery.trim() === '' ||
+      helperName.includes(searchQuery.toLowerCase()) ||
+      service.includes(searchQuery.toLowerCase()) ||
+      bio.includes(searchQuery.toLowerCase());
+    
+    const matchesService = !serviceFilter || 
+      service.includes(serviceFilter.toLowerCase()) ||
+      serviceFilter.toLowerCase().includes(service);
+    
     return matchesSearch && matchesService;
   });
 
-  const filteredBusinesses = MOCK_BUSINESSES.filter((b) => {
-    const matchesSearch = b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.service.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesService = !serviceFilter || b.service.toLowerCase() === serviceFilter.toLowerCase();
-    return matchesSearch && matchesService;
-  });
+  // For now, businesses are empty (removed from app)
+  const filteredBusinesses: any[] = [];
 
   return (
     <ThemedView style={styles.container}>
@@ -267,7 +279,18 @@ export default function ExploreScreen() {
               <ThemedText type="subtitle" style={styles.sectionTitle}>
                 Helpers ({filteredHelpers.length})
               </ThemedText>
-              {filteredHelpers.map(renderHelperCard)}
+              {filteredHelpers.length > 0 ? (
+                filteredHelpers.map((helper: Helper) => renderHelperCard(helper))
+              ) : (
+                <View style={styles.emptyState}>
+                  <IconSymbol name="person.fill" size={48} color="#CCCCCC" />
+                  <ThemedText style={styles.emptyText}>
+                    {searchQuery.trim() || serviceFilter
+                      ? 'No helpers found matching your search'
+                      : 'No helpers available at the moment'}
+                  </ThemedText>
+                </View>
+              )}
             </View>
           )}
 
@@ -276,7 +299,18 @@ export default function ExploreScreen() {
               <ThemedText type="subtitle" style={styles.sectionTitle}>
                 Businesses ({filteredBusinesses.length})
               </ThemedText>
-              {filteredBusinesses.map(renderBusinessCard)}
+              {filteredBusinesses.length > 0 ? (
+                filteredBusinesses.map((business: any) => (
+                  <View key={business.id} style={styles.emptyState}>
+                    <ThemedText style={styles.emptyText}>Businesses coming soon</ThemedText>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <IconSymbol name="building.2.fill" size={48} color="#CCCCCC" />
+                  <ThemedText style={styles.emptyText}>No businesses available</ThemedText>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -529,20 +563,35 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   emptyState: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
   emptyText: {
     fontSize: 16,
     opacity: 0.6,
     marginTop: 16,
+    textAlign: 'center',
   },
   loadingContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 100,
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    opacity: 0.6,
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  experience: {
+    fontSize: 12,
+    opacity: 0.6,
+    marginBottom: 4,
   },
 });

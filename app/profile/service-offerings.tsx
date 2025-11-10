@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, ServiceOffering } from '@/contexts/AuthContext';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { apiService } from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api';
 
 const SERVICE_CATEGORIES = [
   'Cleaning',
@@ -26,6 +29,20 @@ const SERVICE_CATEGORIES = [
 
 const LOCATIONS = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad'];
 
+interface ServiceListing {
+  id: string | number;
+  service_type?: string;
+  monthly_rate?: number;
+  description?: string;
+  location?: {
+    id?: number;
+    name?: string;
+  };
+  location_id?: number;
+  area?: string;
+  work_type?: string;
+}
+
 export default function ServiceOfferingsScreen() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
@@ -35,9 +52,57 @@ export default function ServiceOfferingsScreen() {
   const [price, setPrice] = useState('');
   const [priceUnit, setPriceUnit] = useState<'hour' | 'day' | 'month'>('month');
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [serviceListings, setServiceListings] = useState<ServiceListing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch service listings from API
+  useEffect(() => {
+    loadServiceListings();
+  }, []);
+
+  const loadServiceListings = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.SERVICE_LISTINGS.MY_LISTINGS,
+        undefined,
+        undefined,
+        true // Requires authentication
+      );
+
+      if (response.success && response.data) {
+        let listings: ServiceListing[] = [];
+        
+        // Handle different response formats
+        if (response.data.service_listings) {
+          listings = Array.isArray(response.data.service_listings.data)
+            ? response.data.service_listings.data
+            : (Array.isArray(response.data.service_listings) ? response.data.service_listings : []);
+        } else if (Array.isArray(response.data)) {
+          listings = response.data;
+        } else if (response.data.data) {
+          listings = Array.isArray(response.data.data) ? response.data.data : [];
+        }
+        
+        setServiceListings(listings);
+      } else {
+        setServiceListings([]);
+      }
+    } catch (error) {
+      // Error loading service listings
+      setServiceListings([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fallback to local profile data if API fails
   const profileData = user?.profileData as any;
-  const serviceOfferings = profileData?.serviceOfferings || [];
+  const localServiceOfferings = profileData?.serviceOfferings || [];
+  
+  // Use API listings if available, otherwise fall back to local
+  const hasApiListings = serviceListings.length > 0;
+  const serviceOfferings = hasApiListings ? [] : localServiceOfferings;
 
   const toggleLocation = (location: string) => {
     setSelectedLocations((prev) =>
@@ -128,7 +193,56 @@ export default function ServiceOfferingsScreen() {
         </View>
 
         {/* Existing Services */}
-        {serviceOfferings.length > 0 && (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <ThemedText style={styles.loadingText}>Loading service listings...</ThemedText>
+          </View>
+        ) : hasApiListings ? (
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Your Service Listings ({serviceListings.length})
+            </ThemedText>
+            {serviceListings.map((listing: ServiceListing) => {
+              const serviceType = listing.service_type || 'Service';
+              const displayName = serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+              const location = listing.location?.name || listing.area || 'Location not specified';
+              
+              return (
+                <View key={listing.id} style={styles.serviceCard}>
+                  <View style={styles.serviceHeader}>
+                    <View style={styles.serviceInfo}>
+                      <ThemedText type="subtitle" style={styles.serviceName}>
+                        {displayName}
+                      </ThemedText>
+                      {listing.work_type && (
+                        <ThemedText style={styles.serviceCategory}>
+                          {listing.work_type.replace('_', ' ')}
+                        </ThemedText>
+                      )}
+                    </View>
+                    <TouchableOpacity onPress={() => handleDeleteService(listing.id.toString())}>
+                      <IconSymbol name="trash.fill" size={20} color="#FF3B30" />
+                    </TouchableOpacity>
+                  </View>
+                  {listing.description && (
+                    <ThemedText style={styles.serviceDescription}>{listing.description}</ThemedText>
+                  )}
+                  {listing.monthly_rate && (
+                    <ThemedText style={styles.servicePrice}>
+                      ₨{listing.monthly_rate.toLocaleString()}/month
+                    </ThemedText>
+                  )}
+                  <View style={styles.serviceLocations}>
+                    <View style={styles.locationTag}>
+                      <Text style={styles.locationTagText}>{location}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : serviceOfferings.length > 0 ? (
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Your Services ({serviceOfferings.length})
@@ -163,6 +277,12 @@ export default function ServiceOfferingsScreen() {
                 </View>
               </View>
             ))}
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <IconSymbol name="list.bullet" size={48} color="#CCCCCC" />
+            <ThemedText style={styles.emptyText}>No service listings yet</ThemedText>
+            <ThemedText style={styles.emptySubtext}>Add your first service below</ThemedText>
           </View>
         )}
 
@@ -481,6 +601,33 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    opacity: 0.6,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+    opacity: 0.7,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    opacity: 0.5,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DUMMY_PHONE = '9876543210';
 
@@ -27,6 +28,26 @@ export default function PhoneLoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+
+  // Clear unverified user data when component mounts to allow fresh login
+  useEffect(() => {
+    const clearUnverifiedUser = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          // If user is not verified, clear it to allow fresh login
+          if (parsed.isVerified === false || parsed.isVerified === undefined) {
+            await AsyncStorage.removeItem('user');
+            await AsyncStorage.removeItem('authToken');
+          }
+        }
+      } catch (error) {
+        // Error clearing storage
+      }
+    };
+    clearUnverifiedUser();
+  }, []);
 
   const handleContinue = async () => {
     // Clear any previous error
@@ -82,7 +103,9 @@ export default function PhoneLoginScreen() {
       if (authMethod === 'otp' && result?.requiresOTP) {
         router.push('/auth/otp-verify');
       }
-      // If password login is successful, navigation will be handled by AuthContext
+      // If login is successful (result is undefined and no requiresOTP), 
+      // navigation will be handled by AuthContext based on user state
+      // No need to navigate to OTP screen if login was successful with token
     } catch (error: any) {
       // Extract backend error message
       const errorMsg = error.message || error.error || 'Login failed. Please try again.';

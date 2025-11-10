@@ -46,11 +46,10 @@ export default function OnboardingStartScreen() {
           if (userToken) {
             // Save token to AsyncStorage for API service to use
             await AsyncStorage.setItem('authToken', userToken);
-            console.log('Token saved to AsyncStorage from user object');
           }
         }
       } catch (error) {
-        console.error('Error ensuring token availability:', error);
+        // Error ensuring token availability
       }
     };
 
@@ -80,7 +79,6 @@ export default function OnboardingStartScreen() {
           // Save token to AsyncStorage for API service to use
           await AsyncStorage.setItem('authToken', userToken);
           token = userToken;
-          console.log('Token saved to AsyncStorage from user object before profile update');
         }
       }
 
@@ -112,7 +110,7 @@ export default function OnboardingStartScreen() {
         router.replace('/(tabs)');
       }, 100);
     } catch (error: any) {
-      console.error('Profile update error:', error);
+      // Profile update error
       
       // Extract error message
       let extractedErrorMessage = 'Failed to update profile. Please try again.';

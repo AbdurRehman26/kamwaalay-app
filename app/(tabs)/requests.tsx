@@ -30,7 +30,7 @@ export default function RequestsScreen() {
   
   // For helpers/businesses: filter requests
   const allRequests = serviceRequests;
-  const openRequests = allRequests.filter((r) => r.status === 'open' || r.status === 'pending');
+  const openRequests = allRequests.filter((r) => r.status === 'open');
   const appliedRequests = allRequests.filter((r) => 
     r.applicants && r.applicants.includes(user?.id || '')
   );
@@ -90,70 +90,113 @@ export default function RequestsScreen() {
     router.push(`/chat/${request.userId}`);
   };
 
+  const handleContactApplicants = (request: any, event?: any) => {
+    if (event) {
+      event.stopPropagation?.();
+    }
+    if (request.applicants && request.applicants.length > 0) {
+      // Navigate to chat with the first applicant
+      router.push(`/chat/${request.applicants[0]}`);
+    } else {
+      Alert.alert('No Applicants', 'There are no applicants to contact yet.');
+    }
+  };
+
+  const handleCardPress = (requestId: string) => {
+    router.push(`/requests/${requestId}`);
+  };
+
   const renderRequestCard = (request: any) => {
     const hasApplied = request.applicants?.includes(user?.id || '');
     const isOpen = request.status === 'open';
     const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
 
     return (
-      <View key={request.id} style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardInfo}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              {request.serviceName}
-            </ThemedText>
-            {isHelperOrBusiness && (
-              <View style={styles.userInfo}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
+      <View key={request.id} style={styles.cardWrapper}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => handleCardPress(request.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardInfo}>
+              <ThemedText type="subtitle" style={styles.cardTitle}>
+                {request.serviceName}
+              </ThemedText>
+              {isHelperOrBusiness && (
+                <View style={styles.userInfo}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <ThemedText style={styles.cardUser}>{request.userName || 'Unknown'}</ThemedText>
                 </View>
-                <ThemedText style={styles.cardUser}>{request.userName || 'Unknown'}</ThemedText>
-              </View>
-            )}
-            {user?.userType === 'user' && (
-              <ThemedText style={styles.cardUser}>by {request.userName || 'Unknown'}</ThemedText>
-            )}
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-            <Text style={styles.statusText}>{request.status}</Text>
-          </View>
-        </View>
-
-        <ThemedText style={styles.cardDescription} numberOfLines={3}>
-          {request.description}
-        </ThemedText>
-
-        {isHelperOrBusiness && (
-          <View style={styles.cardDetails}>
-            <View style={styles.detailRow}>
-              <IconSymbol name="location.fill" size={16} color="#007AFF" />
-              <ThemedText style={styles.detailText}>{request.location}</ThemedText>
+              )}
+              {user?.userType === 'user' && (
+                <ThemedText style={styles.cardUser}>by {request.userName || 'Unknown'}</ThemedText>
+              )}
             </View>
-            {request.budget && (
-              <View style={styles.detailRow}>
-                <IconSymbol name="dollarsign.circle.fill" size={16} color="#007AFF" />
-                <ThemedText style={styles.detailText}>₨{request.budget}</ThemedText>
-              </View>
-            )}
-          </View>
-        )}
-
-        {!isHelperOrBusiness && (
-          <View style={styles.cardFooter}>
-            <View style={styles.locationContainer}>
-              <IconSymbol name="location.fill" size={14} color="#999" />
-              <ThemedText style={styles.location}>{request.location}</ThemedText>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
+              <Text style={styles.statusText}>{request.status}</Text>
             </View>
-            {request.budget && (
-              <ThemedText style={styles.budget}>₨{request.budget}</ThemedText>
-            )}
           </View>
-        )}
 
-        {request.applicants && request.applicants.length > 0 && (
-          <ThemedText style={styles.applicants}>
-            {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
+          <ThemedText style={styles.cardDescription} numberOfLines={3}>
+            {request.description}
           </ThemedText>
+
+          {isHelperOrBusiness && (
+            <View style={styles.cardDetails}>
+              <View style={styles.detailRow}>
+                <IconSymbol name="location.fill" size={16} color="#007AFF" />
+                <ThemedText style={styles.detailText}>{request.location}</ThemedText>
+              </View>
+              {request.budget && (
+                <View style={styles.detailRow}>
+                  <IconSymbol name="dollarsign.circle.fill" size={16} color="#007AFF" />
+                  <ThemedText style={styles.detailText}>₨{request.budget}</ThemedText>
+                </View>
+              )}
+            </View>
+          )}
+
+          {!isHelperOrBusiness && (
+            <View style={styles.cardFooter}>
+              <View style={styles.locationContainer}>
+                <IconSymbol name="location.fill" size={14} color="#999" />
+                <ThemedText style={styles.location}>{request.location}</ThemedText>
+              </View>
+              {request.budget && (
+                <ThemedText style={styles.budget}>₨{request.budget}</ThemedText>
+              )}
+            </View>
+          )}
+
+          {request.applicants && request.applicants.length > 0 && (
+            <ThemedText style={styles.applicants}>
+              {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+
+        {/* Actions for users (who own the request) */}
+        {user?.userType === 'user' && request.userId === user?.id && (
+          <View style={styles.cardActions}>
+            {request.applicants && request.applicants.length > 0 ? (
+              <TouchableOpacity
+                style={styles.contactButton}
+                onPress={() => handleContactApplicants(request)}
+              >
+                <IconSymbol name="message.fill" size={18} color="#007AFF" />
+                <Text style={styles.contactButtonText}>
+                  Contact Applicant{request.applicants.length > 1 ? 's' : ''}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.noApplicantsBadge}>
+                <Text style={styles.noApplicantsText}>No applicants yet</Text>
+              </View>
+            )}
+          </View>
         )}
 
         {/* Actions for helpers/businesses */}
@@ -177,10 +220,19 @@ export default function RequestsScreen() {
               </>
             )}
             {hasApplied && (
-              <View style={styles.appliedBadge}>
-                <IconSymbol name="checkmark.circle.fill" size={18} color="#34C759" />
-                <Text style={styles.appliedText}>Applied</Text>
-              </View>
+              <>
+                <TouchableOpacity
+                  style={styles.contactButton}
+                  onPress={() => handleContact(request)}
+                >
+                  <IconSymbol name="message.fill" size={18} color="#007AFF" />
+                  <Text style={styles.contactButtonText}>Contact</Text>
+                </TouchableOpacity>
+                <View style={styles.appliedBadge}>
+                  <IconSymbol name="checkmark.circle.fill" size={18} color="#34C759" />
+                  <Text style={styles.appliedText}>Applied</Text>
+                </View>
+              </>
             )}
             {!isOpen && !hasApplied && (
               <View style={styles.closedBadge}>
@@ -398,11 +450,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+  cardWrapper: {
+    marginBottom: 12,
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 18,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E8E8E8',
     shadowColor: '#000',
@@ -521,6 +575,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginTop: 10,
+    paddingHorizontal: 0,
   },
   contactButton: {
     flex: 1,
@@ -585,6 +640,21 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 15,
     fontWeight: '700',
+  },
+  noApplicantsBadge: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  noApplicantsText: {
+    color: '#999',
+    fontSize: 15,
+    fontWeight: '600',
   },
   emptyState: {
     flex: 1,

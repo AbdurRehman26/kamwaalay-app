@@ -106,25 +106,16 @@ export default function SignupScreen() {
         router.push('/auth/otp-verify');
       }, 1500);
     } catch (error: any) {
-      console.log('Signup error caught:', error);
-      console.log('Error type:', typeof error);
-      console.log('Error instanceof Error:', error instanceof Error);
-      
       // Extract backend error message
       let extractedErrorMessage = 'Failed to create account. Please try again.';
       
       if (error instanceof Error) {
         extractedErrorMessage = error.message;
-        console.log('Extracted error message from Error:', extractedErrorMessage);
       } else if (typeof error === 'string') {
         extractedErrorMessage = error;
-        console.log('Error is string:', extractedErrorMessage);
       } else if (error && typeof error === 'object') {
         extractedErrorMessage = error.message || error.error || JSON.stringify(error);
-        console.log('Extracted error message from object:', extractedErrorMessage);
       }
-      
-      console.log('Setting error message:', extractedErrorMessage);
       
       // Set error message to display inline
       setErrorMessage(extractedErrorMessage);

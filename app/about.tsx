@@ -16,7 +16,9 @@ export default function AboutScreen() {
   const router = useRouter();
 
   const handleSocialLink = (url: string) => {
-    Linking.openURL(url).catch((err) => console.error('Failed to open URL:', err));
+    Linking.openURL(url).catch(() => {
+      // Failed to open URL
+    });
   };
 
   return (

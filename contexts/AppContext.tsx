@@ -7,12 +7,10 @@ import { API_ENDPOINTS } from '@/constants/api';
 interface AppContextType {
   serviceRequests: ServiceRequest[];
   helpers: any[];
-  businesses: any[];
   addServiceRequest: (request: Omit<ServiceRequest, 'id' | 'createdAt' | 'status' | 'applicants'>) => Promise<void>;
   applyToServiceRequest: (requestId: string, applicantId: string) => Promise<void>;
   getServiceRequests: () => ServiceRequest[];
   getHelpers: () => any[];
-  getBusinesses: () => any[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -20,7 +18,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [helpers, setHelpers] = useState<any[]>([]);
-  const [businesses, setBusinesses] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -125,50 +122,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Load businesses from API
-      const businessesResponse = await apiService.get(
-        API_ENDPOINTS.BUSINESSES.LIST,
-        undefined,
-        undefined, // queryParams - can add filters like location_id, city_name, area, etc.
-        false // Public endpoint - no auth required
-      );
-      if (businessesResponse.success && businessesResponse.data) {
-        // API returns paginated data with 'businesses' key
-        // Ensure data is an array
-        let businesses = [];
-        if (businessesResponse.data.businesses) {
-          // Handle paginated response
-          businesses = Array.isArray(businessesResponse.data.businesses.data) 
-            ? businessesResponse.data.businesses.data 
-            : (Array.isArray(businessesResponse.data.businesses) ? businessesResponse.data.businesses : []);
-        } else {
-          businesses = Array.isArray(businessesResponse.data) 
-            ? businessesResponse.data 
-            : (businessesResponse.data.data || []);
-        }
-        setBusinesses(businesses);
-        await AsyncStorage.setItem('businesses', JSON.stringify(businesses));
-      } else {
-        // Fallback to local storage
-        const businessesData = await AsyncStorage.getItem('businesses');
-        if (businessesData) {
-          try {
-            const parsed = JSON.parse(businessesData);
-            setBusinesses(Array.isArray(parsed) ? parsed : []);
-          } catch (e) {
-            setBusinesses([]);
-          }
-        } else {
-          setBusinesses([]);
-        }
-      }
     } catch (error) {
       console.error('Error loading app data:', error);
       // Fallback to local storage
       try {
         const requests = await AsyncStorage.getItem('serviceRequests');
         const helpersData = await AsyncStorage.getItem('helpers');
-        const businessesData = await AsyncStorage.getItem('businesses');
 
         if (requests) {
           try {
@@ -189,16 +148,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
           setHelpers([]);
-        }
-        if (businessesData) {
-          try {
-            const parsed = JSON.parse(businessesData);
-            setBusinesses(Array.isArray(parsed) ? parsed : []);
-          } catch (e) {
-            setBusinesses([]);
-          }
-        } else {
-          setBusinesses([]);
         }
       } catch (localError) {
         console.error('Error loading from local storage:', localError);
@@ -323,12 +272,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         serviceRequests,
         helpers,
-        businesses,
         addServiceRequest,
         applyToServiceRequest,
         getServiceRequests: () => Array.isArray(serviceRequests) ? serviceRequests : [],
         getHelpers: () => Array.isArray(helpers) ? helpers : [],
-        getBusinesses: () => Array.isArray(businesses) ? businesses : [],
       }}
     >
       {children}

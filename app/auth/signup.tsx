@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function SignupScreen() {
+  const { register, user } = useAuth();
   const [signupMethod, setSignupMethod] = useState<'email' | 'phone'>('email');
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -27,8 +28,17 @@ export default function SignupScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isEmailEditable, setIsEmailEditable] = useState(true);
   const router = useRouter();
-  const { register } = useAuth();
+
+  // Prefill email if it exists in user context and make it uneditable
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+      setSignupMethod('email');
+      setIsEmailEditable(false);
+    }
+  }, [user]);
 
   const handleSignup = async () => {
     if (!name.trim()) {
@@ -141,8 +151,13 @@ export default function SignupScreen() {
               <Text style={styles.sectionTitle}>Sign up with</Text>
               <View style={styles.methodContainer}>
                 <TouchableOpacity
-                  style={[styles.methodButton, signupMethod === 'email' && styles.methodButtonActive]}
-                  onPress={() => setSignupMethod('email')}
+                  style={[styles.methodButton, signupMethod === 'email' && styles.methodButtonActive, !isEmailEditable && styles.methodButtonDisabled]}
+                  onPress={() => {
+                    if (isEmailEditable) {
+                      setSignupMethod('email');
+                    }
+                  }}
+                  disabled={!isEmailEditable}
                 >
                   <IconSymbol name="envelope.fill" size={24} color={signupMethod === 'email' ? '#007AFF' : '#666'} />
                   <Text style={[styles.methodText, signupMethod === 'email' && styles.methodTextActive]}>
@@ -150,8 +165,13 @@ export default function SignupScreen() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.methodButton, signupMethod === 'phone' && styles.methodButtonActive]}
-                  onPress={() => setSignupMethod('phone')}
+                  style={[styles.methodButton, signupMethod === 'phone' && styles.methodButtonActive, !isEmailEditable && styles.methodButtonDisabled]}
+                  onPress={() => {
+                    if (isEmailEditable) {
+                      setSignupMethod('phone');
+                    }
+                  }}
+                  disabled={!isEmailEditable}
                 >
                   <IconSymbol name="phone.fill" size={24} color={signupMethod === 'phone' ? '#007AFF' : '#666'} />
                   <Text style={[styles.methodText, signupMethod === 'phone' && styles.methodTextActive]}>
@@ -217,13 +237,14 @@ export default function SignupScreen() {
                 <View style={styles.inputWrapper}>
                   <Text style={styles.label}>Email Address</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, !isEmailEditable && styles.inputDisabled]}
                     placeholder="Enter your email"
                     placeholderTextColor="#999"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={email}
                     onChangeText={setEmail}
+                    editable={isEmailEditable}
                     autoComplete="email"
                     textContentType="emailAddress"
                     autoCorrect={false}
@@ -504,6 +525,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+  },
+  inputDisabled: {
+    backgroundColor: '#F5F5F5',
+    color: '#666',
+  },
+  methodButtonDisabled: {
+    opacity: 0.6,
   },
   passwordContainer: {
     flexDirection: 'row',

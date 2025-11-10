@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
@@ -18,6 +20,44 @@ export default function OnboardingStartScreen() {
   const { user, updateUser } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Prefill email if it exists in user context
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+    if (user?.name) {
+      setName(user.name);
+    }
+  }, [user]);
+
+  // Ensure token is saved/available before making API calls
+  useEffect(() => {
+    const ensureToken = async () => {
+      try {
+        // Check if token exists in AsyncStorage
+        let token = await AsyncStorage.getItem('authToken');
+        
+        // If no token in separate key, check user object
+        if (!token && user) {
+          const userToken = (user as any).token;
+          if (userToken) {
+            // Save token to AsyncStorage for API service to use
+            await AsyncStorage.setItem('authToken', userToken);
+            console.log('Token saved to AsyncStorage from user object');
+          }
+        }
+      } catch (error) {
+        console.error('Error ensuring token availability:', error);
+      }
+    };
+
+    if (user) {
+      ensureToken();
+    }
+  }, [user]);
 
   const handleContinue = async () => {
     if (!name.trim()) {
@@ -25,12 +65,70 @@ export default function OnboardingStartScreen() {
       return;
     }
 
-    if (user?.userType === 'helper') {
-      await updateUser({ name });
-      router.push('/onboarding/helper-profile');
-    } else if (user?.userType === 'business') {
-      await updateUser({ name });
-      router.push('/onboarding/business-profile');
+    // Clear any previous error
+    setErrorMessage(null);
+    setIsLoading(true);
+
+    try {
+      // Ensure token is available before making API call
+      let token = await AsyncStorage.getItem('authToken');
+      
+      // If no token in AsyncStorage, check user object
+      if (!token && user) {
+        const userToken = (user as any).token;
+        if (userToken) {
+          // Save token to AsyncStorage for API service to use
+          await AsyncStorage.setItem('authToken', userToken);
+          token = userToken;
+          console.log('Token saved to AsyncStorage from user object before profile update');
+        }
+      }
+
+      // Check if token exists
+      if (!token) {
+        throw new Error('Authentication token not found. Please login again.');
+      }
+
+      // Prepare profile update data
+      const profileUpdateData: { name: string; email?: string } = {
+        name: name.trim(),
+      };
+
+      // Include email if provided
+      if (email.trim()) {
+        profileUpdateData.email = email.trim();
+      }
+
+      // Call profile update API (this will use the token from AsyncStorage)
+      // Include onboardingStatus in the update to mark onboarding as completed
+      await updateUser({
+        ...profileUpdateData,
+        onboardingStatus: 'completed',
+      });
+
+      // Redirect to home screen after successful profile update
+      // Use setTimeout to ensure state updates are processed before navigation
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 100);
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      
+      // Extract error message
+      let extractedErrorMessage = 'Failed to update profile. Please try again.';
+      
+      if (error instanceof Error) {
+        extractedErrorMessage = error.message;
+      } else if (typeof error === 'string') {
+        extractedErrorMessage = error;
+      } else if (error && typeof error === 'object') {
+        extractedErrorMessage = error.message || error.error || error.toString();
+      }
+      
+      setErrorMessage(extractedErrorMessage);
+      Alert.alert('Update Failed', extractedErrorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -72,13 +170,14 @@ export default function OnboardingStartScreen() {
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>Email (Optional)</ThemedText>
             <TextInput
-              style={styles.input}
+              style={[styles.input, email && styles.inputDisabled]}
               placeholder="Enter your email"
               placeholderTextColor="#999"
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
+              editable={!email}
               autoComplete="email"
               textContentType="emailAddress"
               autoCorrect={false}
@@ -92,12 +191,23 @@ export default function OnboardingStartScreen() {
           </View>
         </View>
 
+        {/* Error Message Display */}
+        {errorMessage && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        )}
+
         <TouchableOpacity
-          style={[styles.button, !name.trim() && styles.buttonDisabled]}
+          style={[styles.button, (!name.trim() || isLoading) && styles.buttonDisabled]}
           onPress={handleContinue}
-          disabled={!name.trim()}
+          disabled={!name.trim() || isLoading}
         >
-          <Text style={styles.buttonText}>Continue</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>Continue</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </ThemedView>
@@ -144,6 +254,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#FFFFFF',
   },
+  inputDisabled: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#D0D0D0',
+    color: '#666',
+  },
   button: {
     backgroundColor: '#007AFF',
     padding: 16,
@@ -158,6 +273,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: '#F44336',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#C62828',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

@@ -1,19 +1,19 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { useApp } from '@/contexts/AppContext';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function RequestsScreen() {
   const router = useRouter();
@@ -339,6 +339,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     padding: 4,
+    marginRight: 8,
+    marginTop: 16,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -372,6 +374,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tab: {
+    marginTop: 20,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
@@ -610,6 +613,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 24,
+    marginBottom: 24,
     paddingHorizontal: 24,
   },
   createButtonText: {

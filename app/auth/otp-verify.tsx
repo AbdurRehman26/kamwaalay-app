@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -15,6 +16,8 @@ import {
 export default function OTPVerifyScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const router = useRouter();
   const { verifyOTP, resendOTP, user } = useAuth();
@@ -41,19 +44,34 @@ export default function OTPVerifyScreen() {
     return () => clearInterval(interval);
   }, []);
   const handleOtpChange = (value: string, index: number) => {
-    if (value.length > 1) return;
+    // Only allow numeric characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    
+    // If the value contains non-numeric characters, ignore it
+    if (numericValue !== value && value.length > 0) {
+      return; // Reject non-numeric input
+    }
+    
+    if (numericValue.length > 1) {
+      // If multiple digits pasted, take only the first one
+      const newOtp = [...otp];
+      newOtp[index] = numericValue[0];
+      setOtp(newOtp);
+      
+      if (index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+      return;
+    }
 
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = numericValue;
     setOtp(newOtp);
 
-    if (value && index < 5) {
+    if (numericValue && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
-
-    if (newOtp.every((digit) => digit !== '')) {
-      handleVerify(newOtp.join(''));
-    }
+    // Removed automatic verification - user must click verify button
   };
 
   const handleKeyPress = (key: string, index: number) => {
@@ -62,32 +80,49 @@ export default function OTPVerifyScreen() {
     }
   };
 
-  const handleVerify = async (otpCode?: string) => {
-    const code = otpCode || otp.join('');
+  const handleVerify = async () => {
+    const code = otp.join('');
     if (code.length !== 6) {
       Alert.alert('Invalid OTP', 'Please enter the complete 6-digit code');
       return;
     }
 
+    if (isVerifying) {
+      return; // Prevent multiple submissions
+    }
+
+    // Clear any previous error message
+    setErrorMessage(null);
+
+    setIsVerifying(true);
     try {
       const isValid = await verifyOTP(code);
       if (isValid) {
-        router.push('/auth/user-type');
+        // Navigation will be handled by the useEffect that checks isVerified
+        // No need to manually navigate here
       } else {
-        Alert.alert('Invalid OTP', 'The code you entered is incorrect. Please try again.');
+        const errorMsg = 'The code you entered is incorrect. Please try again.';
+        setErrorMessage(errorMsg);
+        Alert.alert('Invalid OTP', errorMsg);
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
     } catch (error: any) {
-      // Display backend error message
-      const errorMessage = error.message || error.error || 'Failed to verify OTP. Please try again.';
-      Alert.alert('Error', errorMessage);
+      // Extract backend error message from various possible formats
+      const errorMsg = error.message || error.error || 'Failed to verify OTP. Please try again.';
+      setErrorMessage(errorMsg);
+      Alert.alert('Error', errorMsg);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
     }
   };
 
   const handleResend = async () => {
+    // Clear any previous error message
+    setErrorMessage(null);
+    
     try {
       await resendOTP();
       setTimer(60);
@@ -95,9 +130,10 @@ export default function OTPVerifyScreen() {
       inputRefs.current[0]?.focus();
       Alert.alert('Success', 'OTP has been resent. Please check your email or phone.');
     } catch (error: any) {
-      // Display backend error message
-      const errorMessage = error.message || error.error || 'Failed to resend OTP. Please try again.';
-      Alert.alert('Error', errorMessage);
+      // Extract backend error message from various possible formats
+      const errorMsg = error.message || error.error || 'Failed to resend OTP. Please try again.';
+      setErrorMessage(errorMsg);
+      Alert.alert('Error', errorMsg);
     }
   };
 
@@ -161,12 +197,18 @@ export default function OTPVerifyScreen() {
             ))}
           </View>
 
+          {errorMessage && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          )}
+
           <TouchableOpacity
-            style={[styles.button, otp.some((d) => !d) && styles.buttonDisabled]}
-            onPress={() => handleVerify()}
-            disabled={otp.some((d) => !d)}
+            style={[styles.button, (otp.some((d) => !d) || isVerifying) && styles.buttonDisabled]}
+            onPress={handleVerify}
+            disabled={otp.some((d) => !d) || isVerifying}
           >
-            <Text style={styles.buttonText}>Verify</Text>
+            <Text style={styles.buttonText}>{isVerifying ? 'Verifying...' : 'Verify'}</Text>
           </TouchableOpacity>
 
           <View style={styles.resendContainer}>
@@ -184,6 +226,17 @@ export default function OTPVerifyScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CONTENT_PADDING = 24;
+const OTP_GAP = 6;
+const OTP_COUNT = 6;
+// Calculate available width: screen width - content padding (both sides)
+const AVAILABLE_WIDTH = SCREEN_WIDTH - (CONTENT_PADDING * 2);
+// Calculate total gap space: (number of inputs - 1) * gap
+const TOTAL_GAP_SPACE = (OTP_COUNT - 1) * OTP_GAP;
+// Calculate width per input
+const OTP_INPUT_WIDTH = Math.floor((AVAILABLE_WIDTH - TOTAL_GAP_SPACE) / OTP_COUNT);
 
 const styles = StyleSheet.create({
   container: {
@@ -258,11 +311,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 32,
-    paddingHorizontal: 8,
-    gap: 12,
+    paddingHorizontal: 0,
+    gap: OTP_GAP,
   },
   otpInput: {
-    width: 56,
+    width: OTP_INPUT_WIDTH,
     height: 68,
     borderWidth: 2,
     borderColor: '#E0E0E0',
@@ -326,6 +379,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#007AFF',
+  },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: '#F44336',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#C62828',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

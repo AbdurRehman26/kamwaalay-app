@@ -3,6 +3,7 @@
  * Centralized API client for making HTTP requests
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, buildApiUrl } from '@/constants/api';
 
 export interface ApiResponse<T = any> {
@@ -27,15 +28,38 @@ class ApiService {
 
   /**
    * Get authentication token from storage
+   * Checks both the separate authToken key and the user object
    */
   private async getAuthToken(): Promise<string | null> {
     try {
-      const { getItem } = await import('@react-native-async-storage/async-storage');
-      const userData = await getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || null;
+      // First, check for token stored separately
+      const authToken = await AsyncStorage.getItem('authToken');
+      if (authToken) {
+        console.log('Token found in authToken key');
+        return authToken;
       }
+      
+      // Fallback: check user object
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          const token = user.token || null;
+          if (token) {
+            console.log('Token found in user object, saving to authToken key');
+            // Save token to separate key for future use
+            const existing = await AsyncStorage.getItem('authToken');
+            if (!existing) {
+              await AsyncStorage.setItem('authToken', token);
+            }
+            return token;
+          }
+        } catch (parseError) {
+          console.error('Error parsing user data:', parseError);
+        }
+      }
+      
+      console.warn('No token found in storage');
       return null;
     } catch (error) {
       console.error('Error getting auth token:', error);
@@ -56,7 +80,12 @@ class ApiService {
       const token = await this.getAuthToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log('Authorization header added with token:', token.substring(0, 20) + '...');
+      } else {
+        console.warn('No token available for Authorization header');
       }
+    } else {
+      console.log('Auth not included in headers (includeAuth=false)');
     }
 
     return headers;

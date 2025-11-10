@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/login',
     REGISTER: '/register',
+    VERIFY: '/verify-otp', // OTP verification endpoint
     LOGOUT: '/logout',
     FORGOT_PASSWORD: '/forgot-password',
     RESET_PASSWORD: '/reset-password',
@@ -35,7 +36,6 @@ export const API_ENDPOINTS = {
   // Onboarding
   ONBOARDING: {
     HELPER: '/onboarding/helper',
-    BUSINESS: '/onboarding/business',
   },
   
   // Service Requests (for helpers/businesses to browse)
@@ -73,21 +73,6 @@ export const API_ENDPOINTS = {
     CREATE: '/helpers', // Create helper profile
     GET: '/helpers/:id',
     EDIT: '/helpers/:id/edit',
-  },
-  
-  // Businesses
-  BUSINESSES: {
-    LIST: '/businesses',
-    GET: '/businesses/:id',
-  },
-  
-  // Business Dashboard
-  BUSINESS: {
-    DASHBOARD: '/business/dashboard',
-    WORKERS: '/business/workers',
-    WORKERS_CREATE: '/business/workers/create',
-    WORKER_GET: '/business/workers/:id',
-    WORKER_EDIT: '/business/workers/:id/edit',
   },
   
   // Service Listings (services offered by helpers/businesses)

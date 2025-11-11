@@ -50,6 +50,8 @@ const MAPPING = {
   'calendar': 'calendar-today',
   'eye.fill': 'visibility',
   'eye.slash.fill': 'visibility-off',
+  'slider.horizontal.3': 'tune',
+  'xmark': 'close',
 } as IconMapping;
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +16,8 @@ import { useApp } from '@/contexts/AppContext';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { apiService } from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api';
 
 interface Helper {
   id: string | number;
@@ -42,17 +46,138 @@ interface Helper {
   profile_image?: string;
 }
 
+interface Location {
+  id: number | string;
+  name: string;
+  area?: string;
+}
+
+interface FilterState {
+  services: string[];
+  locations: string[];
+  minExperience: number | null;
+  minRating: number | null;
+}
+
 export default function ExploreScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { getHelpers } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'helpers' | 'businesses'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'helper' | 'business'>('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const helpers = getHelpers();
+  
+  // Filter state
+  const [filters, setFilters] = useState<FilterState>({
+    services: [],
+    locations: [],
+    minExperience: null,
+    minRating: null,
+  });
   
   // Get service filter from route params
   const routeParams = useLocalSearchParams();
   const serviceFilter = routeParams?.service as string | undefined;
+
+  // Extract unique services from helpers
+  const availableServices = useMemo(() => {
+    const serviceSet = new Set<string>();
+    helpers.forEach((helper: Helper) => {
+      if (helper.services && helper.services.length > 0) {
+        helper.services.forEach((service) => {
+          if (service.service_type) {
+            const serviceType = service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ');
+            serviceSet.add(serviceType);
+          }
+        });
+      }
+    });
+    return Array.from(serviceSet).sort();
+  }, [helpers]);
+
+  // Extract unique locations from helpers
+  const availableLocationsFromHelpers = useMemo(() => {
+    const locationSet = new Set<string>();
+    helpers.forEach((helper: Helper) => {
+      if (helper.services && helper.services.length > 0) {
+        helper.services.forEach((service) => {
+          if (service.location?.name) {
+            locationSet.add(service.location.name);
+          }
+          if (service.area) {
+            locationSet.add(service.area);
+          }
+        });
+      }
+      if (helper.area) {
+        locationSet.add(helper.area);
+      }
+    });
+    return Array.from(locationSet).sort();
+  }, [helpers]);
+
+  // Search locations from API
+  const searchLocations = async (query: string) => {
+    if (query.trim().length < 2) {
+      setLocations([]);
+      return;
+    }
+    
+    try {
+      setIsLoadingLocations(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.LOCATIONS.SEARCH,
+        undefined,
+        { q: query },
+        false
+      );
+
+      if (response.success && response.data) {
+        let locationsData: Location[] = [];
+        
+        if (response.data.locations) {
+          locationsData = Array.isArray(response.data.locations.data)
+            ? response.data.locations.data
+            : (Array.isArray(response.data.locations) ? response.data.locations : []);
+        } else if (Array.isArray(response.data)) {
+          locationsData = response.data;
+        } else if (response.data.data) {
+          locationsData = Array.isArray(response.data.data) ? response.data.data : [];
+        }
+
+        const mappedLocations: Location[] = locationsData.map((loc: any) => ({
+          id: loc.id || loc.location_id || loc.name,
+          name: loc.name || loc.location_name || '',
+          area: loc.area || loc.area_name,
+        }));
+
+        setLocations(mappedLocations);
+      } else {
+        setLocations([]);
+      }
+    } catch (error) {
+      setLocations([]);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+
+  // Debounce location search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (locationSearch.trim()) {
+        searchLocations(locationSearch);
+      } else {
+        setLocations([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [locationSearch]);
 
   // For helpers/businesses, redirect to requests tab (which shows service requests)
   useEffect(() => {
@@ -81,13 +206,28 @@ export default function ExploreScreen() {
     return helper.id?.toString() || helper.user?.id?.toString() || '';
   };
 
+  // Helper function to get role/type
+  const getRole = (helper: Helper) => {
+    // Check if helper has a role field (from API)
+    const role = (helper as any).role || (helper as any).user_type || (helper as any).userType;
+    if (role) {
+      return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+    // Fallback to service type or default
+    if (helper.services && helper.services.length > 0) {
+      const serviceType = helper.services[0].service_type || '';
+      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+    }
+    return 'Helper';
+  };
+
   // Helper function to get primary service
   const getPrimaryService = (helper: Helper) => {
     if (helper.services && helper.services.length > 0) {
       const serviceType = helper.services[0].service_type || '';
       return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
     }
-    return 'Helper';
+    return 'Service Provider';
   };
 
   // Helper function to get price
@@ -121,10 +261,11 @@ export default function ExploreScreen() {
     return 'Location not specified';
   };
 
-  // For users/customers - show helpers and businesses
-  const renderHelperCard = (item: Helper) => {
-    const helperId = getHelperId(item);
-    const helperName = getHelperName(item);
+  // Render card for any provider (helper or business)
+  const renderProviderCard = (item: Helper) => {
+    const providerId = getHelperId(item);
+    const providerName = getHelperName(item);
+    const role = getRole(item);
     const service = getPrimaryService(item);
     const price = getPrice(item);
     const location = getLocation(item);
@@ -135,23 +276,26 @@ export default function ExploreScreen() {
 
     return (
       <TouchableOpacity
-        key={helperId}
+        key={providerId}
         style={styles.card}
-        onPress={() => router.push(`/profile/helper/${helperId}` as any)}
+        onPress={() => router.push(`/profile/helper/${providerId}` as any)}
       >
         <View style={styles.cardHeader}>
           <View style={styles.avatar}>
             {item.profile_image ? (
               <Image source={{ uri: item.profile_image }} style={styles.avatarImage} />
             ) : (
-              <Text style={styles.avatarText}>{helperName.charAt(0).toUpperCase()}</Text>
+              <Text style={styles.avatarText}>{providerName.charAt(0).toUpperCase()}</Text>
             )}
           </View>
           <View style={styles.cardInfo}>
             <ThemedText type="subtitle" style={styles.cardName}>
-              {helperName}
+              {providerName}
             </ThemedText>
-            <ThemedText style={styles.cardService}>{service}</ThemedText>
+            <View style={styles.roleAndService}>
+              <ThemedText style={styles.cardRole}>{role}</ThemedText>
+              <ThemedText style={styles.cardService}>{service}</ThemedText>
+            </View>
             {experience && (
               <ThemedText style={styles.experience}>{experience} experience</ThemedText>
             )}
@@ -167,7 +311,7 @@ export default function ExploreScreen() {
           </View>
           <TouchableOpacity
             style={styles.contactButton}
-            onPress={() => router.push(`/chat/${helperId}?name=${encodeURIComponent(helperName)}`)}
+            onPress={() => router.push(`/chat/${providerId}?name=${encodeURIComponent(providerName)}`)}
           >
             <IconSymbol name="message.fill" size={20} color="#007AFF" />
           </TouchableOpacity>
@@ -188,26 +332,106 @@ export default function ExploreScreen() {
     );
   };
 
-  // Filter helpers based on search query and service filter
-  const filteredHelpers = helpers.filter((h: Helper) => {
-    const helperName = getHelperName(h).toLowerCase();
+  // Helper function to get all services for a helper
+  const getAllServices = (helper: Helper): string[] => {
+    if (helper.services && helper.services.length > 0) {
+      return helper.services.map((s) => {
+        const serviceType = s.service_type || '';
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+      });
+    }
+    return [];
+  };
+
+  // Helper function to get all locations for a helper
+  const getAllLocations = (helper: Helper): string[] => {
+    const locationList: string[] = [];
+    if (helper.services && helper.services.length > 0) {
+      helper.services.forEach((service) => {
+        if (service.location?.name) {
+          locationList.push(service.location.name);
+        }
+        if (service.area) {
+          locationList.push(service.area);
+        }
+      });
+    }
+    if (helper.area) {
+      locationList.push(helper.area);
+    }
+    return locationList;
+  };
+
+  // Filter providers (helpers and businesses) based on all filters
+  const filteredProviders = helpers.filter((h: Helper) => {
+    const providerName = getHelperName(h).toLowerCase();
     const service = getPrimaryService(h).toLowerCase();
+    const role = getRole(h).toLowerCase();
     const bio = (h.bio || '').toLowerCase();
     
+    // Get the actual role from API data (not the formatted display role)
+    const apiRole = ((h as any).role || (h as any).user_type || (h as any).userType || '').toLowerCase();
+    
+    // Filter by role (helper or business)
+    const matchesRole = selectedFilter === 'all' || 
+      apiRole === selectedFilter.toLowerCase() ||
+      (selectedFilter === 'helper' && (apiRole === 'helper' || apiRole === '')) ||
+      (selectedFilter === 'business' && apiRole === 'business');
+    
     const matchesSearch = searchQuery.trim() === '' ||
-      helperName.includes(searchQuery.toLowerCase()) ||
+      providerName.includes(searchQuery.toLowerCase()) ||
       service.includes(searchQuery.toLowerCase()) ||
+      role.includes(searchQuery.toLowerCase()) ||
       bio.includes(searchQuery.toLowerCase());
     
-    const matchesService = !serviceFilter || 
+    const matchesServiceFilter = !serviceFilter || 
       service.includes(serviceFilter.toLowerCase()) ||
       serviceFilter.toLowerCase().includes(service);
     
-    return matchesSearch && matchesService;
+    // Filter by selected services
+    const matchesServices = filters.services.length === 0 || 
+      getAllServices(h).some((s) => filters.services.includes(s));
+    
+    // Filter by selected locations
+    const matchesLocations = filters.locations.length === 0 ||
+      getAllLocations(h).some((loc) => 
+        filters.locations.some((filterLoc) => 
+          loc.toLowerCase().includes(filterLoc.toLowerCase()) || 
+          filterLoc.toLowerCase().includes(loc.toLowerCase())
+        )
+      );
+    
+    // Filter by minimum experience
+    const matchesExperience = filters.minExperience === null ||
+      (h.experience_years !== undefined && h.experience_years >= filters.minExperience);
+    
+    // Filter by minimum rating
+    const rating = typeof h.rating === 'number' ? h.rating : (typeof h.rating === 'string' ? parseFloat(h.rating) : 0);
+    const matchesRating = filters.minRating === null ||
+      (!isNaN(rating) && rating >= filters.minRating);
+    
+    return matchesRole && matchesSearch && matchesServiceFilter && matchesServices && 
+           matchesLocations && matchesExperience && matchesRating;
   });
 
-  // For now, businesses are empty (removed from app)
-  const filteredBusinesses: any[] = [];
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.services.length > 0) count++;
+    if (filters.locations.length > 0) count++;
+    if (filters.minExperience !== null) count++;
+    if (filters.minRating !== null) count++;
+    return count;
+  }, [filters]);
+
+  const clearFilters = () => {
+    setFilters({
+      services: [],
+      locations: [],
+      minExperience: null,
+      minRating: null,
+    });
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -219,8 +443,8 @@ export default function ExploreScreen() {
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {serviceFilter 
-              ? `Find ${serviceFilter.toLowerCase()} helpers and businesses near you`
-              : 'Find helpers and businesses near you'}
+              ? `Find ${serviceFilter.toLowerCase()} service providers near you`
+              : 'Find service providers near you'}
           </ThemedText>
           {serviceFilter && (
             <TouchableOpacity
@@ -237,11 +461,22 @@ export default function ExploreScreen() {
           <IconSymbol name="magnifyingglass" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search helpers or businesses..."
+            placeholder="Search service providers..."
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          <TouchableOpacity
+            style={styles.filterIconButton}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#007AFF" : "#999"} />
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Filters */}
@@ -255,18 +490,18 @@ export default function ExploreScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, selectedFilter === 'helpers' && styles.filterButtonActive]}
-            onPress={() => setSelectedFilter('helpers')}
+            style={[styles.filterButton, selectedFilter === 'helper' && styles.filterButtonActive]}
+            onPress={() => setSelectedFilter('helper')}
           >
-            <Text style={[styles.filterText, selectedFilter === 'helpers' && styles.filterTextActive]}>
+            <Text style={[styles.filterText, selectedFilter === 'helper' && styles.filterTextActive]}>
               Helpers
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, selectedFilter === 'businesses' && styles.filterButtonActive]}
-            onPress={() => setSelectedFilter('businesses')}
+            style={[styles.filterButton, selectedFilter === 'business' && styles.filterButtonActive]}
+            onPress={() => setSelectedFilter('business')}
           >
-            <Text style={[styles.filterText, selectedFilter === 'businesses' && styles.filterTextActive]}>
+            <Text style={[styles.filterText, selectedFilter === 'business' && styles.filterTextActive]}>
               Businesses
             </Text>
           </TouchableOpacity>
@@ -274,47 +509,222 @@ export default function ExploreScreen() {
 
         {/* Results */}
         <View style={styles.results}>
-          {(selectedFilter === 'all' || selectedFilter === 'helpers') && (
-            <View style={styles.section}>
-              <ThemedText type="subtitle" style={styles.sectionTitle}>
-                Helpers ({filteredHelpers.length})
-              </ThemedText>
-              {filteredHelpers.length > 0 ? (
-                filteredHelpers.map((helper: Helper) => renderHelperCard(helper))
-              ) : (
-                <View style={styles.emptyState}>
-                  <IconSymbol name="person.fill" size={48} color="#CCCCCC" />
-                  <ThemedText style={styles.emptyText}>
-                    {searchQuery.trim() || serviceFilter
-                      ? 'No helpers found matching your search'
-                      : 'No helpers available at the moment'}
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-          )}
-
-          {(selectedFilter === 'all' || selectedFilter === 'businesses') && (
-            <View style={styles.section}>
-              <ThemedText type="subtitle" style={styles.sectionTitle}>
-                Businesses ({filteredBusinesses.length})
-              </ThemedText>
-              {filteredBusinesses.length > 0 ? (
-                filteredBusinesses.map((business: any) => (
-                  <View key={business.id} style={styles.emptyState}>
-                    <ThemedText style={styles.emptyText}>Businesses coming soon</ThemedText>
-                  </View>
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <IconSymbol name="building.2.fill" size={48} color="#CCCCCC" />
-                  <ThemedText style={styles.emptyText}>No businesses available</ThemedText>
-                </View>
-              )}
-            </View>
-          )}
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Service Providers ({filteredProviders.length})
+            </ThemedText>
+            {filteredProviders.length > 0 ? (
+              filteredProviders.map((provider: Helper) => renderProviderCard(provider))
+            ) : (
+              <View style={styles.emptyState}>
+                <IconSymbol name="person.fill" size={48} color="#CCCCCC" />
+                <ThemedText style={styles.emptyText}>
+                  {searchQuery.trim() || serviceFilter
+                    ? 'No service providers found matching your search'
+                    : 'No service providers available at the moment'}
+                </ThemedText>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="title" style={styles.modalTitle}>Filters</ThemedText>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <IconSymbol name="xmark" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              {/* Services Filter */}
+              <View style={styles.filterSection}>
+                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Services</ThemedText>
+                <View style={styles.chipContainer}>
+                  {availableServices.map((service) => (
+                    <TouchableOpacity
+                      key={service}
+                      style={[
+                        styles.chip,
+                        filters.services.includes(service) && styles.chipActive
+                      ]}
+                      onPress={() => {
+                        setFilters((prev) => ({
+                          ...prev,
+                          services: prev.services.includes(service)
+                            ? prev.services.filter((s) => s !== service)
+                            : [...prev.services, service],
+                        }));
+                      }}
+                    >
+                      <Text style={[
+                        styles.chipText,
+                        filters.services.includes(service) && styles.chipTextActive
+                      ]}>
+                        {service}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Locations Filter */}
+              <View style={styles.filterSection}>
+                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Locations</ThemedText>
+                <TextInput
+                  style={styles.locationSearchInput}
+                  placeholder="Search locations..."
+                  placeholderTextColor="#999"
+                  value={locationSearch}
+                  onChangeText={setLocationSearch}
+                />
+                {isLoadingLocations && (
+                  <ActivityIndicator size="small" color="#007AFF" style={styles.loadingIndicator} />
+                )}
+                <View style={styles.chipContainer}>
+                  {/* Show available locations from helpers */}
+                  {availableLocationsFromHelpers.map((location) => (
+                    <TouchableOpacity
+                      key={location}
+                      style={[
+                        styles.chip,
+                        filters.locations.includes(location) && styles.chipActive
+                      ]}
+                      onPress={() => {
+                        setFilters((prev) => ({
+                          ...prev,
+                          locations: prev.locations.includes(location)
+                            ? prev.locations.filter((l) => l !== location)
+                            : [...prev.locations, location],
+                        }));
+                      }}
+                    >
+                      <Text style={[
+                        styles.chipText,
+                        filters.locations.includes(location) && styles.chipTextActive
+                      ]}>
+                        {location}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  {/* Show API search results */}
+                  {locations.map((location) => {
+                    const locationName = location.name;
+                    if (availableLocationsFromHelpers.includes(locationName)) return null;
+                    return (
+                      <TouchableOpacity
+                        key={location.id}
+                        style={[
+                          styles.chip,
+                          filters.locations.includes(locationName) && styles.chipActive
+                        ]}
+                        onPress={() => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            locations: prev.locations.includes(locationName)
+                              ? prev.locations.filter((l) => l !== locationName)
+                              : [...prev.locations, locationName],
+                          }));
+                        }}
+                      >
+                        <Text style={[
+                          styles.chipText,
+                          filters.locations.includes(locationName) && styles.chipTextActive
+                        ]}>
+                          {locationName}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Experience Filter */}
+              <View style={styles.filterSection}>
+                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Minimum Experience (Years)</ThemedText>
+                <View style={styles.experienceContainer}>
+                  {[0, 1, 2, 3, 5, 10].map((years) => (
+                    <TouchableOpacity
+                      key={years}
+                      style={[
+                        styles.experienceChip,
+                        filters.minExperience === years && styles.experienceChipActive
+                      ]}
+                      onPress={() => {
+                        setFilters((prev) => ({
+                          ...prev,
+                          minExperience: prev.minExperience === years ? null : years,
+                        }));
+                      }}
+                    >
+                      <Text style={[
+                        styles.experienceChipText,
+                        filters.minExperience === years && styles.experienceChipTextActive
+                      ]}>
+                        {years === 0 ? 'Any' : `${years}+`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Rating Filter */}
+              <View style={styles.filterSection}>
+                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Minimum Rating</ThemedText>
+                <View style={styles.ratingFilterContainer}>
+                  {[0, 3, 3.5, 4, 4.5, 5].map((rating) => (
+                    <TouchableOpacity
+                      key={rating}
+                      style={[
+                        styles.ratingChip,
+                        filters.minRating === rating && styles.ratingChipActive
+                      ]}
+                      onPress={() => {
+                        setFilters((prev) => ({
+                          ...prev,
+                          minRating: prev.minRating === rating ? null : rating,
+                        }));
+                      }}
+                    >
+                      <IconSymbol name="star.fill" size={14} color={filters.minRating === rating ? "#FFFFFF" : "#FFC107"} />
+                      <Text style={[
+                        styles.ratingChipText,
+                        filters.minRating === rating && styles.ratingChipTextActive
+                      ]}>
+                        {rating === 0 ? 'Any' : rating.toFixed(1) + '+'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.clearFiltersButton}
+                onPress={clearFilters}
+              >
+                <ThemedText style={styles.clearFiltersText}>Clear All</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyFiltersButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <ThemedText style={styles.applyFiltersText}>Apply Filters</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -366,6 +776,184 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
     fontSize: 16,
+  },
+  filterIconButton: {
+    padding: 4,
+    position: 'relative',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  modalScrollView: {
+    maxHeight: '70%',
+  },
+  filterSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  filterSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  chipActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  chipText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+  },
+  locationSearchInput: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  loadingIndicator: {
+    marginVertical: 8,
+  },
+  experienceContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  experienceChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  experienceChipActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  experienceChipText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  experienceChipTextActive: {
+    color: '#FFFFFF',
+  },
+  ratingFilterContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  ratingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  ratingChipActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  ratingChipText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  ratingChipTextActive: {
+    color: '#FFFFFF',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  clearFiltersButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+  },
+  clearFiltersText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  applyFiltersButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+  },
+  applyFiltersText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   filters: {
     flexDirection: 'row',
@@ -441,10 +1029,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
+  roleAndService: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  cardRole: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#007AFF',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
   cardService: {
     fontSize: 14,
     opacity: 0.7,
-    marginBottom: 4,
   },
   ratingContainer: {
     flexDirection: 'row',

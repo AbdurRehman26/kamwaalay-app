@@ -98,16 +98,39 @@ export default function OnboardingStartScreen() {
       }
 
       // Call profile update API (this will use the token from AsyncStorage)
-      // Include onboardingStatus in the update to mark onboarding as completed
+      // Update name and email, but don't mark onboarding as completed yet
       await updateUser({
         ...profileUpdateData,
-        onboardingStatus: 'completed',
+        // Don't set onboardingStatus to 'completed' here - let the stepper flow handle it
       });
 
-      // Redirect to home screen after successful profile update
-      // Use setTimeout to ensure state updates are processed before navigation
+      // Redirect based on user type
+      // Helpers and businesses go to their specific onboarding screens
+      // Regular users go directly to tabs
+      // Get the updated user to ensure we have the latest userType
+      const updatedUser = { ...user, ...profileUpdateData };
+      
       setTimeout(() => {
-        router.replace('/(tabs)');
+        const userType = updatedUser?.userType || user?.userType;
+        
+        console.log('Onboarding navigation - User type:', userType);
+        console.log('Onboarding navigation - User object:', updatedUser);
+        
+        if (userType === 'helper') {
+          console.log('Navigating to helper-profile stepper');
+          router.replace('/onboarding/helper-profile');
+        } else if (userType === 'business') {
+          console.log('Navigating to business-profile');
+          router.replace('/onboarding/business-profile');
+        } else {
+          console.log('Navigating to tabs (regular user)');
+          // For regular users, complete onboarding and go to tabs
+          updateUser({
+            ...profileUpdateData,
+            onboardingStatus: 'completed',
+          });
+          router.replace('/(tabs)');
+        }
       }, 100);
     } catch (error: any) {
       // Profile update error

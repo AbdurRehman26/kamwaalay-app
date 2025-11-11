@@ -136,6 +136,13 @@ function RootLayoutNav() {
     // If user exists and is verified, and is in auth group, redirect to appropriate screen
     else if (user && user.isVerified !== false && inAuthGroup) {
       try {
+        // Allow navigation to specific onboarding screens (helper-profile, business-profile)
+        // Don't redirect if user is already on these screens
+        if (currentPath === 'onboarding/helper-profile' || currentPath === 'onboarding/business-profile') {
+          // User is on the stepper onboarding screen - allow them to stay
+          return;
+        }
+        
         if (user.onboardingStatus === 'completed') {
           router.replace('/(tabs)');
         } else if (user.onboardingStatus === 'in_progress') {

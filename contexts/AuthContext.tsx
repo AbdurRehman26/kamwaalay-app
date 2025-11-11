@@ -670,7 +670,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const completeOnboarding = async (profileData: HelperProfile | BusinessProfile) => {
+  const completeOnboarding = async (
+    profileData: HelperProfile | BusinessProfile,
+    additionalData?: {
+      verification?: {
+        nicFile: any | null;
+        nicNumber: string;
+        photoFile: any | null;
+      };
+      serviceOffer?: {
+        serviceTypes: string[];
+        locations: any[];
+        workType: string;
+        monthlyRate: string;
+        description: string;
+      };
+    }
+  ) => {
     if (!user) return;
 
     try {
@@ -716,17 +732,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Map profile data to API format
         // Helper onboarding requires: services, nic, nic_number
-        // For now, we'll create a basic structure - this needs to be enhanced
-        // with actual service selection and NIC upload
+        const workType = additionalData?.serviceOffer?.workType || 'full_time';
+        const monthlyRate = additionalData?.serviceOffer?.monthlyRate
+          ? parseFloat(additionalData.serviceOffer.monthlyRate)
+          : undefined;
+        const nicNumber = additionalData?.verification?.nicNumber || '';
+
+        // Map service types to services array - just the service type strings
+        const services: string[] = [];
+        
+        if (additionalData?.serviceOffer?.serviceTypes) {
+          services.push(...additionalData.serviceOffer.serviceTypes);
+        } else if (profileData.serviceOfferings) {
+          // Fallback to profileData service offerings
+          profileData.serviceOfferings.forEach((service) => {
+            if (service.category) {
+              services.push(service.category);
+            }
+          });
+        }
+
+        // Map locations to location IDs array
+        const locations: number[] = [];
+        if (additionalData?.serviceOffer?.locations) {
+          additionalData.serviceOffer.locations.forEach((location) => {
+            const locationId = typeof location.id === 'number' ? location.id : parseInt(String(location.id));
+            if (locationId && !isNaN(locationId)) {
+              locations.push(locationId);
+            }
+          });
+        }
+
         const apiData = {
-          services: profileData.serviceOfferings?.map(service => ({
-            service_type: service.category || 'maid',
-            work_type: 'full_time',
-            location_id: 1, // TODO: Get actual location_id
-            monthly_rate: service.price,
-            description: service.description,
-          })) || [],
-          nic_number: '', // TODO: Add NIC number field
+          services,
+          work_type: workType,
+          monthly_rate: monthlyRate,
+          description: additionalData?.serviceOffer?.description || '',
+          locations,
+          nic_number: nicNumber,
           bio: 'bio' in profileData ? profileData.bio : undefined,
           experience_years: 'experience' in profileData ? parseInt(profileData.experience) || 0 : undefined,
           skills: undefined,

@@ -65,6 +65,7 @@ export default function ExploreScreen() {
   const { getHelpers } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'helper' | 'business'>('all');
+  const [selectedTab, setSelectedTab] = useState<'all' | 'top-rated' | 'experienced' | 'verified'>('all');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
@@ -362,8 +363,40 @@ export default function ExploreScreen() {
     return locationList;
   };
 
+  // Get filtered providers based on tab selection
+  const getFilteredByTab = () => {
+    let providers = helpers;
+    
+    switch (selectedTab) {
+      case 'top-rated':
+        // Sort by rating (highest first) and take top rated
+        providers = [...helpers].sort((a, b) => {
+          const ratingA = typeof a.rating === 'number' ? a.rating : (typeof a.rating === 'string' ? parseFloat(a.rating) : 0);
+          const ratingB = typeof b.rating === 'number' ? b.rating : (typeof b.rating === 'string' ? parseFloat(b.rating) : 0);
+          return ratingB - ratingA;
+        }).filter((h) => {
+          const rating = typeof h.rating === 'number' ? h.rating : (typeof h.rating === 'string' ? parseFloat(h.rating) : 0);
+          return !isNaN(rating) && rating >= 4.0; // Top rated = 4.0 and above
+        });
+        break;
+      case 'experienced':
+        // Filter by experience (5+ years)
+        providers = helpers.filter((h) => h.experience_years !== undefined && h.experience_years >= 5);
+        break;
+      case 'verified':
+        // Filter verified helpers (check if there's a verified field)
+        providers = helpers.filter((h) => (h as any).verified === true || (h as any).is_verified === true);
+        break;
+      case 'all':
+      default:
+        providers = helpers;
+    }
+    
+    return providers;
+  };
+
   // Filter providers (helpers and businesses) based on all filters
-  const filteredProviders = helpers.filter((h: Helper) => {
+  const filteredProviders = getFilteredByTab().filter((h: Helper) => {
     const providerName = getHelperName(h).toLowerCase();
     const service = getPrimaryService(h).toLowerCase();
     const role = getRole(h).toLowerCase();
@@ -371,6 +404,11 @@ export default function ExploreScreen() {
     
     // Get the actual role from API data (not the formatted display role)
     const apiRole = ((h as any).role || (h as any).user_type || (h as any).userType || '').toLowerCase();
+    
+    // If current user is a helper, exclude other helpers (only show businesses)
+    if (user?.userType === 'helper' && (apiRole === 'helper' || apiRole === '')) {
+      return false;
+    }
     
     // Filter by role (helper or business)
     const matchesRole = selectedFilter === 'all' || 
@@ -479,7 +517,7 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Filters */}
+        {/* Role Filters */}
         <View style={styles.filters}>
           <TouchableOpacity
             style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
@@ -503,6 +541,42 @@ export default function ExploreScreen() {
           >
             <Text style={[styles.filterText, selectedFilter === 'business' && styles.filterTextActive]}>
               Businesses
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab Filters (similar to requests screen) */}
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            style={[styles.tabButton, selectedTab === 'all' && styles.tabButtonActive]}
+            onPress={() => setSelectedTab('all')}
+          >
+            <Text style={[styles.tabText, selectedTab === 'all' && styles.tabTextActive]}>
+              All
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, selectedTab === 'top-rated' && styles.tabButtonActive]}
+            onPress={() => setSelectedTab('top-rated')}
+          >
+            <Text style={[styles.tabText, selectedTab === 'top-rated' && styles.tabTextActive]}>
+              Top Rated
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, selectedTab === 'experienced' && styles.tabButtonActive]}
+            onPress={() => setSelectedTab('experienced')}
+          >
+            <Text style={[styles.tabText, selectedTab === 'experienced' && styles.tabTextActive]}>
+              Experienced
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, selectedTab === 'verified' && styles.tabButtonActive]}
+            onPress={() => setSelectedTab('verified')}
+          >
+            <Text style={[styles.tabText, selectedTab === 'verified' && styles.tabTextActive]}>
+              Verified
             </Text>
           </TouchableOpacity>
         </View>
@@ -976,6 +1050,32 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   filterTextActive: {
+    color: '#FFFFFF',
+  },
+  tabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 20,
+  },
+  tabButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#E8E8E8',
+  },
+  tabButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  tabTextActive: {
     color: '#FFFFFF',
   },
   results: {

@@ -1,111 +1,183 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, HelperProfile } from '@/contexts/AuthContext';
 import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
+import { Stepper } from '@/components/ui/stepper';
+import Step1ServiceOffer from './helper-steps/step1-service-offer';
+import Step2ProfileVerification from './helper-steps/step2-profile-verification';
+import Step3CompleteProfile from './helper-steps/step3-complete-profile';
+
+interface Location {
+  id: number | string;
+  name: string;
+  area?: string;
+}
+
+interface ServiceOfferData {
+  serviceTypes: string[];
+  locations: Location[];
+  workType: string;
+  monthlyRate: string;
+  description: string;
+}
+
+interface ProfileVerificationData {
+  nicFile: any | null;
+  nicNumber: string;
+  photoFile: any | null;
+}
+
+interface CompleteProfileData {
+  experience: string;
+  bio: string;
+}
+
+const STEP_LABELS = ['Service Offer', 'Verification', 'Complete Profile'];
 
 export default function HelperProfileScreen() {
   const router = useRouter();
   const { user, completeOnboarding } = useAuth();
-  const [bio, setBio] = useState('');
-  const [experience, setExperience] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleContinue = async () => {
+  // Step 1: Service Offer
+  const [serviceOfferData, setServiceOfferData] = useState<ServiceOfferData>({
+    serviceTypes: [],
+    locations: [],
+    workType: '',
+    monthlyRate: '',
+    description: '',
+  });
+
+  // Step 2: Profile Verification
+  const [verificationData, setVerificationData] = useState<ProfileVerificationData>({
+    nicFile: null,
+    nicNumber: '',
+    photoFile: null,
+  });
+
+  // Step 3: Complete Profile
+  const [profileData, setProfileData] = useState<CompleteProfileData>({
+    experience: '',
+    bio: '',
+  });
+
+  const handleNext = () => {
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!user?.name) {
       Alert.alert('Error', 'Name is required');
       return;
     }
 
-    const profileData: HelperProfile = {
-      name: user.name,
-      email: user.email,
-      bio,
-      experience,
-      serviceOfferings: [],
-      locations: [],
-    };
+    setIsSubmitting(true);
 
-    await completeOnboarding(profileData);
-    router.replace('/(tabs)');
+    try {
+      // Map service offer data to service offerings
+      const serviceOfferings = serviceOfferData.serviceTypes.map((serviceType) => ({
+        id: `${serviceType}-${Date.now()}`,
+        serviceName: serviceType,
+        category: serviceType,
+        description: serviceOfferData.description,
+        price: serviceOfferData.monthlyRate ? parseFloat(serviceOfferData.monthlyRate) : undefined,
+        priceUnit: 'month' as const,
+        locations: serviceOfferData.locations.map((loc) => loc.area || loc.name),
+      }));
+
+      // Create HelperProfile with all data
+      const helperProfile: HelperProfile = {
+        name: user.name,
+        email: user.email,
+        bio: profileData.bio,
+        experience: profileData.experience,
+        serviceOfferings,
+        locations: serviceOfferData.locations.map((loc) => loc.area || loc.name),
+      };
+
+      // Store verification and service offer data in a way that completeOnboarding can access
+      // We'll pass this through the profileData or extend the interface
+      // For now, we'll store it in a way that the API can use
+      await completeOnboarding(helperProfile, {
+        verification: verificationData,
+        serviceOffer: serviceOfferData,
+      });
+
+      // Navigate to tabs
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <Step1ServiceOffer
+            data={serviceOfferData}
+            onChange={setServiceOfferData}
+            onNext={handleNext}
+          />
+        );
+      case 2:
+        return (
+          <Step2ProfileVerification
+            data={verificationData}
+            onChange={setVerificationData}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 3:
+        return (
+          <Step3CompleteProfile
+            data={profileData}
+            onChange={setProfileData}
+            onBack={handleBack}
+            onSubmit={handleSubmit}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (isSubmitting) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Complete Your Profile
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Help people know more about you
-          </ThemedText>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Bio (Optional)</ThemedText>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Tell us about yourself and your skills"
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={4}
-              value={bio}
-              onChangeText={setBio}
-              autoComplete="off"
-              textContentType="none"
-              autoCorrect={false}
-              spellCheck={false}
-              importantForAutofill="no"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Experience (Optional)</ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., 5 years of experience"
-              placeholderTextColor="#999"
-              value={experience}
-              onChangeText={setExperience}
-              autoComplete="off"
-              textContentType="none"
-              autoCorrect={false}
-              spellCheck={false}
-              importantForAutofill="no"
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>Complete Profile</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => {
-            const profileData: HelperProfile = {
-              name: user?.name || '',
-              email: user?.email,
-              serviceOfferings: [],
-              locations: [],
-            };
-            completeOnboarding(profileData);
-            router.replace('/(tabs)');
-          }}
-        >
-          <Text style={styles.skipButtonText}>Skip for now</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <Stepper
+        currentStep={currentStep}
+        totalSteps={3}
+        stepLabels={STEP_LABELS}
+      />
+      {renderStep()}
     </ThemedView>
   );
 }
@@ -114,65 +186,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    flexGrow: 1,
-    padding: 24,
-  },
-  header: {
-    marginTop: 40,
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-  form: {
-    marginBottom: 32,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 12,
+  loadingContainer: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  skipButton: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
+    justifyContent: 'center',
   },
 });
-

@@ -98,13 +98,6 @@ export default function HomeScreen() {
     }
   }, [user?.id, serviceRequests]);
 
-  // For helpers/businesses, redirect directly to requests tab
-  useEffect(() => {
-    if (user?.userType === 'helper' || user?.userType === 'business') {
-      router.replace('/(tabs)/requests');
-    }
-  }, [user?.userType, router]);
-
   // Fetch user's own service requests (bookings) from API
   useEffect(() => {
     if (user?.userType === 'user' && user?.id) {
@@ -120,20 +113,6 @@ export default function HomeScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
             <ThemedText style={styles.loadingText}>Loading...</ThemedText>
-          </View>
-        </ThemedView>
-      </SafeAreaView>
-    );
-  }
-
-  // If helper/business, show loading while redirecting
-  if (user?.userType === 'helper' || user?.userType === 'business') {
-    return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ThemedView style={styles.container}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>Redirecting...</ThemedText>
           </View>
         </ThemedView>
       </SafeAreaView>
@@ -388,6 +367,88 @@ export default function HomeScreen() {
                     onPress={() => router.push('/requests/create')}
                   >
                     <Text style={styles.createRequestButtonText}>Create Your First Request</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
+        {/* For Helpers/Businesses - Show available service requests */}
+        {(user?.userType === 'helper' || user?.userType === 'business') && (
+          <>
+            {/* Quick Actions */}
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() => router.push('/(tabs)/requests')}
+            >
+              <IconSymbol name="list.bullet" size={24} color="#FFFFFF" />
+              <Text style={styles.quickActionText}>Browse All Requests</Text>
+            </TouchableOpacity>
+
+            {/* Available Service Requests */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle" style={styles.sectionTitle}>
+                  Available Requests
+                </ThemedText>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
+                  <ThemedText style={styles.seeAll}>See All</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <ThemedText style={styles.sectionDescription}>
+                Find new opportunities to apply for
+              </ThemedText>
+              {serviceRequests.filter((r) => r.status === 'open').length > 0 ? (
+                serviceRequests
+                  .filter((r) => r.status === 'open')
+                  .slice(0, 3)
+                  .map((request) => (
+                    <View key={request.id}>{renderRequestCard(request)}</View>
+                  ))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
+                  <ThemedText style={styles.emptyCardText}>
+                    No available service requests at the moment
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+
+            {/* My Applications */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle" style={styles.sectionTitle}>
+                  My Applications
+                </ThemedText>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
+                  <ThemedText style={styles.seeAll}>See All</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <ThemedText style={styles.sectionDescription}>
+                Requests you've applied to
+              </ThemedText>
+              {serviceRequests.filter((r) => 
+                r.applicants && r.applicants.includes(user?.id || '')
+              ).length > 0 ? (
+                serviceRequests
+                  .filter((r) => r.applicants && r.applicants.includes(user?.id || ''))
+                  .slice(0, 3)
+                  .map((request) => (
+                    <View key={request.id}>{renderRequestCard(request)}</View>
+                  ))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <IconSymbol name="checkmark.circle.fill" size={32} color="#CCCCCC" />
+                  <ThemedText style={styles.emptyCardText}>
+                    You haven't applied to any requests yet
+                  </ThemedText>
+                  <TouchableOpacity
+                    style={styles.createRequestButton}
+                    onPress={() => router.push('/(tabs)/requests')}
+                  >
+                    <Text style={styles.createRequestButtonText}>Browse Requests</Text>
                   </TouchableOpacity>
                 </View>
               )}

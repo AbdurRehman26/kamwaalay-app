@@ -73,12 +73,29 @@ export default function ServiceRequestViewScreen() {
       return;
     }
 
-    try {
-      await applyToServiceRequest(request.id, user.id);
-      Alert.alert('Success', 'You have successfully applied to this service request!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to apply. Please try again.');
-    }
+    // Show confirmation dialog
+    Alert.alert(
+      'Confirm Application',
+      `Are you sure you want to apply for "${request.serviceName}"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Apply',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await applyToServiceRequest(request.id, user.id);
+              Alert.alert('Success', 'You have successfully applied to this service request!');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to apply. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleContact = () => {

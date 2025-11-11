@@ -55,13 +55,6 @@ export default function ProfileScreen() {
       onPress: () => router.push('/profile/bookings'),
     },
     {
-      id: 'saved',
-      title: 'Saved Helpers',
-      icon: 'heart.fill',
-      onPress: () => router.push('/profile/saved'),
-      show: user?.userType === 'user',
-    },
-    {
       id: 'notifications',
       title: 'Notifications',
       icon: 'bell.fill',

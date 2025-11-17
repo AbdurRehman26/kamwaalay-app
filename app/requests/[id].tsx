@@ -31,7 +31,7 @@ export default function ServiceRequestViewScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.headerTitle}>
             Service Request
@@ -115,7 +115,7 @@ export default function ServiceRequestViewScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return '#E8F5E9';
-      case 'in_progress': return '#E3F2FD';
+      case 'in_progress': return '#EEF2FF';
       case 'completed': return '#F5F5F5';
       case 'cancelled': return '#FFEBEE';
       default: return '#F5F5F5';
@@ -153,7 +153,7 @@ export default function ServiceRequestViewScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+          <IconSymbol name="chevron.left" size={24} color="#6366F1" />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.headerTitle}>
           Service Request
@@ -202,7 +202,7 @@ export default function ServiceRequestViewScreen() {
           <View style={styles.detailsSection}>
             <View style={styles.detailItem}>
               <View style={styles.detailIcon}>
-                <IconSymbol name="location.fill" size={20} color="#007AFF" />
+                <IconSymbol name="location.fill" size={20} color="#6366F1" />
               </View>
               <View style={styles.detailContent}>
                 <ThemedText style={styles.detailLabel}>Location</ThemedText>
@@ -213,7 +213,7 @@ export default function ServiceRequestViewScreen() {
             {request.budget && (
               <View style={styles.detailItem}>
                 <View style={styles.detailIcon}>
-                  <IconSymbol name="dollarsign.circle.fill" size={20} color="#007AFF" />
+                  <IconSymbol name="dollarsign.circle.fill" size={20} color="#6366F1" />
                 </View>
                 <View style={styles.detailContent}>
                   <ThemedText style={styles.detailLabel}>Budget</ThemedText>
@@ -224,7 +224,7 @@ export default function ServiceRequestViewScreen() {
 
             <View style={styles.detailItem}>
               <View style={styles.detailIcon}>
-                <IconSymbol name="calendar" size={20} color="#007AFF" />
+                <IconSymbol name="calendar" size={20} color="#6366F1" />
               </View>
               <View style={styles.detailContent}>
                 <ThemedText style={styles.detailLabel}>Created</ThemedText>
@@ -235,7 +235,7 @@ export default function ServiceRequestViewScreen() {
             {request.applicants && request.applicants.length > 0 && (
               <View style={styles.detailItem}>
                 <View style={styles.detailIcon}>
-                  <IconSymbol name="person.2.fill" size={20} color="#007AFF" />
+                  <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
                 </View>
                 <View style={styles.detailContent}>
                   <ThemedText style={styles.detailLabel}>Applicants</ThemedText>
@@ -255,7 +255,7 @@ export default function ServiceRequestViewScreen() {
                   style={styles.contactButton}
                   onPress={handleContactApplicants}
                 >
-                  <IconSymbol name="message.fill" size={20} color="#007AFF" />
+                  <IconSymbol name="message.fill" size={20} color="#6366F1" />
                   <Text style={styles.contactButtonText}>
                     Contact Applicant{request.applicants.length > 1 ? 's' : ''} ({request.applicants.length})
                   </Text>
@@ -278,7 +278,7 @@ export default function ServiceRequestViewScreen() {
                     style={styles.contactButton}
                     onPress={handleContact}
                   >
-                    <IconSymbol name="message.fill" size={20} color="#007AFF" />
+                    <IconSymbol name="message.fill" size={20} color="#6366F1" />
                     <Text style={styles.contactButtonText}>Contact</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -295,7 +295,7 @@ export default function ServiceRequestViewScreen() {
                     style={styles.contactButton}
                     onPress={handleContact}
                   >
-                    <IconSymbol name="message.fill" size={20} color="#007AFF" />
+                    <IconSymbol name="message.fill" size={20} color="#6366F1" />
                     <Text style={styles.contactButtonText}>Contact</Text>
                   </TouchableOpacity>
                   <View style={styles.appliedBadge}>
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   userInfoText: {
     flex: 1,
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     padding: 16,
     borderRadius: 12,
     gap: 8,
@@ -483,11 +483,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   applyButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backToRequestsButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',

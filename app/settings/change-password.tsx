@@ -98,7 +98,7 @@ export default function ChangePasswordScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Change Password
@@ -109,7 +109,7 @@ export default function ChangePasswordScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Info Section */}
           <View style={styles.infoSection}>
-            <IconSymbol name="info.circle.fill" size={24} color="#007AFF" />
+            <IconSymbol name="info.circle.fill" size={24} color="#6366F1" />
             <ThemedText style={styles.infoText}>
               Your password must be at least 8 characters long and contain uppercase, lowercase, and numbers.
             </ThemedText>
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   infoSection: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     borderRadius: 12,
     padding: 16,
     margin: 20,
@@ -335,11 +335,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   changeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -23,7 +23,7 @@ export default function SettingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Settings
@@ -38,24 +38,24 @@ export default function SettingsScreen() {
           </ThemedText>
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <IconSymbol name="bell.fill" size={24} color="#007AFF" />
+              <IconSymbol name="bell.fill" size={24} color="#6366F1" />
               <ThemedText style={styles.settingLabel}>Push Notifications</ThemedText>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#E0E0E0', true: '#007AFF' }}
+              trackColor={{ false: '#E0E0E0', true: '#6366F1' }}
             />
           </View>
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <IconSymbol name="envelope.fill" size={24} color="#007AFF" />
+              <IconSymbol name="envelope.fill" size={24} color="#6366F1" />
               <ThemedText style={styles.settingLabel}>Email Notifications</ThemedText>
             </View>
             <Switch
               value={emailNotifications}
               onValueChange={setEmailNotifications}
-              trackColor={{ false: '#E0E0E0', true: '#007AFF' }}
+              trackColor={{ false: '#E0E0E0', true: '#6366F1' }}
             />
           </View>
         </View>
@@ -70,7 +70,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/profile/edit')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="person.fill" size={24} color="#007AFF" />
+              <IconSymbol name="person.fill" size={24} color="#6366F1" />
               <ThemedText style={styles.menuItemText}>Edit Profile</ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
@@ -80,7 +80,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/settings/change-password')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="lock.fill" size={24} color="#007AFF" />
+              <IconSymbol name="lock.fill" size={24} color="#6366F1" />
               <ThemedText style={styles.menuItemText}>Change Password</ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
@@ -97,7 +97,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/about')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="info.circle.fill" size={24} color="#007AFF" />
+              <IconSymbol name="info.circle.fill" size={24} color="#6366F1" />
               <ThemedText style={styles.menuItemText}>About</ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/terms')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="doc.text.fill" size={24} color="#007AFF" />
+              <IconSymbol name="doc.text.fill" size={24} color="#6366F1" />
               <ThemedText style={styles.menuItemText}>Terms & Conditions</ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
@@ -117,7 +117,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/privacy')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="hand.raised.fill" size={24} color="#007AFF" />
+              <IconSymbol name="hand.raised.fill" size={24} color="#6366F1" />
               <ThemedText style={styles.menuItemText}>Privacy Policy</ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />

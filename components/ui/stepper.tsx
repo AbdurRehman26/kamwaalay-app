@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   stepCircleActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   stepCircleCompleted: {
     backgroundColor: '#34C759',
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     maxWidth: 80,
   },
   stepLabelActive: {
-    color: '#007AFF',
+    color: '#6366F1',
   },
   stepLabelCompleted: {
     color: '#34C759',

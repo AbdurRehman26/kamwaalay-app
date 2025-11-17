@@ -220,7 +220,7 @@ export default function PhoneLoginScreen() {
                   style={[styles.methodButton, loginMethod === 'phone' && styles.methodButtonActive]}
                   onPress={() => setLoginMethod('phone')}
                 >
-                  <IconSymbol name="phone.fill" size={24} color={loginMethod === 'phone' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="phone.fill" size={24} color={loginMethod === 'phone' ? '#6366F1' : '#666'} />
                   <Text style={[styles.methodText, loginMethod === 'phone' && styles.methodTextActive]}>
                     Phone
                   </Text>
@@ -229,7 +229,7 @@ export default function PhoneLoginScreen() {
                   style={[styles.methodButton, loginMethod === 'email' && styles.methodButtonActive]}
                   onPress={() => setLoginMethod('email')}
                 >
-                  <IconSymbol name="envelope.fill" size={24} color={loginMethod === 'email' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="envelope.fill" size={24} color={loginMethod === 'email' ? '#6366F1' : '#666'} />
                   <Text style={[styles.methodText, loginMethod === 'email' && styles.methodTextActive]}>
                     Email
                   </Text>
@@ -245,7 +245,7 @@ export default function PhoneLoginScreen() {
                   style={[styles.methodButton, authMethod === 'otp' && styles.methodButtonActive]}
                   onPress={() => setAuthMethod('otp')}
                 >
-                  <IconSymbol name="message.fill" size={24} color={authMethod === 'otp' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="message.fill" size={24} color={authMethod === 'otp' ? '#6366F1' : '#666'} />
                   <Text style={[styles.methodText, authMethod === 'otp' && styles.methodTextActive]}>
                     OTP
                   </Text>
@@ -254,7 +254,7 @@ export default function PhoneLoginScreen() {
                   style={[styles.methodButton, authMethod === 'password' && styles.methodButtonActive]}
                   onPress={() => setAuthMethod('password')}
                 >
-                  <IconSymbol name="lock.fill" size={24} color={authMethod === 'password' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="lock.fill" size={24} color={authMethod === 'password' ? '#6366F1' : '#666'} />
                   <Text style={[styles.methodText, authMethod === 'password' && styles.methodTextActive]}>
                     Password
                   </Text>
@@ -418,8 +418,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   methodButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
   },
   methodText: {
     fontSize: 14,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   methodTextActive: {
-    color: '#007AFF',
+    color: '#6366F1',
   },
   logoContainer: {
     alignItems: 'center',
@@ -437,11 +437,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -581,11 +581,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 18,
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   },
   signUpLink: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '600',
   },
   termsText: {
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   linkText: {
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '600',
   },
 });

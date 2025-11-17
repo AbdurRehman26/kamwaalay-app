@@ -168,7 +168,7 @@ export default function CreateRequestScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Create Request
@@ -264,7 +264,7 @@ export default function CreateRequestScreen() {
                 }}
               />
               {isLoadingLocations && (
-                <ActivityIndicator size="small" color="#007AFF" />
+                <ActivityIndicator size="small" color="#6366F1" />
               )}
             </View>
 
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   categoryButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   categoryText: {
     fontSize: 14,
@@ -428,8 +428,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   locationButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   locationText: {
     fontSize: 14,
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   locationTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   createButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

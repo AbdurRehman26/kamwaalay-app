@@ -125,7 +125,7 @@ export default function ProfileScreen() {
                 <IconSymbol
                   name={item.icon}
                   size={24}
-                  color={item.destructive ? '#FF3B30' : '#007AFF'}
+                  color={item.destructive ? '#FF3B30' : '#6366F1'}
                 />
                 <ThemedText
                   style={[
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   name: {
     fontSize: 24,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   badge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#6366F1',
     textTransform: 'capitalize',
   },
   menu: {

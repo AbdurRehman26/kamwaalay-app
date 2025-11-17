@@ -19,7 +19,7 @@ export default function TermsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+          <IconSymbol name="chevron.left" size={24} color="#6366F1" />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.title}>
           Terms & Conditions
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   contactInfo: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#007AFF',
+    color: '#6366F1',
     marginTop: 8,
     fontWeight: '600',
   },

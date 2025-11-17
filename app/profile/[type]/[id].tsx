@@ -37,13 +37,13 @@ export default function ProfileViewScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.headerTitle}>
             Profile
           </ThemedText>
           <TouchableOpacity onPress={() => router.push(`/chat/${id}`)}>
-            <IconSymbol name="message.fill" size={24} color="#007AFF" />
+            <IconSymbol name="message.fill" size={24} color="#6366F1" />
           </TouchableOpacity>
         </View>
 
@@ -66,17 +66,17 @@ export default function ProfileViewScreen() {
         {/* Quick Stats */}
         <View style={styles.stats}>
           <View style={styles.statItem}>
-            <IconSymbol name="clock.fill" size={24} color="#007AFF" />
+            <IconSymbol name="clock.fill" size={24} color="#6366F1" />
             <ThemedText style={styles.statValue}>{MOCK_PROFILE.experience}</ThemedText>
             <ThemedText style={styles.statLabel}>Experience</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <IconSymbol name="location.fill" size={24} color="#007AFF" />
+            <IconSymbol name="location.fill" size={24} color="#6366F1" />
             <ThemedText style={styles.statValue}>{MOCK_PROFILE.distance}</ThemedText>
             <ThemedText style={styles.statLabel}>Distance</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <IconSymbol name="dollarsign.circle.fill" size={24} color="#007AFF" />
+            <IconSymbol name="dollarsign.circle.fill" size={24} color="#6366F1" />
             <ThemedText style={styles.statValue}>₨{MOCK_PROFILE.price}</ThemedText>
             <ThemedText style={styles.statLabel}>Per Month</ThemedText>
           </View>
@@ -112,7 +112,7 @@ export default function ProfileViewScreen() {
           <View style={styles.locationsContainer}>
             {MOCK_PROFILE.locations.map((location) => (
               <View key={location} style={styles.locationTag}>
-                <IconSymbol name="location.fill" size={16} color="#007AFF" />
+                <IconSymbol name="location.fill" size={16} color="#6366F1" />
                 <Text style={styles.locationTagText}>{location}</Text>
               </View>
             ))}
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 40,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   name: {
     fontSize: 24,
@@ -239,14 +239,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   serviceTag: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   serviceTagText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '500',
   },
   locationsContainer: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     gap: 8,

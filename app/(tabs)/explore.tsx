@@ -314,7 +314,7 @@ export default function ExploreScreen() {
             style={styles.contactButton}
             onPress={() => router.push(`/chat/${providerId}?name=${encodeURIComponent(providerName)}`)}
           >
-            <IconSymbol name="message.fill" size={20} color="#007AFF" />
+            <IconSymbol name="message.fill" size={20} color="#6366F1" />
           </TouchableOpacity>
         </View>
         <ThemedText style={styles.cardBio} numberOfLines={2}>
@@ -508,7 +508,7 @@ export default function ExploreScreen() {
             style={styles.filterIconButton}
             onPress={() => setShowFilterModal(true)}
           >
-            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#007AFF" : "#999"} />
+            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#6366F1" : "#999"} />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -662,7 +662,7 @@ export default function ExploreScreen() {
                   onChangeText={setLocationSearch}
                 />
                 {isLoadingLocations && (
-                  <ActivityIndicator size="small" color="#007AFF" style={styles.loadingIndicator} />
+                  <ActivityIndicator size="small" color="#6366F1" style={styles.loadingIndicator} />
                 )}
                 <View style={styles.chipContainer}>
                   {/* Show available locations from helpers */}
@@ -827,13 +827,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
   clearFilterText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '600',
   },
   searchContainer: {
@@ -923,8 +923,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   chipActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   chipText: {
     fontSize: 14,
@@ -959,8 +959,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   experienceChipActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   experienceChipText: {
     fontSize: 14,
@@ -987,8 +987,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   ratingChipActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   ratingChipText: {
     fontSize: 14,
@@ -1021,7 +1021,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     alignItems: 'center',
   },
   applyFiltersText: {
@@ -1042,7 +1042,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   filterButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   filterText: {
     fontSize: 14,
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E8E8',
   },
   tabButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   tabText: {
     fontSize: 13,
@@ -1112,7 +1112,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -1138,8 +1138,8 @@ const styles = StyleSheet.create({
   cardRole: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#007AFF',
-    backgroundColor: '#E3F2FD',
+    color: '#6366F1',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -1186,19 +1186,19 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     borderRadius: 16,
     padding: 18,
     marginHorizontal: 20,
     marginBottom: 24,
     gap: 10,
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -313,12 +313,12 @@ export default function RequestsScreen() {
           {isHelperOrBusiness && (
             <View style={styles.cardDetails}>
               <View style={styles.detailRow}>
-                <IconSymbol name="location.fill" size={16} color="#007AFF" />
+                <IconSymbol name="location.fill" size={16} color="#6366F1" />
                 <ThemedText style={styles.detailText}>{request.location}</ThemedText>
               </View>
               {request.budget && (
                 <View style={styles.detailRow}>
-                  <IconSymbol name="dollarsign.circle.fill" size={16} color="#007AFF" />
+                  <IconSymbol name="dollarsign.circle.fill" size={16} color="#6366F1" />
                   <ThemedText style={styles.detailText}>₨{request.budget}</ThemedText>
                 </View>
               )}
@@ -352,7 +352,7 @@ export default function RequestsScreen() {
                 style={styles.contactButton}
                 onPress={() => handleContactApplicants(request)}
               >
-                <IconSymbol name="message.fill" size={18} color="#007AFF" />
+                <IconSymbol name="message.fill" size={18} color="#6366F1" />
                 <Text style={styles.contactButtonText}>
                   Contact Applicant{request.applicants.length > 1 ? 's' : ''}
                 </Text>
@@ -394,7 +394,7 @@ export default function RequestsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return '#E8F5E9';
-      case 'in_progress': return '#E3F2FD';
+      case 'in_progress': return '#EEF2FF';
       case 'completed': return '#F5F5F5';
       default: return '#FFEBEE';
     }
@@ -413,7 +413,7 @@ export default function RequestsScreen() {
             style={styles.addButton}
             onPress={() => router.push('/requests/create')}
           >
-            <IconSymbol name="plus.circle.fill" size={28} color="#007AFF" />
+            <IconSymbol name="plus.circle.fill" size={28} color="#6366F1" />
           </TouchableOpacity>
         )}
       </View>
@@ -433,7 +433,7 @@ export default function RequestsScreen() {
             style={styles.filterIconButton}
             onPress={() => setShowFilterModal(true)}
           >
-            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#007AFF" : "#999"} />
+            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#6366F1" : "#999"} />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -591,7 +591,7 @@ export default function RequestsScreen() {
                     onChangeText={setLocationSearch}
                   />
                   {isLoadingLocations && (
-                    <ActivityIndicator size="small" color="#007AFF" style={styles.loadingIndicator} />
+                    <ActivityIndicator size="small" color="#6366F1" style={styles.loadingIndicator} />
                   )}
                   <View style={styles.chipContainer}>
                     {/* Show locations from requests first */}
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E8E8',
   },
   tabActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   tabText: {
     fontSize: 13,
@@ -842,14 +842,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   cardUser: {
     fontSize: 14,
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
   budget: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   applicants: {
     fontSize: 12,
@@ -933,7 +933,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     padding: 14,
     borderRadius: 12,
     gap: 8,
@@ -947,11 +947,11 @@ const styles = StyleSheet.create({
   },
   viewDetailsButton: {
     flex: 1,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1029,7 +1029,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   createButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -1114,8 +1114,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   chipActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   chipText: {
     fontSize: 14,
@@ -1181,7 +1181,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     alignItems: 'center',
   },
   applyFiltersText: {

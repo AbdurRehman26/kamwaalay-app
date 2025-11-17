@@ -22,7 +22,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { ServiceRequest } from '@/contexts/AuthContext';
 
 const SERVICES = [
-  { id: '1', name: 'Cleaning', icon: '🧹', color: '#E3F2FD' },
+  { id: '1', name: 'Cleaning', icon: '🧹', color: '#EEF2FF' },
   { id: '2', name: 'Cooking', icon: '👨‍🍳', color: '#E8F5E9' },
   { id: '3', name: 'Babysitting', icon: '👶', color: '#FFF3E0' },
   { id: '4', name: 'Elderly Care', icon: '👴', color: '#F3E5F5' },
@@ -111,7 +111,7 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ThemedView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color="#6366F1" />
             <ThemedText style={styles.loadingText}>Loading...</ThemedText>
           </View>
         </ThemedView>
@@ -195,12 +195,12 @@ export default function HomeScreen() {
           </ThemedText>
           <View style={styles.requestDetails}>
             <View style={styles.detailRow}>
-              <IconSymbol name="location.fill" size={14} color="#007AFF" />
+              <IconSymbol name="location.fill" size={14} color="#6366F1" />
               <ThemedText style={styles.detailText}>{request.location}</ThemedText>
             </View>
             {request.budget && (
               <View style={styles.detailRow}>
-                <IconSymbol name="dollarsign.circle.fill" size={14} color="#007AFF" />
+                <IconSymbol name="dollarsign.circle.fill" size={14} color="#6366F1" />
                 <ThemedText style={styles.detailText}>₨{request.budget}</ThemedText>
               </View>
             )}
@@ -211,7 +211,7 @@ export default function HomeScreen() {
                 style={styles.contactButton}
                 onPress={() => handleContact(request)}
               >
-                <IconSymbol name="message.fill" size={16} color="#007AFF" />
+                <IconSymbol name="message.fill" size={16} color="#6366F1" />
                 <Text style={styles.contactButtonText}>Contact</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -263,7 +263,7 @@ export default function HomeScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return '#E8F5E9';
-      case 'in_progress': return '#E3F2FD';
+      case 'in_progress': return '#EEF2FF';
       case 'completed': return '#F5F5F5';
       default: return '#FFEBEE';
     }
@@ -286,7 +286,7 @@ export default function HomeScreen() {
             </ThemedText>
           </View>
           <TouchableOpacity onPress={() => router.push('/notifications')}>
-            <IconSymbol name="bell.fill" size={24} color="#007AFF" />
+            <IconSymbol name="bell.fill" size={24} color="#6366F1" />
           </TouchableOpacity>
         </View>
 
@@ -349,7 +349,7 @@ export default function HomeScreen() {
               </View>
               {isLoadingRequests ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#007AFF" />
+                  <ActivityIndicator size="small" color="#6366F1" />
                   <ThemedText style={styles.loadingText}>Loading requests...</ThemedText>
                 </View>
               ) : myServiceRequests.length > 0 ? (
@@ -528,14 +528,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     borderRadius: 16,
     padding: 18,
     marginHorizontal: 20,
     marginTop: 8,
     marginBottom: 24,
     gap: 10,
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   seeAll: {
     fontSize: 15,
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '700',
   },
   servicesContainer: {
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
   requestBudget: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -691,14 +691,14 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   requestUser: {
     fontSize: 13,
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     padding: 12,
     borderRadius: 12,
     gap: 6,
@@ -747,11 +747,11 @@ const styles = StyleSheet.create({
   },
   applyButton: {
     flex: 1,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 12,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -791,7 +791,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   createRequestButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 12,
     borderRadius: 12,
     alignItems: 'center',

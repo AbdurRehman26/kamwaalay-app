@@ -44,7 +44,7 @@ export default function UserTypeScreen() {
             style={styles.optionCard}
             onPress={() => handleSelectType('user')}
           >
-            <View style={[styles.iconContainer, { backgroundColor: '#E3F2FD' }]}>
+            <View style={[styles.iconContainer, { backgroundColor: '#EEF2FF' }]}>
               <Text style={styles.icon}>👤</Text>
             </View>
             <ThemedText type="subtitle" style={styles.optionTitle}>

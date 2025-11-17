@@ -50,7 +50,7 @@ export default function ChatDetailScreen() {
           }}
           style={{ marginRight: 16 }}
         >
-          <IconSymbol name="phone.fill" size={24} color="#007AFF" />
+          <IconSymbol name="phone.fill" size={24} color="#6366F1" />
         </TouchableOpacity>
       ),
     });
@@ -217,7 +217,7 @@ export default function ChatDetailScreen() {
             multiline
           />
           <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-            <IconSymbol name="arrow.up.circle.fill" size={32} color="#007AFF" />
+            <IconSymbol name="arrow.up.circle.fill" size={32} color="#6366F1" />
           </TouchableOpacity>
         </View>
       </ThemedView>
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   messageSenderMe: {
-    color: '#007AFF',
+    color: '#6366F1',
     textAlign: 'right',
   },
   messageSenderOther: {
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   messageTextMe: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     color: '#FFFFFF',
     borderBottomRightRadius: 4,
   },

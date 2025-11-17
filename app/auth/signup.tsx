@@ -150,7 +150,7 @@ export default function SignupScreen() {
                   }}
                   disabled={!isEmailEditable}
                 >
-                  <IconSymbol name="envelope.fill" size={24} color={signupMethod === 'email' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="envelope.fill" size={24} color={signupMethod === 'email' ? '#6366F1' : '#666'} />
                   <Text style={[styles.methodText, signupMethod === 'email' && styles.methodTextActive]}>
                     Email
                   </Text>
@@ -164,7 +164,7 @@ export default function SignupScreen() {
                   }}
                   disabled={!isEmailEditable}
                 >
-                  <IconSymbol name="phone.fill" size={24} color={signupMethod === 'phone' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="phone.fill" size={24} color={signupMethod === 'phone' ? '#6366F1' : '#666'} />
                   <Text style={[styles.methodText, signupMethod === 'phone' && styles.methodTextActive]}>
                     Phone
                   </Text>
@@ -180,7 +180,7 @@ export default function SignupScreen() {
                   style={[styles.roleCard, role === 'user' && styles.roleCardActive]}
                   onPress={() => setRole('user')}
                 >
-                  <IconSymbol name="person.fill" size={32} color={role === 'user' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="person.fill" size={32} color={role === 'user' ? '#6366F1' : '#666'} />
                   <Text style={[styles.roleTitle, role === 'user' && styles.roleTitleActive]}>
                     User
                   </Text>
@@ -189,7 +189,7 @@ export default function SignupScreen() {
                   style={[styles.roleCard, role === 'helper' && styles.roleCardActive]}
                   onPress={() => setRole('helper')}
                 >
-                  <IconSymbol name="briefcase.fill" size={32} color={role === 'helper' ? '#007AFF' : '#8B4513'} />
+                  <IconSymbol name="briefcase.fill" size={32} color={role === 'helper' ? '#6366F1' : '#8B4513'} />
                   <Text style={[styles.roleTitle, role === 'helper' && styles.roleTitleActive]}>
                     Worker
                   </Text>
@@ -198,7 +198,7 @@ export default function SignupScreen() {
                   style={[styles.roleCard, role === 'business' && styles.roleCardActive]}
                   onPress={() => setRole('business')}
                 >
-                  <IconSymbol name="building.2.fill" size={32} color={role === 'business' ? '#007AFF' : '#666'} />
+                  <IconSymbol name="building.2.fill" size={32} color={role === 'business' ? '#6366F1' : '#666'} />
                   <Text style={[styles.roleTitle, role === 'business' && styles.roleTitleActive]}>
                     Business
                   </Text>
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     flex: 1,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -419,8 +419,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   methodButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
   },
   methodText: {
     fontSize: 14,
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   methodTextActive: {
-    color: '#007AFF',
+    color: '#6366F1',
   },
   roleContainer: {
     flexDirection: 'row',
@@ -448,8 +448,8 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   roleCardActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
   },
   roleTitle: {
     fontSize: 14,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   roleTitleActive: {
-    color: '#007AFF',
+    color: '#6366F1',
   },
   roleSubtitle: {
     fontSize: 11,
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   roleSubtitleActive: {
-    color: '#007AFF',
+    color: '#6366F1',
   },
   formSection: {
     marginTop: 8,
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   linkText: {
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '600',
   },
 });

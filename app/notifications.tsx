@@ -55,7 +55,7 @@ export default function NotificationsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Notifications
@@ -85,7 +85,7 @@ export default function NotificationsScreen() {
                   size={24}
                   color={
                     notification.type === 'request'
-                      ? '#007AFF'
+                      ? '#6366F1'
                       : notification.type === 'message'
                       ? '#34C759'
                       : '#FF9500'
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   notificationItemUnread: {
     backgroundColor: '#F0F7FF',
-    borderColor: '#007AFF',
+    borderColor: '#6366F1',
   },
   notificationIcon: {
     marginRight: 12,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     marginTop: 8,
   },
 });

@@ -5,32 +5,32 @@
 
 import { Platform } from 'react-native';
 
-// Blue theme colors
-const tintColorLight = '#007AFF'; // Primary blue
-const tintColorDark = '#5AC8FA'; // Lighter blue for dark mode
+// Lovable.dev Indigo theme colors
+const tintColorLight = '#6366F1'; // Primary indigo
+const tintColorDark = '#818CF8'; // Lighter indigo for dark mode
 
 export const Colors = {
   light: {
     text: '#11181C',
     background: '#fff',
     tint: tintColorLight,
-    icon: '#007AFF', // Blue icons
+    icon: '#6366F1', // Indigo icons
     tabIconDefault: '#8E8E93',
     tabIconSelected: tintColorLight,
-    primary: '#007AFF', // Primary blue
-    primaryLight: '#E3F2FD', // Light blue background
-    primaryDark: '#0051D5', // Darker blue for hover/pressed states
+    primary: '#6366F1', // Primary indigo
+    primaryLight: '#EEF2FF', // Light indigo background
+    primaryDark: '#4F46E5', // Darker indigo for hover/pressed states
   },
   dark: {
     text: '#ECEDEE',
     background: '#151718',
     tint: tintColorDark,
-    icon: '#5AC8FA',
+    icon: '#818CF8',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
-    primary: '#5AC8FA',
-    primaryLight: '#1A3A5C',
-    primaryDark: '#007AFF',
+    primary: '#818CF8',
+    primaryLight: '#312E81',
+    primaryDark: '#6366F1',
   },
 };
 

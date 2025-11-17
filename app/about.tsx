@@ -26,7 +26,7 @@ export default function AboutScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+          <IconSymbol name="chevron.left" size={24} color="#6366F1" />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.title}>
           About Kamwaalay
@@ -98,15 +98,15 @@ export default function AboutScreen() {
             </ThemedText>
             <View style={styles.contactCard}>
               <View style={styles.contactRow}>
-                <IconSymbol name="envelope.fill" size={20} color="#007AFF" />
+                <IconSymbol name="envelope.fill" size={20} color="#6366F1" />
                 <ThemedText style={styles.contactText}>info@kamwaalay.com</ThemedText>
               </View>
               <View style={styles.contactRow}>
-                <IconSymbol name="phone.fill" size={20} color="#007AFF" />
+                <IconSymbol name="phone.fill" size={20} color="#6366F1" />
                 <ThemedText style={styles.contactText}>+92-300-1234567</ThemedText>
               </View>
               <View style={styles.contactRow}>
-                <IconSymbol name="location.fill" size={20} color="#007AFF" />
+                <IconSymbol name="location.fill" size={20} color="#6366F1" />
                 <ThemedText style={styles.contactText}>Karachi, Pakistan</ThemedText>
               </View>
             </View>
@@ -122,21 +122,21 @@ export default function AboutScreen() {
                 style={styles.socialButton}
                 onPress={() => handleSocialLink('https://facebook.com/kamwaalay')}
               >
-                <IconSymbol name="message.fill" size={24} color="#007AFF" />
+                <IconSymbol name="message.fill" size={24} color="#6366F1" />
                 <ThemedText style={styles.socialText}>Facebook</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.socialButton}
                 onPress={() => handleSocialLink('https://twitter.com/kamwaalay')}
               >
-                <IconSymbol name="message.fill" size={24} color="#007AFF" />
+                <IconSymbol name="message.fill" size={24} color="#6366F1" />
                 <ThemedText style={styles.socialText}>Twitter</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.socialButton}
                 onPress={() => handleSocialLink('https://instagram.com/kamwaalay')}
               >
-                <IconSymbol name="message.fill" size={24} color="#007AFF" />
+                <IconSymbol name="message.fill" size={24} color="#6366F1" />
                 <ThemedText style={styles.socialText}>Instagram</ThemedText>
               </TouchableOpacity>
             </View>
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,

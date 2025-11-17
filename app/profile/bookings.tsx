@@ -73,7 +73,7 @@ export default function BookingsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'in_progress':
-        return '#E3F2FD';
+        return '#EEF2FF';
       case 'completed':
         return '#E8F5E9';
       case 'cancelled':
@@ -141,17 +141,17 @@ export default function BookingsScreen() {
 
         <View style={styles.cardDetails}>
           <View style={styles.detailRow}>
-            <IconSymbol name="location.fill" size={16} color="#007AFF" />
+            <IconSymbol name="location.fill" size={16} color="#6366F1" />
             <ThemedText style={styles.detailText}>{booking.location}</ThemedText>
           </View>
           {booking.budget && (
             <View style={styles.detailRow}>
-              <IconSymbol name="dollarsign.circle.fill" size={16} color="#007AFF" />
+              <IconSymbol name="dollarsign.circle.fill" size={16} color="#6366F1" />
               <ThemedText style={styles.detailText}>₨{booking.budget}</ThemedText>
             </View>
           )}
           <View style={styles.detailRow}>
-            <IconSymbol name="clock.fill" size={16} color="#007AFF" />
+            <IconSymbol name="clock.fill" size={16} color="#6366F1" />
             <ThemedText style={styles.detailText}>
               {new Date(booking.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -167,7 +167,7 @@ export default function BookingsScreen() {
             style={styles.contactButton}
             onPress={() => router.push(`/chat/${isUser ? booking.applicants?.[0] : booking.userId}`)}
           >
-            <IconSymbol name="message.fill" size={18} color="#007AFF" />
+            <IconSymbol name="message.fill" size={18} color="#6366F1" />
             <Text style={styles.contactButtonText}>Chat</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -186,7 +186,7 @@ export default function BookingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+          <IconSymbol name="chevron.left" size={24} color="#6366F1" />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.title}>
           My Bookings
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E8E8',
   },
   tabActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   tabText: {
     fontSize: 13,
@@ -386,14 +386,14 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   cardUser: {
     fontSize: 13,
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     padding: 14,
     borderRadius: 12,
     gap: 8,
@@ -467,11 +467,11 @@ const styles = StyleSheet.create({
   },
   viewButton: {
     flex: 1,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

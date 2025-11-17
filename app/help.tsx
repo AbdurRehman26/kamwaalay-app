@@ -105,7 +105,7 @@ export default function HelpScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Help & Support
@@ -120,13 +120,13 @@ export default function HelpScreen() {
           </ThemedText>
           <View style={styles.contactCards}>
             <TouchableOpacity style={styles.contactCard} onPress={handleCallSupport}>
-              <IconSymbol name="phone.fill" size={32} color="#007AFF" />
+              <IconSymbol name="phone.fill" size={32} color="#6366F1" />
               <ThemedText style={styles.contactLabel}>Call Us</ThemedText>
               <ThemedText style={styles.contactValue}>+92-300-1234567</ThemedText>
               <ThemedText style={styles.contactHours}>Mon-Fri, 9 AM - 6 PM</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactCard} onPress={handleEmailSupport}>
-              <IconSymbol name="envelope.fill" size={32} color="#007AFF" />
+              <IconSymbol name="envelope.fill" size={32} color="#6366F1" />
               <ThemedText style={styles.contactLabel}>Email Us</ThemedText>
               <ThemedText style={styles.contactValue}>support@kamwaalay.com</ThemedText>
               <ThemedText style={styles.contactHours}>24/7 Support</ThemedText>
@@ -182,7 +182,7 @@ export default function HelpScreen() {
                 <IconSymbol
                   name={expandedFAQ === item.id ? 'chevron.up' : 'chevron.down'}
                   size={20}
-                  color="#007AFF"
+                  color="#6366F1"
                 />
               </TouchableOpacity>
               {expandedFAQ === item.id && (
@@ -203,7 +203,7 @@ export default function HelpScreen() {
             style={styles.resourceItem}
             onPress={() => router.push('/terms')}
           >
-            <IconSymbol name="doc.text.fill" size={24} color="#007AFF" />
+            <IconSymbol name="doc.text.fill" size={24} color="#6366F1" />
             <ThemedText style={styles.resourceText}>Terms & Conditions</ThemedText>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
           </TouchableOpacity>
@@ -211,7 +211,7 @@ export default function HelpScreen() {
             style={styles.resourceItem}
             onPress={() => router.push('/privacy')}
           >
-            <IconSymbol name="hand.raised.fill" size={24} color="#007AFF" />
+            <IconSymbol name="hand.raised.fill" size={24} color="#6366F1" />
             <ThemedText style={styles.resourceText}>Privacy Policy</ThemedText>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
           </TouchableOpacity>
@@ -219,7 +219,7 @@ export default function HelpScreen() {
             style={styles.resourceItem}
             onPress={() => router.push('/about')}
           >
-            <IconSymbol name="info.circle.fill" size={24} color="#007AFF" />
+            <IconSymbol name="info.circle.fill" size={24} color="#6366F1" />
             <ThemedText style={styles.resourceText}>About Kamwaalay</ThemedText>
             <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
           </TouchableOpacity>
@@ -326,11 +326,11 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#007AFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

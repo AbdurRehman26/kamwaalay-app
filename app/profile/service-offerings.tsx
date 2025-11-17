@@ -184,7 +184,7 @@ export default function ServiceOfferingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Service Offerings
@@ -195,7 +195,7 @@ export default function ServiceOfferingsScreen() {
         {/* Existing Services */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color="#6366F1" />
             <ThemedText style={styles.loadingText}>Loading service listings...</ThemedText>
           </View>
         ) : hasApiListings ? (
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#6366F1',
     marginBottom: 8,
   },
   serviceLocations: {
@@ -482,14 +482,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   locationTag: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   locationTagText: {
     fontSize: 12,
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '500',
   },
   form: {
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   categoryButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   categoryText: {
     fontSize: 14,
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   priceUnitButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   priceUnitText: {
     fontSize: 14,
@@ -579,8 +579,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   locationButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   locationText: {
     fontSize: 14,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   addButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

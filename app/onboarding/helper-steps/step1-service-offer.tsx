@@ -242,7 +242,7 @@ export default function Step1ServiceOffer({
                 onChangeText={setLocationSearch}
               />
               {isLoadingLocations && (
-                <ActivityIndicator size="small" color="#007AFF" style={styles.loader} />
+                <ActivityIndicator size="small" color="#6366F1" style={styles.loader} />
               )}
             </View>
 
@@ -396,8 +396,8 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   serviceCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#E3F2FD',
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
   },
   serviceEmoji: {
     fontSize: 32,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   serviceNameSelected: {
-    color: '#007AFF',
+    color: '#6366F1',
   },
   selectedLocationsContainer: {
     flexDirection: 'row',
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   locationTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   locationTagText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#6366F1',
     fontWeight: '600',
   },
   removeTagButton: {
@@ -490,8 +490,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   workTypeButtonActive: {
-    borderColor: '#007AFF',
-    backgroundColor: '#E3F2FD',
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
   },
   workTypeText: {
     fontSize: 16,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   workTypeTextActive: {
-    color: '#007AFF',
+    color: '#6366F1',
   },
   input: {
     borderWidth: 1,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   nextButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

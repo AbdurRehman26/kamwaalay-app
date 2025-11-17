@@ -111,7 +111,7 @@ export default function EditProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#007AFF" />
+            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Edit Profile
@@ -135,7 +135,7 @@ export default function EditProfileScreen() {
                 </Text>
               </View>
               <TouchableOpacity style={styles.changePhotoButton}>
-                <IconSymbol name="camera.fill" size={20} color="#007AFF" />
+                <IconSymbol name="camera.fill" size={20} color="#6366F1" />
                 <Text style={styles.changePhotoText}>Change Photo</Text>
               </TouchableOpacity>
             </View>
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   scrollView: {
     flex: 1,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 40,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   changePhotoButton: {
     flexDirection: 'row',
@@ -340,12 +340,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#6366F1',
   },
   changePhotoText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#6366F1',
   },
   inputGroup: {
     marginBottom: 20,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   badge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#6366F1',
     textTransform: 'capitalize',
   },
 });

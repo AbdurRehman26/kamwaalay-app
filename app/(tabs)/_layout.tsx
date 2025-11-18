@@ -11,6 +11,11 @@ export default function TabLayout() {
   const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
   const insets = useSafeAreaInsets();
 
+  // Debug logging
+  console.log('[TabLayout] User type:', user?.userType);
+  console.log('[TabLayout] Is helper or business:', isHelperOrBusiness);
+  console.log('[TabLayout] Should show explore:', !isHelperOrBusiness);
+
   return (
     <Tabs
       screenOptions={{
@@ -42,10 +47,10 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 26 : 24} 
-              name="house.fill" 
-              color={color} 
+            <IconSymbol
+              size={focused ? 26 : 24}
+              name="house.fill"
+              color={color}
             />
           ),
         }}
@@ -57,10 +62,10 @@ export default function TabLayout() {
           options={{
             title: 'Explore',
             tabBarIcon: ({ color, focused }) => (
-              <IconSymbol 
-                size={focused ? 26 : 24} 
-                name="magnifyingglass" 
-                color={color} 
+              <IconSymbol
+                size={focused ? 26 : 24}
+                name="magnifyingglass"
+                color={color}
               />
             ),
           }}
@@ -71,10 +76,10 @@ export default function TabLayout() {
         options={{
           title: isHelperOrBusiness ? 'Requests' : 'Requests',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 26 : 24} 
-              name="list.bullet" 
-              color={color} 
+            <IconSymbol
+              size={focused ? 26 : 24}
+              name="list.bullet"
+              color={color}
             />
           ),
         }}
@@ -84,10 +89,10 @@ export default function TabLayout() {
         options={{
           title: 'Chat',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 26 : 24} 
-              name="message.fill" 
-              color={color} 
+            <IconSymbol
+              size={focused ? 26 : 24}
+              name="message.fill"
+              color={color}
             />
           ),
         }}
@@ -97,10 +102,10 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 26 : 24} 
-              name="person.fill" 
-              color={color} 
+            <IconSymbol
+              size={focused ? 26 : 24}
+              name="person.fill"
+              color={color}
             />
           ),
         }}

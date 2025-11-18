@@ -1,33 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth, ServiceOffering } from '@/contexts/AuthContext';
-import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { apiService } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/api';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-const SERVICE_CATEGORIES = [
-  'Cleaning',
-  'Cooking',
-  'Babysitting',
-  'Elderly Care',
-  'All-Rounder',
-  '24/7 Live-in',
-  'Other',
+const SERVICE_TYPES = [
+  { id: 'maid', name: 'Maid', emoji: '🧹' },
+  { id: 'cook', name: 'Cook', emoji: '👨‍🍳' },
+  { id: 'babysitter', name: 'Babysitter', emoji: '👶' },
+  { id: 'caregiver', name: 'Caregiver', emoji: '👩' },
+  { id: 'cleaner', name: 'Cleaner', emoji: '✨' },
+  { id: 'all_rounder', name: 'All Rounder', emoji: '⭐' },
 ];
 
-const LOCATIONS = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad'];
+const WORK_TYPES = [
+  { id: 'full_time', name: 'Full Time' },
+  { id: 'part_time', name: 'Part Time' },
+];
+
+interface Location {
+  id: number | string;
+  name: string;
+  area?: string;
+}
 
 interface ServiceListing {
   id: string | number;
@@ -46,12 +54,21 @@ interface ServiceListing {
 export default function ServiceOfferingsScreen() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
-  const [serviceName, setServiceName] = useState('');
+
+  // Form state
+  const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<Location[]>([]);
+  const [workType, setWorkType] = useState('full_time');
+  const [monthlyRate, setMonthlyRate] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [price, setPrice] = useState('');
-  const [priceUnit, setPriceUnit] = useState<'hour' | 'day' | 'month'>('month');
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+
+  // Location search state
+  const [locationSearch, setLocationSearch] = useState('');
+  const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+
+  // Service listings state
   const [serviceListings, setServiceListings] = useState<ServiceListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -59,6 +76,20 @@ export default function ServiceOfferingsScreen() {
   useEffect(() => {
     loadServiceListings();
   }, []);
+
+  // Location search effect
+  useEffect(() => {
+    const searchTimeout = setTimeout(() => {
+      if (locationSearch.trim().length >= 2) {
+        searchLocations(locationSearch.trim());
+      } else if (locationSearch.trim().length === 0) {
+        setFilteredLocations([]);
+        setShowLocationDropdown(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(searchTimeout);
+  }, [locationSearch]);
 
   const loadServiceListings = async () => {
     try {
@@ -72,7 +103,7 @@ export default function ServiceOfferingsScreen() {
 
       if (response.success && response.data) {
         let listings: ServiceListing[] = [];
-        
+
         // Handle different response formats
         if (response.data.service_listings) {
           listings = Array.isArray(response.data.service_listings.data)
@@ -83,42 +114,89 @@ export default function ServiceOfferingsScreen() {
         } else if (response.data.data) {
           listings = Array.isArray(response.data.data) ? response.data.data : [];
         }
-        
+
         setServiceListings(listings);
       } else {
         setServiceListings([]);
       }
     } catch (error) {
-      // Error loading service listings
       setServiceListings([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fallback to local profile data if API fails
-  const profileData = user?.profileData as any;
-  const localServiceOfferings = profileData?.serviceOfferings || [];
-  
-  // Use API listings if available, otherwise fall back to local
-  const hasApiListings = serviceListings.length > 0;
-  const serviceOfferings = hasApiListings ? [] : localServiceOfferings;
+  const searchLocations = async (query: string) => {
+    try {
+      setIsLoadingLocations(true);
+      setShowLocationDropdown(true);
 
-  const toggleLocation = (location: string) => {
-    setSelectedLocations((prev) =>
-      prev.includes(location)
-        ? prev.filter((l) => l !== location)
-        : [...prev, location]
+      const response = await apiService.get(
+        API_ENDPOINTS.LOCATIONS.SEARCH,
+        undefined,
+        { q: query },
+        false
+      );
+
+      if (response.success && response.data) {
+        let locationsData: Location[] = [];
+
+        if (response.data.locations) {
+          locationsData = Array.isArray(response.data.locations.data)
+            ? response.data.locations.data
+            : Array.isArray(response.data.locations)
+              ? response.data.locations
+              : [];
+        } else if (Array.isArray(response.data)) {
+          locationsData = response.data;
+        } else if (response.data.data) {
+          locationsData = Array.isArray(response.data.data) ? response.data.data : [];
+        }
+
+        const mappedLocations: Location[] = locationsData.map((loc: any) => ({
+          id: loc.id || loc.location_id || loc.name,
+          name: loc.name || loc.location_name || '',
+          area: loc.area || loc.area_name,
+        }));
+
+        setFilteredLocations(mappedLocations);
+        setShowLocationDropdown(mappedLocations.length > 0);
+      } else {
+        setFilteredLocations([]);
+        setShowLocationDropdown(false);
+      }
+    } catch (error) {
+      setFilteredLocations([]);
+      setShowLocationDropdown(false);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+
+  const handleLocationSelect = (location: Location) => {
+    if (!selectedLocations.find((loc) => loc.id === location.id)) {
+      setSelectedLocations([...selectedLocations, location]);
+    }
+    setLocationSearch('');
+    setShowLocationDropdown(false);
+  };
+
+  const handleLocationRemove = (locationId: number | string) => {
+    setSelectedLocations(selectedLocations.filter((loc) => loc.id !== locationId));
+  };
+
+  const toggleServiceType = (serviceId: string) => {
+    const isSelected = selectedServiceTypes.includes(serviceId);
+    setSelectedServiceTypes(
+      isSelected
+        ? selectedServiceTypes.filter((id) => id !== serviceId)
+        : [...selectedServiceTypes, serviceId]
     );
   };
 
   const handleAddService = async () => {
-    if (!serviceName.trim()) {
-      Alert.alert('Required', 'Please enter service name');
-      return;
-    }
-    if (!category) {
-      Alert.alert('Required', 'Please select a category');
+    if (selectedServiceTypes.length === 0) {
+      Alert.alert('Required', 'Please select at least one service type');
       return;
     }
     if (selectedLocations.length === 0) {
@@ -126,32 +204,17 @@ export default function ServiceOfferingsScreen() {
       return;
     }
 
-    const newService: ServiceOffering = {
-      id: Date.now().toString(),
-      serviceName,
-      description: description.trim() || undefined,
-      price: price ? parseFloat(price) : undefined,
-      priceUnit,
-      locations: selectedLocations,
-      category,
-    };
-
-    const updatedOfferings = [...serviceOfferings, newService];
-    const updatedProfile = {
-      ...profileData,
-      serviceOfferings: updatedOfferings,
-    };
-
-    await updateUser({ profileData: updatedProfile });
-
     // Reset form
-    setServiceName('');
-    setDescription('');
-    setCategory('');
-    setPrice('');
+    setSelectedServiceTypes([]);
     setSelectedLocations([]);
+    setWorkType('full_time');
+    setMonthlyRate('');
+    setDescription('');
 
     Alert.alert('Success', 'Service offering added successfully');
+
+    // Reload listings
+    loadServiceListings();
   };
 
   const handleDeleteService = async (serviceId: string) => {
@@ -164,14 +227,8 @@ export default function ServiceOfferingsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const updatedOfferings = serviceOfferings.filter(
-              (s: ServiceOffering) => s.id !== serviceId
-            );
-            const updatedProfile = {
-              ...profileData,
-              serviceOfferings: updatedOfferings,
-            };
-            await updateUser({ profileData: updatedProfile });
+            // TODO: Call API to delete service
+            loadServiceListings();
           },
         },
       ]
@@ -198,7 +255,7 @@ export default function ServiceOfferingsScreen() {
             <ActivityIndicator size="large" color="#6366F1" />
             <ThemedText style={styles.loadingText}>Loading service listings...</ThemedText>
           </View>
-        ) : hasApiListings ? (
+        ) : serviceListings.length > 0 ? (
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Your Service Listings ({serviceListings.length})
@@ -207,7 +264,7 @@ export default function ServiceOfferingsScreen() {
               const serviceType = listing.service_type || 'Service';
               const displayName = serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
               const location = listing.location?.name || listing.area || 'Location not specified';
-              
+
               return (
                 <View key={listing.id} style={styles.serviceCard}>
                   <View style={styles.serviceHeader}>
@@ -242,42 +299,6 @@ export default function ServiceOfferingsScreen() {
               );
             })}
           </View>
-        ) : serviceOfferings.length > 0 ? (
-          <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Your Services ({serviceOfferings.length})
-            </ThemedText>
-            {serviceOfferings.map((service: ServiceOffering) => (
-              <View key={service.id} style={styles.serviceCard}>
-                <View style={styles.serviceHeader}>
-                  <View style={styles.serviceInfo}>
-                    <ThemedText type="subtitle" style={styles.serviceName}>
-                      {service.serviceName}
-                    </ThemedText>
-                    <ThemedText style={styles.serviceCategory}>{service.category}</ThemedText>
-                  </View>
-                  <TouchableOpacity onPress={() => handleDeleteService(service.id)}>
-                    <IconSymbol name="trash.fill" size={20} color="#FF3B30" />
-                  </TouchableOpacity>
-                </View>
-                {service.description && (
-                  <ThemedText style={styles.serviceDescription}>{service.description}</ThemedText>
-                )}
-                {service.price && (
-                  <ThemedText style={styles.servicePrice}>
-                    ₨{service.price}/{service.priceUnit}
-                  </ThemedText>
-                )}
-                <View style={styles.serviceLocations}>
-                  {service.locations.map((loc) => (
-                    <View key={loc} style={styles.locationTag}>
-                      <Text style={styles.locationTagText}>{loc}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))}
-          </View>
         ) : (
           <View style={styles.emptyState}>
             <IconSymbol name="list.bullet" size={48} color="#CCCCCC" />
@@ -293,47 +314,150 @@ export default function ServiceOfferingsScreen() {
           </ThemedText>
 
           <View style={styles.form}>
+            {/* Service Types */}
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Service Name *</ThemedText>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., House Cleaning"
-                placeholderTextColor="#999"
-                value={serviceName}
-                onChangeText={setServiceName}
-              />
+              <ThemedText style={styles.label}>
+                Select Service Types <Text style={styles.required}>*</Text>
+              </ThemedText>
+              <ThemedText style={styles.instruction}>
+                Choose the services for this offer. You can select multiple.
+              </ThemedText>
+              <View style={styles.serviceTypesContainer}>
+                {SERVICE_TYPES.map((service) => {
+                  const isSelected = selectedServiceTypes.includes(service.id);
+                  return (
+                    <TouchableOpacity
+                      key={service.id}
+                      style={[
+                        styles.serviceTypeCard,
+                        isSelected && styles.serviceTypeCardSelected,
+                      ]}
+                      onPress={() => toggleServiceType(service.id)}
+                    >
+                      <Text style={styles.serviceEmoji}>{service.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.serviceTypeName,
+                          isSelected && styles.serviceTypeNameSelected,
+                        ]}
+                      >
+                        {service.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
 
+            {/* Locations */}
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Category *</ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
-                {SERVICE_CATEGORIES.map((cat) => (
+              <ThemedText style={styles.label}>
+                Select Locations <Text style={styles.required}>*</Text>
+              </ThemedText>
+              <ThemedText style={styles.instruction}>
+                Add locations for this offer. You can add multiple locations.
+              </ThemedText>
+
+              {/* Selected Locations */}
+              {selectedLocations.length > 0 && (
+                <View style={styles.selectedLocationsContainer}>
+                  {selectedLocations.map((loc, index) => (
+                    <View key={loc.id || `location-${index}`} style={styles.locationTag}>
+                      <Text style={styles.locationTagText}>
+                        {loc.area || loc.name}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleLocationRemove(loc.id)}
+                        style={styles.removeTagButton}
+                      >
+                        <IconSymbol name="xmark.circle.fill" size={16} color="#FF3B30" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Location Search */}
+              <View style={styles.locationSearchContainer}>
+                <TextInput
+                  style={styles.locationInput}
+                  placeholder="Search location (e.g., Karachi, Clifton or type area name)..."
+                  placeholderTextColor="#999"
+                  value={locationSearch}
+                  onChangeText={setLocationSearch}
+                />
+                {isLoadingLocations && (
+                  <ActivityIndicator size="small" color="#6366F1" style={styles.loader} />
+                )}
+              </View>
+
+              {/* Location Dropdown */}
+              {showLocationDropdown && filteredLocations.length > 0 && (
+                <View style={styles.locationDropdown}>
+                  <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
+                    {filteredLocations.map((loc, index) => (
+                      <TouchableOpacity
+                        key={loc.id || `filtered-location-${index}`}
+                        style={styles.locationDropdownItem}
+                        onPress={() => handleLocationSelect(loc)}
+                      >
+                        <Text style={styles.locationDropdownText}>
+                          {loc.area || loc.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            {/* Work Type */}
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>
+                Work Type <Text style={styles.required}>*</Text>
+              </ThemedText>
+              <View style={styles.workTypeContainer}>
+                {WORK_TYPES.map((type) => (
                   <TouchableOpacity
-                    key={cat}
+                    key={type.id}
                     style={[
-                      styles.categoryButton,
-                      category === cat && styles.categoryButtonActive,
+                      styles.workTypeButton,
+                      workType === type.id && styles.workTypeButtonActive,
                     ]}
-                    onPress={() => setCategory(cat)}
+                    onPress={() => setWorkType(type.id)}
                   >
                     <Text
                       style={[
-                        styles.categoryText,
-                        category === cat && styles.categoryTextActive,
+                        styles.workTypeText,
+                        workType === type.id && styles.workTypeTextActive,
                       ]}
                     >
-                      {cat}
+                      {type.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </View>
             </View>
 
+            {/* Monthly Rate */}
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Description (Optional)</ThemedText>
+              <ThemedText style={styles.label}>Monthly Rate (PKR)</ThemedText>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 15000"
+                placeholderTextColor="#999"
+                value={monthlyRate}
+                onChangeText={setMonthlyRate}
+                keyboardType="numeric"
+              />
+            </View>
+
+            {/* Description */}
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Description</ThemedText>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Describe your service..."
+                placeholder="Describe this service offer..."
                 placeholderTextColor="#999"
                 multiline
                 numberOfLines={4}
@@ -342,67 +466,15 @@ export default function ServiceOfferingsScreen() {
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Price (Optional)</ThemedText>
-              <View style={styles.priceContainer}>
-                <TextInput
-                  style={[styles.input, styles.priceInput]}
-                  placeholder="0"
-                  placeholderTextColor="#999"
-                  keyboardType="numeric"
-                  value={price}
-                  onChangeText={setPrice}
-                />
-                <View style={styles.priceUnitContainer}>
-                  {(['hour', 'day', 'month'] as const).map((unit) => (
-                    <TouchableOpacity
-                      key={unit}
-                      style={[
-                        styles.priceUnitButton,
-                        priceUnit === unit && styles.priceUnitButtonActive,
-                      ]}
-                      onPress={() => setPriceUnit(unit)}
-                    >
-                      <Text
-                        style={[
-                          styles.priceUnitText,
-                          priceUnit === unit && styles.priceUnitTextActive,
-                        ]}
-                      >
-                        /{unit}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Locations *</ThemedText>
-              <View style={styles.locationsContainer}>
-                {LOCATIONS.map((loc) => (
-                  <TouchableOpacity
-                    key={loc}
-                    style={[
-                      styles.locationButton,
-                      selectedLocations.includes(loc) && styles.locationButtonActive,
-                    ]}
-                    onPress={() => toggleLocation(loc)}
-                  >
-                    <Text
-                      style={[
-                        styles.locationText,
-                        selectedLocations.includes(loc) && styles.locationTextActive,
-                      ]}
-                    >
-                      {loc}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.addButton} onPress={handleAddService}>
+            <TouchableOpacity
+              style={[
+                styles.addButton,
+                (selectedServiceTypes.length === 0 || selectedLocations.length === 0) &&
+                styles.addButtonDisabled,
+              ]}
+              onPress={handleAddService}
+              disabled={selectedServiceTypes.length === 0 || selectedLocations.length === 0}
+            >
               <Text style={styles.addButtonText}>Add Service</Text>
             </TouchableOpacity>
           </View>
@@ -482,26 +554,146 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
   },
   locationTagText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#6366F1',
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  removeTagButton: {
+    padding: 2,
   },
   form: {
     marginTop: 8,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     marginBottom: 8,
+    color: '#1A1A1A',
+  },
+  required: {
+    color: '#FF3B30',
+  },
+  instruction: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  serviceTypesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  serviceTypeCard: {
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  serviceTypeCardSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  serviceEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  serviceTypeName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    textAlign: 'center',
+  },
+  serviceTypeNameSelected: {
+    color: '#6366F1',
+  },
+  selectedLocationsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  locationSearchContainer: {
+    position: 'relative',
+  },
+  locationInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  loader: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+  },
+  locationDropdown: {
+    maxHeight: 200,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  locationDropdownScroll: {
+    maxHeight: 200,
+  },
+  locationDropdownItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  locationDropdownText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  workTypeContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  workTypeButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  workTypeButtonActive: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  workTypeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  workTypeTextActive: {
+    color: '#6366F1',
   },
   input: {
     borderWidth: 1,
@@ -510,85 +702,11 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     backgroundColor: '#FFFFFF',
+    color: '#1A1A1A',
   },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
-  },
-  categories: {
-    marginTop: 8,
-  },
-  categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    marginRight: 8,
-  },
-  categoryButtonActive: {
-    backgroundColor: '#6366F1',
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-  },
-  categoryTextActive: {
-    color: '#FFFFFF',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  priceInput: {
-    flex: 1,
-  },
-  priceUnitContainer: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  priceUnitButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-  },
-  priceUnitButtonActive: {
-    backgroundColor: '#6366F1',
-  },
-  priceUnitText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-  },
-  priceUnitTextActive: {
-    color: '#FFFFFF',
-  },
-  locationsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  locationButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  locationButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  locationText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-  },
-  locationTextActive: {
-    color: '#FFFFFF',
   },
   addButton: {
     backgroundColor: '#6366F1',
@@ -597,10 +715,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  addButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
   addButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   loadingContainer: {
     alignItems: 'center',

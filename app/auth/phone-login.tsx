@@ -1,27 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DUMMY_PHONE = '9876543210';
 
 export default function PhoneLoginScreen() {
-  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('phone');
   const [authMethod, setAuthMethod] = useState<'otp' | 'password'>('otp');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,10 +49,8 @@ export default function PhoneLoginScreen() {
 
   const handleContinue = async () => {
     console.log('[PhoneLogin] handleContinue called', {
-      loginMethod,
       authMethod,
-      phoneNumber: loginMethod === 'phone' ? phoneNumber : undefined,
-      email: loginMethod === 'email' ? `${email.substring(0, 3)}***` : undefined,
+      phoneNumber,
     });
 
     // Clear any previous error
@@ -62,21 +58,12 @@ export default function PhoneLoginScreen() {
     setIsLoading(true);
 
     try {
-      // Validate inputs based on login method
-      if (loginMethod === 'phone') {
-        if (phoneNumber.length < 10) {
-          console.log('[PhoneLogin] Validation failed: phone number too short');
-          Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        if (!email.trim() || !email.includes('@')) {
-          console.log('[PhoneLogin] Validation failed: invalid email');
-          Alert.alert('Invalid Email', 'Please enter a valid email address');
-          setIsLoading(false);
-          return;
-        }
+      // Validate phone number
+      if (phoneNumber.length < 10) {
+        console.log('[PhoneLogin] Validation failed: phone number too short');
+        Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
+        setIsLoading(false);
+        return;
       }
 
       // Validate password if using password auth
@@ -87,21 +74,15 @@ export default function PhoneLoginScreen() {
         return;
       }
 
-      // Call login with appropriate parameters
+      // Call login with phone number
       const loginData: {
-        phone?: string;
-        email?: string;
+        phone: string;
         password?: string;
         authMethod: 'otp' | 'password';
       } = {
+        phone: phoneNumber,
         authMethod,
       };
-
-      if (loginMethod === 'phone') {
-        loginData.phone = phoneNumber;
-      } else {
-        loginData.email = email.trim();
-      }
 
       if (authMethod === 'password') {
         loginData.password = password;
@@ -122,7 +103,7 @@ export default function PhoneLoginScreen() {
         // Login successful with token - user should be saved and verified
         // Wait a moment for state to update, then navigate
         console.log('[PhoneLogin] Login successful - waiting for user state update');
-        
+
         // Use a small delay to allow state to update, then check user and navigate
         setTimeout(async () => {
           // Re-fetch user from AsyncStorage to get the latest state
@@ -135,7 +116,7 @@ export default function PhoneLoginScreen() {
                 isVerified: parsedUser.isVerified,
                 onboardingStatus: parsedUser.onboardingStatus,
               });
-              
+
               if (parsedUser && parsedUser.isVerified) {
                 if (parsedUser.onboardingStatus === 'completed') {
                   console.log('[PhoneLogin] Navigating to tabs');
@@ -178,11 +159,7 @@ export default function PhoneLoginScreen() {
   };
 
   const isFormValid = () => {
-    if (loginMethod === 'phone') {
-      if (phoneNumber.length < 10) return false;
-    } else {
-      if (!email.trim() || !email.includes('@')) return false;
-    }
+    if (phoneNumber.length < 10) return false;
     if (authMethod === 'password' && !password.trim()) return false;
     return true;
   };
@@ -192,7 +169,7 @@ export default function PhoneLoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -210,31 +187,6 @@ export default function PhoneLoginScreen() {
               <Text style={styles.subtitle}>
                 Pakistan's trusted platform for household services
               </Text>
-            </View>
-
-            {/* Login Method Selection */}
-            <View style={styles.methodSection}>
-              <Text style={styles.sectionTitle}>Login with</Text>
-              <View style={styles.methodContainer}>
-                <TouchableOpacity
-                  style={[styles.methodButton, loginMethod === 'phone' && styles.methodButtonActive]}
-                  onPress={() => setLoginMethod('phone')}
-                >
-                  <IconSymbol name="phone.fill" size={24} color={loginMethod === 'phone' ? '#6366F1' : '#666'} />
-                  <Text style={[styles.methodText, loginMethod === 'phone' && styles.methodTextActive]}>
-                    Phone
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.methodButton, loginMethod === 'email' && styles.methodButtonActive]}
-                  onPress={() => setLoginMethod('email')}
-                >
-                  <IconSymbol name="envelope.fill" size={24} color={loginMethod === 'email' ? '#6366F1' : '#666'} />
-                  <Text style={[styles.methodText, loginMethod === 'email' && styles.methodTextActive]}>
-                    Email
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             {/* Auth Method Selection */}
@@ -264,45 +216,26 @@ export default function PhoneLoginScreen() {
 
             {/* Input Section */}
             <View style={styles.inputSection}>
-              {loginMethod === 'phone' ? (
-                <View style={styles.inputContainer}>
-                  <View style={styles.phonePrefix}>
-                    <Text style={styles.flag}>🇵🇰</Text>
-                    <Text style={styles.prefixText}>+92</Text>
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your phone number"
-                    placeholderTextColor="#999"
-                    keyboardType="phone-pad"
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    maxLength={10}
-                    autoComplete="tel"
-                    textContentType="telephoneNumber"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    importantForAutofill="yes"
-                  />
+              <View style={styles.inputContainer}>
+                <View style={styles.phonePrefix}>
+                  <Text style={styles.flag}>🇵🇰</Text>
+                  <Text style={styles.prefixText}>+92</Text>
                 </View>
-              ) : (
-                <View style={styles.emailInputContainer}>
-                  <TextInput
-                    style={styles.emailInput}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#999"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoComplete="email"
-                    textContentType="emailAddress"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    importantForAutofill="yes"
-                  />
-                </View>
-              )}
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your phone number"
+                  placeholderTextColor="#999"
+                  keyboardType="phone-pad"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  maxLength={10}
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  importantForAutofill="yes"
+                />
+              </View>
 
               {/* Password Input (if password auth method) */}
               {authMethod === 'password' && (
@@ -336,8 +269,8 @@ export default function PhoneLoginScreen() {
                 </View>
               )}
 
-              {/* Dummy Number Button (only for phone + OTP) */}
-              {loginMethod === 'phone' && authMethod === 'otp' && (
+              {/* Dummy Number Button (only for OTP) */}
+              {authMethod === 'otp' && (
                 <TouchableOpacity style={styles.dummyButton} onPress={handleUseDummy}>
                   <Text style={styles.dummyButtonText}>
                     🔓 Use Demo Number: {DUMMY_PHONE}

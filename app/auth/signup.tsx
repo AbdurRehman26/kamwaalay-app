@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function SignupScreen() {
   const { register, user } = useAuth();
-  const [signupMethod, setSignupMethod] = useState<'email' | 'phone'>('email');
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,17 +26,7 @@ export default function SignupScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isEmailEditable, setIsEmailEditable] = useState(true);
   const router = useRouter();
-
-  // Prefill email if it exists in user context and make it uneditable
-  useEffect(() => {
-    if (user?.email) {
-      setEmail(user.email);
-      setSignupMethod('email');
-      setIsEmailEditable(false);
-    }
-  }, [user]);
 
   const handleSignup = async () => {
     if (!name.trim()) {
@@ -46,17 +34,12 @@ export default function SignupScreen() {
       return;
     }
 
-    if (signupMethod === 'email' && !email.trim()) {
-      Alert.alert('Required', 'Please enter your email address');
-      return;
-    }
-
-    if (signupMethod === 'phone' && !phoneNumber.trim()) {
+    if (!phoneNumber.trim()) {
       Alert.alert('Required', 'Please enter your phone number');
       return;
     }
 
-    if (signupMethod === 'phone' && phoneNumber.length < 10) {
+    if (phoneNumber.length < 10) {
       Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
       return;
     }
@@ -83,13 +66,12 @@ export default function SignupScreen() {
     try {
       const result = await register({
         name: name.trim(),
-        phone: signupMethod === 'phone' ? phoneNumber.trim() : undefined,
-        email: signupMethod === 'email' ? email.trim() : undefined,
+        phone: phoneNumber.trim(),
         password,
         password_confirmation: confirmPassword,
         role,
       });
-      
+
       // Show success message if provided by backend
       if (result?.message) {
         setSuccessMessage(result.message);
@@ -100,7 +82,7 @@ export default function SignupScreen() {
         setSuccessMessage('Account created successfully! Please verify your OTP.');
         Alert.alert('Success', 'Account created successfully! Please verify your OTP.');
       }
-      
+
       // Wait a moment to show the success message, then navigate
       setTimeout(() => {
         router.push('/auth/otp-verify');
@@ -108,7 +90,7 @@ export default function SignupScreen() {
     } catch (error: any) {
       // Extract backend error message
       let extractedErrorMessage = 'Failed to create account. Please try again.';
-      
+
       if (error instanceof Error) {
         extractedErrorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -116,10 +98,10 @@ export default function SignupScreen() {
       } else if (error && typeof error === 'object') {
         extractedErrorMessage = error.message || error.error || JSON.stringify(error);
       }
-      
+
       // Set error message to display inline
       setErrorMessage(extractedErrorMessage);
-      
+
       // Also show Alert as fallback
       Alert.alert('Signup Failed', extractedErrorMessage);
     }
@@ -130,48 +112,13 @@ export default function SignupScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.gradientBackground}>
           <View style={styles.card}>
-            {/* Sign up with section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sign up with</Text>
-              <View style={styles.methodContainer}>
-                <TouchableOpacity
-                  style={[styles.methodButton, signupMethod === 'email' && styles.methodButtonActive, !isEmailEditable && styles.methodButtonDisabled]}
-                  onPress={() => {
-                    if (isEmailEditable) {
-                      setSignupMethod('email');
-                    }
-                  }}
-                  disabled={!isEmailEditable}
-                >
-                  <IconSymbol name="envelope.fill" size={24} color={signupMethod === 'email' ? '#6366F1' : '#666'} />
-                  <Text style={[styles.methodText, signupMethod === 'email' && styles.methodTextActive]}>
-                    Email
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.methodButton, signupMethod === 'phone' && styles.methodButtonActive, !isEmailEditable && styles.methodButtonDisabled]}
-                  onPress={() => {
-                    if (isEmailEditable) {
-                      setSignupMethod('phone');
-                    }
-                  }}
-                  disabled={!isEmailEditable}
-                >
-                  <IconSymbol name="phone.fill" size={24} color={signupMethod === 'phone' ? '#6366F1' : '#666'} />
-                  <Text style={[styles.methodText, signupMethod === 'phone' && styles.methodTextActive]}>
-                    Phone
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             {/* I am a section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>I am a</Text>
@@ -224,50 +171,29 @@ export default function SignupScreen() {
                 />
               </View>
 
-              {signupMethod === 'email' ? (
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.label}>Email Address</Text>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Phone Number</Text>
+                <View style={styles.inputContainer}>
+                  <View style={styles.phonePrefix}>
+                    <Text style={styles.flag}>🇵🇰</Text>
+                    <Text style={styles.prefixText}>+92</Text>
+                  </View>
                   <TextInput
-                    style={[styles.input, !isEmailEditable && styles.inputDisabled]}
-                    placeholder="Enter your email"
+                    style={styles.input}
+                    placeholder="Enter your phone number"
                     placeholderTextColor="#999"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                    editable={isEmailEditable}
-                    autoComplete="email"
-                    textContentType="emailAddress"
+                    keyboardType="phone-pad"
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    maxLength={10}
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
                     autoCorrect={false}
                     spellCheck={false}
                     importantForAutofill="yes"
                   />
                 </View>
-              ) : (
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.label}>Phone Number</Text>
-                  <View style={styles.inputContainer}>
-                    <View style={styles.phonePrefix}>
-                      <Text style={styles.flag}>🇵🇰</Text>
-                      <Text style={styles.prefixText}>+92</Text>
-                    </View>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter your phone number"
-                      placeholderTextColor="#999"
-                      keyboardType="phone-pad"
-                      value={phoneNumber}
-                      onChangeText={setPhoneNumber}
-                      maxLength={10}
-                      autoComplete="tel"
-                      textContentType="telephoneNumber"
-                      autoCorrect={false}
-                      spellCheck={false}
-                      importantForAutofill="yes"
-                    />
-                  </View>
-                </View>
-              )}
+              </View>
 
               <View style={styles.inputWrapper}>
                 <Text style={styles.label}>Address</Text>

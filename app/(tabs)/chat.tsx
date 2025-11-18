@@ -1,19 +1,19 @@
-import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  FlatList,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { useApp } from '@/contexts/AppContext';
-import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/api';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface ChatItem {
   id: string;
@@ -22,82 +22,62 @@ interface ChatItem {
   time: string;
   unread: number;
   avatar: string;
+  otherUserId?: string;
 }
 
 export default function ChatScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { getHelpers, getServiceRequests } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+  const [conversations, setConversations] = useState<ChatItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Build chat list from actual data
-  const chats = useMemo(() => {
-    const chatMap = new Map<string, ChatItem>();
-    const helpers = getHelpers();
-    const serviceRequests = getServiceRequests();
+  useEffect(() => {
+    fetchConversations();
+  }, []);
 
-    if (user?.userType === 'user') {
-      // For users: show chats with helpers who applied to their requests
-      serviceRequests
-        .filter((r) => r.userId === user?.id)
-        .forEach((request) => {
-          if (request.applicants && request.applicants.length > 0) {
-            request.applicants.forEach((applicantId: string) => {
-              if (!chatMap.has(applicantId)) {
-                const helper = helpers.find((h: any) => {
-                  const helperId = h.user_id?.toString() || h.id?.toString() || '';
-                  return helperId === applicantId;
-                });
+  const fetchConversations = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.get(API_ENDPOINTS.MESSAGES.CONVERSATIONS, undefined, undefined, true);
 
-                if (helper) {
-                  const helperName = helper.name || 
-                                   helper.user?.name || 
-                                   helper.profile?.name ||
-                                   (helper.first_name && helper.last_name ? `${helper.first_name} ${helper.last_name}` : helper.first_name || helper.last_name) ||
-                                   'Helper';
-                  const avatarText = helperName.charAt(0).toUpperCase();
-                  
-                  chatMap.set(applicantId, {
-                    id: applicantId,
-                    name: helperName,
-                    lastMessage: `Applied to your ${request.serviceName} request`,
-                    time: 'Recently',
-                    unread: 0,
-                    avatar: avatarText,
-                  });
-                }
-              }
-            });
-          }
-        });
-    } else {
-      // For helpers/businesses: show chats with users who created requests
-      serviceRequests.forEach((request) => {
-        const userId = request.userId?.toString() || '';
-        if (userId && !chatMap.has(userId)) {
-          chatMap.set(userId, {
-            id: userId,
-            name: request.userName || 'User',
-            lastMessage: `Service request: ${request.serviceName}`,
-            time: 'Recently',
-            unread: 0,
-            avatar: (request.userName || 'U').charAt(0).toUpperCase(),
-          });
-        }
-      });
+      if (response.success && response.data) {
+        const apiConversations = response.data.conversations || [];
+        const mappedConversations: ChatItem[] = apiConversations.map((conv: any) => ({
+          id: conv.id.toString(),
+          name: conv.other_user?.name || 'Unknown User',
+          lastMessage: conv.last_message?.message || 'No messages yet',
+          time: conv.last_message?.created_at
+            ? new Date(conv.last_message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '',
+          unread: conv.unread_count || 0,
+          avatar: (conv.other_user?.name || 'U').charAt(0).toUpperCase(),
+          otherUserId: conv.other_user?.id?.toString(),
+        }));
+        setConversations(mappedConversations);
+      }
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return Array.from(chatMap.values());
-  }, [user, getHelpers, getServiceRequests]);
-
-  const filteredChats = chats.filter((chat) =>
+  const filteredChats = conversations.filter((chat) =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderChatItem = ({ item }: { item: ChatItem }) => (
     <TouchableOpacity
       style={styles.chatItem}
-      onPress={() => router.push(`/chat/${item.id}?name=${encodeURIComponent(item.name)}`)}
+      onPress={() => router.push({
+        pathname: `/chat/${item.id}`,
+        params: {
+          type: 'conversation',
+          name: item.name,
+          otherUserId: item.otherUserId
+        }
+      } as any)}
     >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.avatar}</Text>

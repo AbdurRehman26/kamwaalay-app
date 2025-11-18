@@ -21,28 +21,28 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: '/reset-password',
     RESET_PASSWORD_WITH_TOKEN: '/reset-password/:token',
   },
-  
+
   // User Profile
   PROFILE: {
     GET: '/profile',
     UPDATE: '/profile',
   },
-  
+
   // Password
   PASSWORD: {
     UPDATE: '/password',
   },
-  
+
   // Onboarding
   ONBOARDING: {
     HELPER: '/onboarding/helper',
   },
-  
+
   // Service Requests (for helpers/businesses to browse)
   SERVICE_REQUESTS: {
     LIST: '/service-requests', // Browse available service requests
   },
-  
+
   // Bookings (service requests created by users)
   BOOKINGS: {
     LIST: '/bookings', // User's own bookings
@@ -55,7 +55,7 @@ export const API_ENDPOINTS = {
     REVIEW: '/bookings/:id/review',
     CREATE_REVIEW: '/bookings/:id/review/create',
   },
-  
+
   // Job Applications
   JOB_APPLICATIONS: {
     LIST: '/job-applications',
@@ -66,7 +66,7 @@ export const API_ENDPOINTS = {
     MY_APPLICATIONS: '/my-applications',
     MY_REQUEST_APPLICATIONS: '/my-request-applications',
   },
-  
+
   // Helpers
   HELPERS: {
     LIST: '/helpers', // List verified helpers
@@ -74,7 +74,7 @@ export const API_ENDPOINTS = {
     GET: '/helpers/:id',
     EDIT: '/helpers/:id/edit',
   },
-  
+
   // Service Listings (services offered by helpers/businesses)
   SERVICE_LISTINGS: {
     LIST: '/service-listings',
@@ -83,37 +83,44 @@ export const API_ENDPOINTS = {
     EDIT: '/service-listings/:id/edit',
     MY_LISTINGS: '/my-service-listings',
   },
-  
+
   // Reviews
   REVIEWS: {
     GET: '/reviews/:id',
     EDIT: '/reviews/:id/edit',
   },
-  
+
+  // Messages
+  MESSAGES: {
+    CONVERSATIONS: '/conversations',
+    GET_MESSAGES: '/conversations/:id/messages',
+    SEND: '/messages',
+  },
+
   // Locations
   LOCATIONS: {
     SEARCH: '/locations/search',
     KARACHI_SEARCH: '/karachi-locations/search',
   },
-  
+
   // Home
   HOME: {
     GET: '/home',
   },
-  
+
   // Support
   SUPPORT: {
     CONTACT: '/contact',
     FAQ: '/faq',
   },
-  
+
   // Legal
   LEGAL: {
     TERMS: '/terms',
     PRIVACY: '/privacy',
     ABOUT: '/about',
   },
-  
+
   // Locale
   LOCALE: {
     SET: '/locale/:locale',
@@ -126,14 +133,14 @@ export const API_ENDPOINTS = {
  */
 export const buildApiUrl = (endpoint: string, params?: Record<string, string>): string => {
   let url = `${API_BASE_URL}${endpoint}`;
-  
+
   // Replace path parameters
   if (params) {
     Object.keys(params).forEach((key) => {
       url = url.replace(`:${key}`, params[key]);
     });
   }
-  
+
   return url;
 };
 

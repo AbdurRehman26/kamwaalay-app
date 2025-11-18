@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiService } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
+import { apiService } from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export type UserType = 'user' | 'helper' | 'business' | null;
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed';
@@ -23,13 +23,13 @@ function extractOnboardingStatus(apiData: any, fallback: OnboardingStatus = 'not
     }
     return 'not_started';
   }
-  
+
   // Check for status string fields (onboarding_status, onboardingStatus)
   const status = apiData?.onboarding_status || apiData?.onboardingStatus;
   if (status && typeof status === 'string') {
     return status as OnboardingStatus;
   }
-  
+
   return fallback;
 }
 
@@ -98,7 +98,7 @@ export interface ServiceRequest {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (phoneNumber: string) => Promise<void>;
+  login: (data: { phone?: string; email?: string; password?: string; authMethod: 'otp' | 'password' }) => Promise<{ requiresOTP?: boolean } | void>;
   register: (data: { name: string; phone?: string; email?: string; password: string; password_confirmation: string; role: 'user' | 'helper' | 'business' }) => Promise<{ success: boolean; message?: string }>;
   verifyOTP: (otp: string) => Promise<boolean>;
   resendOTP: () => Promise<void>;
@@ -218,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Handle both success and non-success responses for OTP flow
       if (response.success && response.data) {
         const responseData = response.data;
-        
+
         console.log('[Login] Processing successful response', {
           hasToken: !!(responseData.token || responseData.accessToken || responseData.access_token),
           hasUser: !!(responseData.user || responseData),
@@ -256,16 +256,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (tokenError) {
             console.error('[Login] Error saving token to AsyncStorage:', tokenError);
           }
-          
+
           // Also store token in user object
           (userData as any).token = token;
-          
+
           // Save user data
           await saveUser(userData);
           console.log('[Login] User saved successfully - login complete');
           return; // No OTP required - login successful
         }
-        
+
         // No token - check if OTP verification is required
         // For OTP flow, API might return user_id but no token yet
         if (data.authMethod === 'otp') {
@@ -283,7 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             onboardingStatus: extractOnboardingStatus(userDataFromApi, 'not_started'),
             isVerified: false, // User needs to verify OTP
           };
-          
+
           await saveUser(tempUser);
           console.log('[Login] Temporary user saved - OTP required');
           return { requiresOTP: true };
@@ -317,7 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('[Login] Temporary user saved - OTP required (from unsuccessful response)');
           return { requiresOTP: true };
         }
-        
+
         // Extract backend error message - prioritize error field, then message, then data.message
         const errorMessage = response.error || response.message || response.data?.message || 'Login failed. Please try again.';
         console.error('[Login] Login failed:', errorMessage);
@@ -355,7 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const responseData = response.data;
         const userDataFromApi = responseData.user || responseData;
         const token = responseData.token || responseData.accessToken || responseData.access_token;
-        
+
         const userData: User = {
           id: userDataFromApi.id?.toString() || Date.now().toString(),
           phoneNumber: data.phone || userDataFromApi.phoneNumber || '',
@@ -372,7 +372,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         await saveUser(userData);
-        
+
         // Return success message from backend if available
         return {
           success: true,
@@ -380,18 +380,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       } else {
         // Extract backend error message - check multiple possible formats
-        const errorMessage = 
-          response.error || 
-          response.message || 
+        const errorMessage =
+          response.error ||
+          response.message ||
           (response.data && typeof response.data === 'object' && (response.data.message || response.data.error)) ||
           'Registration failed';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      
+
       // Extract error message from various possible formats
       let errorMessage = 'Failed to create account. Please try again.';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -399,7 +399,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (error && typeof error === 'object') {
         errorMessage = error.message || error.error || error.toString();
       }
-      
+
       // Re-throw with the extracted error message
       throw new Error(errorMessage);
     }
@@ -414,7 +414,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const DEMO_PHONE = '9876543210';
     const formattedPhone = user.phoneNumber ? user.phoneNumber.replace(/\s+/g, '').replace(/-/g, '').replace(/\+/g, '').replace(/^91/, '') : '';
     const isDemoUser = formattedPhone === DEMO_PHONE;
-    
+
     if (isDemoUser) {
       // Demo user - accept any OTP and mark as verified
       const verifiedUser: User = {
@@ -456,7 +456,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const responseData = response.data;
         const userDataFromApi = responseData.user || responseData;
         const token = responseData.token || responseData.accessToken || responseData.access_token;
-        
+
         // Save user data with token
         const userData: User = {
           ...user,
@@ -469,7 +469,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           onboardingStatus: extractOnboardingStatus(userDataFromApi, user.onboardingStatus || 'not_started'),
           isVerified: true, // OTP verified successfully
         };
-        
+
         // Save token first if available
         if (token) {
           try {
@@ -483,7 +483,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
         }
-        
+
         // Save user data (this also updates the user state)
         try {
           await saveUser(userData);
@@ -491,22 +491,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Error saving user
           throw new Error('Failed to save user data after verification');
         }
-        
+
         return true;
       } else {
         // Extract backend error message - check multiple possible formats
-        const errorMessage = 
-          response.error || 
-          response.message || 
+        const errorMessage =
+          response.error ||
+          response.message ||
           (response.data && typeof response.data === 'object' && (response.data.message || response.data.error)) ||
           'OTP verification failed';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      
+
       // Extract error message from various possible formats
       let errorMessage = 'Invalid OTP. Please try again.';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -514,7 +514,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (error && typeof error === 'object') {
         errorMessage = error.message || error.error || error.toString();
       }
-      
+
       // Re-throw with the extracted error message
       throw new Error(errorMessage);
     }
@@ -528,7 +528,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Resend OTP by calling login endpoint again with resend flag
       // For email users, use email; for phone users, use phone
-      const identifier = user.email && (!user.phoneNumber || user.phoneNumber.trim() === '') 
+      const identifier = user.email && (!user.phoneNumber || user.phoneNumber.trim() === '')
         ? { email: user.email, resend: true }
         : { phone: user.phoneNumber, resend: true };
 
@@ -611,7 +611,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Ensure token is available before making API call
       let token = await AsyncStorage.getItem('authToken');
-      
+
       // If no token in AsyncStorage, check user object
       if (!token && user) {
         const userToken = (user as any).token;
@@ -629,22 +629,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Call API to update user profile (PATCH method according to API docs)
       // The apiService.patch() will automatically include the token in the Authorization header
-      
+
       const response = await apiService.patch(
         API_ENDPOINTS.PROFILE.UPDATE,
         userData,
         undefined,
         true // Explicitly include auth token
       );
-      
+
 
       if (response.success && response.data) {
         const responseData = response.data;
         const userDataFromApi = responseData.user || responseData;
         // Extract onboarding status from API response, but prefer userData.onboardingStatus if explicitly provided
         const onboardingStatusFromApi = extractOnboardingStatus(userDataFromApi, user.onboardingStatus || 'not_started');
-        const updatedUser = { 
-          ...user, 
+        const updatedUser = {
+          ...user,
           ...userDataFromApi,
           // Preserve existing user data that might not be in response
           id: userDataFromApi.id?.toString() || user.id,
@@ -661,10 +661,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-      
+
       // Extract error message
       const errorMessage = error.message || error.error || 'Failed to update profile. Please try again.';
-      
+
       // Re-throw error so calling code can handle it
       throw new Error(errorMessage);
     }
@@ -706,8 +706,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileResponse.success && profileResponse.data) {
           // Update user with profile response data
           const profileResponseData = profileResponse.data.user || profileResponse.data;
-          const updatedUserFromProfile = { 
-            ...user, 
+          const updatedUserFromProfile = {
+            ...user,
             ...profileResponseData,
             // Extract onboarding status from API response
             onboardingStatus: extractOnboardingStatus(profileResponseData, user.onboardingStatus || 'not_started'),
@@ -740,7 +740,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Map service types to services array - just the service type strings
         const services: string[] = [];
-        
+
         if (additionalData?.serviceOffer?.serviceTypes) {
           services.push(...additionalData.serviceOffer.serviceTypes);
         } else if (profileData.serviceOfferings) {
@@ -771,7 +771,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           locations,
           nic_number: nicNumber,
           bio: 'bio' in profileData ? profileData.bio : undefined,
-          experience_years: 'experience' in profileData ? parseInt(profileData.experience) || 0 : undefined,
+          experience_years: 'experience' in profileData && profileData.experience ? parseInt(profileData.experience) || 0 : undefined,
           skills: undefined,
         };
 
@@ -868,10 +868,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const DEMO_PHONE = '9876543210';
     const formattedPhone = user?.phoneNumber ? user.phoneNumber.replace(/\s+/g, '').replace(/-/g, '').replace(/\+/g, '').replace(/^91/, '') : '';
     const isDemoUser = formattedPhone === DEMO_PHONE;
-    
+
     // Clear user state FIRST to trigger navigation to login
     setUser(null);
-    
+
     try {
       // Call API to logout (only if user is authenticated with API)
       // Skip API call for demo users
@@ -937,15 +937,15 @@ export function useAuth() {
     return {
       user: null,
       isLoading: true,
-      login: async () => {},
+      login: async () => { },
       register: async () => ({ success: false }),
       verifyOTP: async () => false,
-      resendOTP: async () => {},
-      selectUserType: async () => {},
-      updateUser: async () => {},
-      completeOnboarding: async () => {},
-      changePassword: async () => {},
-      logout: async () => {},
+      resendOTP: async () => { },
+      selectUserType: async () => { },
+      updateUser: async () => { },
+      completeOnboarding: async () => { },
+      changePassword: async () => { },
+      logout: async () => { },
       isAuthenticated: false,
     } as AuthContextType;
   }

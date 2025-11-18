@@ -1,53 +1,128 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
-import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useApp } from '@/contexts/AppContext';
+import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
-import { API_ENDPOINTS } from '@/constants/api';
-
-const MOCK_MESSAGES = [
-  { id: '1', text: 'Hello! I saw your service request', sender: 'other', time: '10:30 AM' },
-  { id: '2', text: 'Hi! Yes, I need help with house cleaning', sender: 'me', time: '10:32 AM' },
-  { id: '3', text: 'I can start from tomorrow. Is that okay?', sender: 'other', time: '10:33 AM' },
-  { id: '4', text: 'Yes, that works perfectly!', sender: 'me', time: '10:35 AM' },
-];
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ChatDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { id, name } = useLocalSearchParams();
+  const { id, name, type, otherUserId } = useLocalSearchParams();
   const { user } = useAuth();
-  const { getHelpers, getServiceRequests } = useApp();
   const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<any[]>([]);
   const [chatUserName, setChatUserName] = useState<string>(name ? decodeURIComponent(name as string) : 'Loading...');
-  const [isLoadingName, setIsLoadingName] = useState(!name);
+  const [isLoading, setIsLoading] = useState(true);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [recipientId, setRecipientId] = useState<string | null>(null);
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
-  // Set navigation title and header buttons dynamically
+  // Initialize chat
+  useEffect(() => {
+    initializeChat();
+  }, [id, type, otherUserId]);
+
+  // Poll for new messages every 10 seconds
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const interval = setInterval(() => {
+      fetchMessages(conversationId);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [conversationId]);
+
+  const initializeChat = async () => {
+    let convId: string | null = null;
+    let recipId: string | null = null;
+
+    if (type === 'conversation') {
+      convId = id as string;
+      recipId = otherUserId as string;
+    } else {
+      // Type is 'user' (or undefined), so id is the recipientId
+      recipId = id as string;
+      // Try to find existing conversation
+      try {
+        const response = await apiService.get(API_ENDPOINTS.MESSAGES.CONVERSATIONS, undefined, undefined, true);
+        if (response.success && response.data?.conversations) {
+          const existingConv = response.data.conversations.find(
+            (c: any) => c.other_user?.id?.toString() === recipId
+          );
+          if (existingConv) {
+            convId = existingConv.id.toString();
+          }
+        }
+      } catch (error) {
+        console.error('Error finding conversation:', error);
+      }
+    }
+
+    setConversationId(convId);
+    setRecipientId(recipId);
+
+    if (convId) {
+      fetchMessages(convId);
+    } else {
+      setMessages([]);
+      setIsLoading(false);
+    }
+
+    // Set name if not provided
+    if (!name && recipId) {
+      // Fetch user details to get name (omitted for brevity, using fallback)
+      setChatUserName('User');
+    }
+  };
+
+  const fetchMessages = async (convId: string) => {
+    try {
+      const response = await apiService.get(
+        API_ENDPOINTS.MESSAGES.GET_MESSAGES.replace(':id', convId),
+        undefined,
+        undefined,
+        true
+      );
+
+      if (response.success && response.data?.messages?.data) {
+        const apiMessages = response.data.messages.data.reverse().map((msg: any) => ({
+          id: msg.id.toString(),
+          text: msg.message,
+          sender: msg.sender_id === user?.id ? 'me' : 'other',
+          time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          senderName: msg.sender?.name || 'Unknown',
+        }));
+        setMessages(apiMessages);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Set navigation title
   useLayoutEffect(() => {
     navigation.setOptions({
       title: chatUserName !== 'Loading...' ? chatUserName : 'Chat',
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => {
-            // Handle call action
-            // In a real app, this would initiate a call
-          }}
+          onPress={() => { }}
           style={{ marginRight: 16 }}
         >
           <IconSymbol name="phone.fill" size={24} color="#6366F1" />
@@ -56,117 +131,60 @@ export default function ChatDetailScreen() {
     });
   }, [chatUserName, navigation]);
 
-  useEffect(() => {
-    // If name was passed as query param, use it immediately
-    if (name) {
-      setChatUserName(decodeURIComponent(name as string));
-      setIsLoadingName(false);
-      return;
-    }
+  const handleSend = async () => {
+    if (!message.trim() || !recipientId) return;
 
-    const fetchUserName = async () => {
-      if (!id) {
-        setChatUserName('Unknown');
-        setIsLoadingName(false);
-        return;
-      }
+    const messageText = message.trim();
+    setMessage(''); // Clear input immediately
 
-      try {
-        // First, try to find in helpers
-        const helpers = getHelpers();
-        const helper = helpers.find((h: any) => {
-          const helperId = h.user_id?.toString() || h.id?.toString() || '';
-          return helperId === id.toString();
-        });
-
-        if (helper) {
-          // Get helper name
-          const helperName = helper.name || 
-                           helper.user?.name || 
-                           helper.profile?.name ||
-                           (helper.first_name && helper.last_name ? `${helper.first_name} ${helper.last_name}` : helper.first_name || helper.last_name) ||
-                           'Helper';
-          setChatUserName(helperName);
-          setIsLoadingName(false);
-          return;
-        }
-
-        // Try to find in service requests (for users)
-        const serviceRequests = getServiceRequests();
-        const request = serviceRequests.find((r: any) => {
-          const userId = r.userId?.toString() || '';
-          const applicantIds = r.applicants || [];
-          return userId === id.toString() || applicantIds.includes(id.toString());
-        });
-
-        if (request) {
-          if (request.userId === id.toString()) {
-            setChatUserName(request.userName || 'User');
-          } else {
-            // It's an applicant - try to fetch their info
-            // For now, try to find them in helpers
-            const applicantHelper = helpers.find((h: any) => {
-              const helperId = h.user_id?.toString() || h.id?.toString() || '';
-              return helperId === id.toString();
-            });
-            if (applicantHelper) {
-              const helperName = applicantHelper.name || 
-                               applicantHelper.user?.name || 
-                               applicantHelper.profile?.name ||
-                               (applicantHelper.first_name && applicantHelper.last_name ? `${applicantHelper.first_name} ${applicantHelper.last_name}` : applicantHelper.first_name || applicantHelper.last_name) ||
-                               'Helper';
-              setChatUserName(helperName);
-            } else {
-              setChatUserName('User');
-            }
-          }
-          setIsLoadingName(false);
-          return;
-        }
-
-        // Try to fetch from API (helper endpoint)
-        try {
-          const response = await apiService.get(
-            API_ENDPOINTS.HELPERS.GET.replace(':id', id.toString())
-          );
-          if (response.success && response.data) {
-            const helperData = response.data.helper || response.data;
-            const helperName = helperData.name || 
-                             helperData.user?.name || 
-                             helperData.profile?.name ||
-                             (helperData.first_name && helperData.last_name ? `${helperData.first_name} ${helperData.last_name}` : helperData.first_name || helperData.last_name) ||
-                             'Helper';
-            setChatUserName(helperName);
-            setIsLoadingName(false);
-            return;
-          }
-        } catch (apiError) {
-          // API fetch failed, continue to fallback
-        }
-
-        // Final fallback: try to get name from current user context if it's the current user
-        if (id.toString() === user?.id?.toString()) {
-          setChatUserName(user.name || 'You');
-        } else {
-          // Last resort: show "User" instead of ID
-          setChatUserName('User');
-        }
-        setIsLoadingName(false);
-      } catch (error) {
-        setChatUserName('User');
-        setIsLoadingName(false);
-      }
+    // Optimistic update
+    const tempMessage = {
+      id: Date.now().toString(),
+      text: messageText,
+      sender: 'me',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      senderName: user?.name || 'Me',
     };
+    setMessages((prev) => [...prev, tempMessage]);
 
-    fetchUserName();
-  }, [id, getHelpers, getServiceRequests]);
+    try {
+      const response = await apiService.post(
+        API_ENDPOINTS.MESSAGES.SEND,
+        {
+          recipient_id: parseInt(recipientId),
+          message: messageText,
+        },
+        undefined,
+        true
+      );
 
-  const handleSend = () => {
-    if (message.trim()) {
-      // In a real app, this would send the message
-      setMessage('');
+      if (response.success) {
+        // If this was a new conversation, we now have a conversation ID (implicitly, or we need to fetch it)
+        // The response might contain the message with conversation_id
+        if (!conversationId && response.data?.conversation_id) {
+          setConversationId(response.data.conversation_id.toString());
+        }
+        // Refresh messages to get the real ID and timestamp
+        if (conversationId) {
+          fetchMessages(conversationId);
+        } else if (response.data?.conversation_id) {
+          fetchMessages(response.data.conversation_id.toString());
+        }
+      } else {
+        // Handle error (maybe remove optimistic message or show error)
+        console.error('Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages]);
 
   return (
     <KeyboardAvoidingView
@@ -175,12 +193,17 @@ export default function ChatDetailScreen() {
     >
       <ThemedView style={styles.container}>
         {/* Messages */}
-        <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
-          {MOCK_MESSAGES.map((msg) => {
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messages}
+          contentContainerStyle={styles.messagesContent}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        >
+          {messages.map((msg) => {
             const isMe = msg.sender === 'me';
             // Always show the actual name of the sender
             const senderName = isMe ? (user?.name || 'Unknown') : (chatUserName !== 'Loading...' ? chatUserName : 'Unknown');
-            
+
             return (
               <View
                 key={msg.id}
@@ -215,9 +238,19 @@ export default function ChatDetailScreen() {
             value={message}
             onChangeText={setMessage}
             multiline
+            onSubmitEditing={handleSend}
+            blurOnSubmit={false}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-            <IconSymbol name="arrow.up.circle.fill" size={32} color="#6366F1" />
+          <TouchableOpacity
+            style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
+            onPress={handleSend}
+            disabled={!message.trim()}
+          >
+            <IconSymbol
+              name="arrow.up.circle.fill"
+              size={32}
+              color={message.trim() ? "#6366F1" : "#CCCCCC"}
+            />
           </TouchableOpacity>
         </View>
       </ThemedView>
@@ -304,5 +337,7 @@ const styles = StyleSheet.create({
   sendButton: {
     padding: 4,
   },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
 });
-

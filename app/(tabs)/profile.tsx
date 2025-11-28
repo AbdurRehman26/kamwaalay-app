@@ -1,17 +1,16 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-  Alert,
+  View
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -21,10 +20,10 @@ export default function ProfileScreen() {
     try {
       // Navigate first to ensure we get to login screen
       router.replace('/auth/phone-login');
-      
+
       // Small delay to let navigation start
       await new Promise(resolve => setTimeout(resolve, 50));
-      
+
       // Then call logout function to clear state and storage
       await logout();
     } catch (error) {
@@ -40,6 +39,20 @@ export default function ProfileScreen() {
       title: 'Edit Profile',
       icon: 'person.fill',
       onPress: () => router.push('/profile/edit'),
+    },
+    {
+      id: 'business-dashboard',
+      title: 'Business Dashboard',
+      icon: 'briefcase.fill',
+      onPress: () => router.push('/business/dashboard'),
+      show: user?.userType === 'business',
+    },
+    {
+      id: 'manage-workers',
+      title: 'Manage Workers',
+      icon: 'person.3.fill',
+      onPress: () => router.push('/workers'),
+      show: user?.userType === 'business',
     },
     {
       id: 'service-offerings',
@@ -102,8 +115,8 @@ export default function ProfileScreen() {
               {user?.userType === 'user'
                 ? 'Customer'
                 : user?.userType === 'helper'
-                ? 'Helper'
-                : 'Business'}
+                  ? 'Helper'
+                  : 'Business'}
             </Text>
           </View>
         </View>
@@ -123,7 +136,7 @@ export default function ProfileScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <IconSymbol
-                  name={item.icon}
+                  name={item.icon as any}
                   size={24}
                   color={item.destructive ? '#FF3B30' : '#6366F1'}
                 />

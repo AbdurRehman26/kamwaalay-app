@@ -56,21 +56,20 @@ export default function TabLayout() {
         }}
       />
       {/* Explore tab - only for users/customers */}
-      {!isHelperOrBusiness && (
-        <Tabs.Screen
-          name="explore"
-          options={{
-            title: 'Explore',
-            tabBarIcon: ({ color, focused }) => (
-              <IconSymbol
-                size={focused ? 26 : 24}
-                name="magnifyingglass"
-                color={color}
-              />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explore',
+          href: isHelperOrBusiness ? null : undefined,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={focused ? 26 : 24}
+              name="magnifyingglass"
+              color={color}
+            />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="requests"
         options={{

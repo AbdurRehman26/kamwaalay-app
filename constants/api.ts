@@ -103,6 +103,14 @@ export const API_ENDPOINTS = {
     KARACHI_SEARCH: '/karachi-locations/search',
   },
 
+  // Notifications
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    MARK_READ: '/notifications/:id/read',
+    MARK_ALL_READ: '/notifications/read-all',
+  },
+
   // Home
   HOME: {
     GET: '/home',

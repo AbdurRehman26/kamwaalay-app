@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth, HelperProfile } from '@/contexts/AuthContext';
 import { ThemedView } from '@/components/themed-view';
 import { Stepper } from '@/components/ui/stepper';
+import { HelperProfile, useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  View,
+} from 'react-native';
 import Step1ServiceOffer from './helper-steps/step1-service-offer';
 import Step2ProfileVerification from './helper-steps/step2-profile-verification';
 import Step3CompleteProfile from './helper-steps/step3-complete-profile';
@@ -103,7 +103,6 @@ export default function HelperProfileScreen() {
       // Create HelperProfile with all data
       const helperProfile: HelperProfile = {
         name: user.name,
-        email: user.email,
         bio: profileData.bio,
         experience: profileData.experience,
         serviceOfferings,
@@ -113,10 +112,7 @@ export default function HelperProfileScreen() {
       // Store verification and service offer data in a way that completeOnboarding can access
       // We'll pass this through the profileData or extend the interface
       // For now, we'll store it in a way that the API can use
-      await completeOnboarding(helperProfile, {
-        verification: verificationData,
-        serviceOffer: serviceOfferData,
-      });
+      await completeOnboarding(helperProfile);
 
       // Navigate to tabs
       router.replace('/(tabs)');

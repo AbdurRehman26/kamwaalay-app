@@ -1,12 +1,17 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppProvider } from '@/contexts/AppContext';
+import { SplashScreen as CustomSplashScreen } from '@/components/splash-screen';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 // Suppress browser extension errors (web only)
 if (typeof window !== 'undefined' && typeof window.onerror !== 'undefined') {
@@ -188,6 +193,14 @@ function RootLayoutNav() {
             <Stack.Screen name="requests/create" options={{ headerShown: false }} />
             <Stack.Screen name="requests/[id]" options={{ headerShown: false }} />
             <Stack.Screen 
+              name="workers/add" 
+              options={{ 
+                headerShown: true,
+                title: 'Add New Worker',
+                headerBackTitleVisible: false,
+              }} 
+            />
+            <Stack.Screen 
               name="chat/[id]" 
               options={{ 
                 headerShown: true,
@@ -201,14 +214,34 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
+
+  useEffect(() => {
+    // Hide native splash screen after custom splash is shown
+    if (!showCustomSplash) {
+      SplashScreen.hideAsync();
+    }
+  }, [showCustomSplash]);
+
   // Force light mode - always use DefaultTheme
   return (
     <SafeAreaProvider>
       <ThemeProvider value={DefaultTheme}>
         <AuthProvider>
           <AppProvider>
-            <RootLayoutNav />
-            <StatusBar style="dark" />
+            {showCustomSplash && (
+              <CustomSplashScreen
+                onFinish={() => {
+                  setShowCustomSplash(false);
+                }}
+              />
+            )}
+            {!showCustomSplash && (
+              <>
+                <RootLayoutNav />
+                <StatusBar style="dark" />
+              </>
+            )}
           </AppProvider>
         </AuthProvider>
       </ThemeProvider>

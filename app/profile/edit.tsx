@@ -1,20 +1,20 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -27,19 +27,14 @@ export default function EditProfileScreen() {
       ? (user?.profileData as any)?.name || user?.name || ''
       : user?.name || ''
   );
-  const [email, setEmail] = useState(
-    user?.userType === 'helper' || user?.userType === 'business'
-      ? (user?.profileData as any)?.email || user?.email || ''
-      : user?.email || ''
-  );
 
   // Helper/Business profile fields
   const [bio, setBio] = useState(
     user?.userType === 'helper'
       ? (user?.profileData as any)?.bio || ''
       : user?.userType === 'business'
-      ? (user?.profileData as any)?.bio || ''
-      : ''
+        ? (user?.profileData as any)?.bio || ''
+        : ''
   );
   const [experience, setExperience] = useState(
     user?.userType === 'helper' ? (user?.profileData as any)?.experience || '' : ''
@@ -67,7 +62,6 @@ export default function EditProfileScreen() {
     try {
       const updatedUser: any = {
         name: finalName.trim(),
-        email: email.trim() || undefined,
       };
 
       // Update profile data for helpers/businesses
@@ -75,7 +69,6 @@ export default function EditProfileScreen() {
         updatedUser.profileData = {
           ...user.profileData,
           name: finalName.trim(),
-          email: email.trim() || undefined,
           bio: bio.trim() || undefined,
           experience: experience.trim() || undefined,
         };
@@ -84,7 +77,6 @@ export default function EditProfileScreen() {
           ...user.profileData,
           businessName: businessName.trim(),
           ownerName: ownerName.trim(),
-          email: email.trim() || undefined,
           bio: bio.trim() || undefined,
         };
         // Also update the main name field for businesses
@@ -174,19 +166,6 @@ export default function EditProfileScreen() {
             )}
 
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Email</ThemedText>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter email address"
-                placeholderTextColor="#999"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
               <ThemedText style={styles.label}>Phone Number</ThemedText>
               <TextInput
                 style={[styles.input, styles.disabledInput]}
@@ -248,8 +227,8 @@ export default function EditProfileScreen() {
                   {user?.userType === 'user'
                     ? 'Customer'
                     : user?.userType === 'helper'
-                    ? 'Helper'
-                    : 'Business'}
+                      ? 'Helper'
+                      : 'Business'}
                 </Text>
               </View>
             </View>

@@ -1,19 +1,21 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
   Switch,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
   const [emailNotifications, setEmailNotifications] = React.useState(false);
 
@@ -59,6 +61,35 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
+
+        {/* Business Section - Only for business users */}
+        {user?.userType === 'business' && (
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Business
+            </ThemedText>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/business/dashboard')}
+            >
+              <View style={styles.menuItemLeft}>
+                <IconSymbol name="chart.bar.fill" size={24} color="#6366F1" />
+                <ThemedText style={styles.menuItemText}>Business Dashboard</ThemedText>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/workers')}
+            >
+              <View style={styles.menuItemLeft}>
+                <IconSymbol name="person.2.fill" size={24} color="#6366F1" />
+                <ThemedText style={styles.menuItemText}>Manage Workers</ThemedText>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Account Settings */}
         <View style={styles.section}>

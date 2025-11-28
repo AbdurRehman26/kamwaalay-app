@@ -1,25 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
+import { useApp } from '@/contexts/AppContext';
+import { ServiceRequest, useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/api';
+import { notificationService } from '@/services/notification.service';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  FlatList,
-  Alert,
   ActivityIndicator,
+  Alert,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { useApp } from '@/contexts/AppContext';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { apiService } from '@/services/api';
-import { API_ENDPOINTS } from '@/constants/api';
-import { ServiceRequest } from '@/contexts/AuthContext';
 
 const SERVICES = [
   { id: '1', name: 'Cleaning', icon: '🧹', color: '#EEF2FF' },
@@ -37,7 +37,27 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [myServiceRequests, setMyServiceRequests] = useState<ServiceRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const serviceRequests = getServiceRequests();
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUnreadCount = async () => {
+        try {
+          const response = await notificationService.getUnreadCount();
+          if (response.success && response.data) {
+            setUnreadCount(response.data.count || 0);
+          }
+        } catch (error) {
+          console.error('Error fetching unread count:', error);
+        }
+      };
+
+      if (user) {
+        fetchUnreadCount();
+      }
+    }, [user])
+  );
 
   // Define loadMyServiceRequests using useCallback to avoid recreating it on every render
   const loadMyServiceRequests = useCallback(async () => {
@@ -52,7 +72,7 @@ export default function HomeScreen() {
 
       if (response.success && response.data) {
         let rawBookings = [];
-        
+
         // Handle different response formats
         if (response.data.bookings) {
           rawBookings = Array.isArray(response.data.bookings.data)
@@ -78,8 +98,8 @@ export default function HomeScreen() {
           status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
           createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
           applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
-                     booking.applicants ||
-                     [],
+            booking.applicants ||
+            [],
         }));
 
         setMyServiceRequests(requests);
@@ -272,189 +292,217 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ThemedView style={styles.container}>
-        <ScrollView 
-          style={styles.scrollView} 
+        <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <ThemedText style={styles.greeting}>{getGreeting()},</ThemedText>
-            <ThemedText type="title" style={styles.userName}>
-              {user?.name || 'User'}
-            </ThemedText>
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <ThemedText style={styles.greeting}>{getGreeting()},</ThemedText>
+              <ThemedText type="title" style={styles.userName}>
+                {user?.name || 'User'}
+              </ThemedText>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.notificationButton}>
+              <IconSymbol name="bell.fill" size={24} color="#6366F1" />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={() => router.push('/notifications')}>
-            <IconSymbol name="bell.fill" size={24} color="#6366F1" />
-          </TouchableOpacity>
-        </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={20} color="#999" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for helpers or businesses..."
-            placeholderTextColor="#999"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <IconSymbol name="magnifyingglass" size={20} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for helpers or businesses..."
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
 
-        {/* For Users/Customers - Show content if user is null or user type is 'user' */}
-        {(!user || user?.userType === 'user' || user?.userType === undefined) && (
-          <>
-            {/* Quick Actions */}
-            <TouchableOpacity
-              style={styles.quickActionButton}
-              onPress={() => router.push('/requests/create')}
-            >
-              <IconSymbol name="plus.circle.fill" size={24} color="#FFFFFF" />
-              <Text style={styles.quickActionText}>Post a Service Request</Text>
-            </TouchableOpacity>
+          {/* For Users/Customers - Show content if user is null or user type is 'user' */}
+          {(!user || user?.userType === 'user' || user?.userType === undefined) && (
+            <>
+              {/* Quick Actions */}
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={() => router.push('/requests/create')}
+              >
+                <IconSymbol name="plus.circle.fill" size={24} color="#FFFFFF" />
+                <Text style={styles.quickActionText}>Post a Service Request</Text>
+              </TouchableOpacity>
 
-            {/* Services - Prominent Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <ThemedText type="subtitle" style={styles.sectionTitle}>
-                  Browse Services
-                </ThemedText>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
-                  <ThemedText style={styles.seeAll}>View All</ThemedText>
-                </TouchableOpacity>
-              </View>
-              <ThemedText style={styles.sectionDescription}>
-                Find trusted helpers and businesses for your household needs
-              </ThemedText>
-              <FlatList
-                data={SERVICES}
-                renderItem={renderServiceCard}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.servicesContainer}
-              />
-            </View>
-
-            {/* My Service Requests */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <ThemedText type="subtitle" style={styles.sectionTitle}>
-                  My Service Requests
-                </ThemedText>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
-                  <ThemedText style={styles.seeAll}>See All</ThemedText>
-                </TouchableOpacity>
-              </View>
-              {isLoadingRequests ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#6366F1" />
-                  <ThemedText style={styles.loadingText}>Loading requests...</ThemedText>
-                </View>
-              ) : myServiceRequests.length > 0 ? (
-                myServiceRequests.slice(0, 3).map((request) => (
-                  <View key={request.id}>{renderRequestCard(request)}</View>
-                ))
-              ) : (
-                <View style={styles.emptyCard}>
-                  <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
-                  <ThemedText style={styles.emptyCardText}>
-                    You haven't created any service requests yet
+              {/* Services - Prominent Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText type="subtitle" style={styles.sectionTitle}>
+                    Browse Services
                   </ThemedText>
-                  <TouchableOpacity
-                    style={styles.createRequestButton}
-                    onPress={() => router.push('/requests/create')}
-                  >
-                    <Text style={styles.createRequestButtonText}>Create Your First Request</Text>
+                  <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+                    <ThemedText style={styles.seeAll}>View All</ThemedText>
                   </TouchableOpacity>
                 </View>
-              )}
-            </View>
-          </>
-        )}
-
-        {/* For Helpers/Businesses - Show available service requests */}
-        {(user?.userType === 'helper' || user?.userType === 'business') && (
-          <>
-            {/* Quick Actions */}
-            <TouchableOpacity
-              style={styles.quickActionButton}
-              onPress={() => router.push('/(tabs)/requests')}
-            >
-              <IconSymbol name="list.bullet" size={24} color="#FFFFFF" />
-              <Text style={styles.quickActionText}>Browse All Requests</Text>
-            </TouchableOpacity>
-
-            {/* Available Service Requests */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <ThemedText type="subtitle" style={styles.sectionTitle}>
-                  Available Requests
+                <ThemedText style={styles.sectionDescription}>
+                  Find trusted helpers and businesses for your household needs
                 </ThemedText>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
-                  <ThemedText style={styles.seeAll}>See All</ThemedText>
-                </TouchableOpacity>
+                <FlatList
+                  data={SERVICES}
+                  renderItem={renderServiceCard}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.servicesContainer}
+                />
               </View>
-              <ThemedText style={styles.sectionDescription}>
-                Find new opportunities to apply for
-              </ThemedText>
-              {serviceRequests.filter((r) => r.status === 'open').length > 0 ? (
-                serviceRequests
-                  .filter((r) => r.status === 'open')
-                  .slice(0, 3)
-                  .map((request) => (
-                    <View key={request.id}>{renderRequestCard(request)}</View>
-                  ))
-              ) : (
-                <View style={styles.emptyCard}>
-                  <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
-                  <ThemedText style={styles.emptyCardText}>
-                    No available service requests at the moment
-                  </ThemedText>
-                </View>
-              )}
-            </View>
 
-            {/* My Applications */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <ThemedText type="subtitle" style={styles.sectionTitle}>
-                  My Applications
-                </ThemedText>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
-                  <ThemedText style={styles.seeAll}>See All</ThemedText>
-                </TouchableOpacity>
-              </View>
-              <ThemedText style={styles.sectionDescription}>
-                Requests you've applied to
-              </ThemedText>
-              {serviceRequests.filter((r) => 
-                r.applicants && r.applicants.includes(user?.id || '')
-              ).length > 0 ? (
-                serviceRequests
-                  .filter((r) => r.applicants && r.applicants.includes(user?.id || ''))
-                  .slice(0, 3)
-                  .map((request) => (
-                    <View key={request.id}>{renderRequestCard(request)}</View>
-                  ))
-              ) : (
-                <View style={styles.emptyCard}>
-                  <IconSymbol name="checkmark.circle.fill" size={32} color="#CCCCCC" />
-                  <ThemedText style={styles.emptyCardText}>
-                    You haven't applied to any requests yet
+              {/* My Service Requests */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText type="subtitle" style={styles.sectionTitle}>
+                    My Service Requests
                   </ThemedText>
-                  <TouchableOpacity
-                    style={styles.createRequestButton}
-                    onPress={() => router.push('/(tabs)/requests')}
-                  >
-                    <Text style={styles.createRequestButtonText}>Browse Requests</Text>
+                  <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
+                    <ThemedText style={styles.seeAll}>See All</ThemedText>
                   </TouchableOpacity>
                 </View>
+                {isLoadingRequests ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#6366F1" />
+                    <ThemedText style={styles.loadingText}>Loading requests...</ThemedText>
+                  </View>
+                ) : myServiceRequests.length > 0 ? (
+                  myServiceRequests.slice(0, 3).map((request) => (
+                    <View key={request.id}>{renderRequestCard(request)}</View>
+                  ))
+                ) : (
+                  <View style={styles.emptyCard}>
+                    <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
+                    <ThemedText style={styles.emptyCardText}>
+                      You haven't created any service requests yet
+                    </ThemedText>
+                    <TouchableOpacity
+                      style={styles.createRequestButton}
+                      onPress={() => router.push('/requests/create')}
+                    >
+                      <Text style={styles.createRequestButtonText}>Create Your First Request</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+
+          {/* For Helpers/Businesses - Show available service requests */}
+          {(user?.userType === 'helper' || user?.userType === 'business') && (
+            <>
+              {/* Business Dashboard Link - Only for businesses */}
+              {user?.userType === 'business' && (
+                <TouchableOpacity
+                  style={styles.dashboardCard}
+                  onPress={() => router.push('/business/dashboard')}
+                >
+                  <View style={styles.dashboardCardContent}>
+                    <IconSymbol name="chart.bar.fill" size={32} color="#6366F1" />
+                    <View style={styles.dashboardCardText}>
+                      <ThemedText type="subtitle" style={styles.dashboardCardTitle}>
+                        Business Dashboard
+                      </ThemedText>
+                      <ThemedText style={styles.dashboardCardSubtitle}>
+                        Manage your agency workers and bookings
+                      </ThemedText>
+                    </View>
+                  </View>
+                  <IconSymbol name="chevron.right" size={24} color="#6366F1" />
+                </TouchableOpacity>
               )}
-            </View>
-          </>
-        )}
+
+              {/* Quick Actions */}
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={() => router.push('/(tabs)/requests')}
+              >
+                <IconSymbol name="list.bullet" size={24} color="#FFFFFF" />
+                <Text style={styles.quickActionText}>Browse All Requests</Text>
+              </TouchableOpacity>
+
+              {/* Available Service Requests */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText type="subtitle" style={styles.sectionTitle}>
+                    Available Requests
+                  </ThemedText>
+                  <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
+                    <ThemedText style={styles.seeAll}>See All</ThemedText>
+                  </TouchableOpacity>
+                </View>
+                <ThemedText style={styles.sectionDescription}>
+                  Find new opportunities to apply for
+                </ThemedText>
+                {serviceRequests.filter((r) => r.status === 'open').length > 0 ? (
+                  serviceRequests
+                    .filter((r) => r.status === 'open')
+                    .slice(0, 3)
+                    .map((request) => (
+                      <View key={request.id}>{renderRequestCard(request)}</View>
+                    ))
+                ) : (
+                  <View style={styles.emptyCard}>
+                    <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
+                    <ThemedText style={styles.emptyCardText}>
+                      No available service requests at the moment
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+
+              {/* My Applications */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText type="subtitle" style={styles.sectionTitle}>
+                    My Applications
+                  </ThemedText>
+                  <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
+                    <ThemedText style={styles.seeAll}>See All</ThemedText>
+                  </TouchableOpacity>
+                </View>
+                <ThemedText style={styles.sectionDescription}>
+                  Requests you've applied to
+                </ThemedText>
+                {serviceRequests.filter((r) =>
+                  r.applicants && r.applicants.includes(user?.id || '')
+                ).length > 0 ? (
+                  serviceRequests
+                    .filter((r) => r.applicants && r.applicants.includes(user?.id || ''))
+                    .slice(0, 3)
+                    .map((request) => (
+                      <View key={request.id}>{renderRequestCard(request)}</View>
+                    ))
+                ) : (
+                  <View style={styles.emptyCard}>
+                    <IconSymbol name="checkmark.circle.fill" size={32} color="#CCCCCC" />
+                    <ThemedText style={styles.emptyCardText}>
+                      You haven't applied to any requests yet
+                    </ThemedText>
+                    <TouchableOpacity
+                      style={styles.createRequestButton}
+                      onPress={() => router.push('/(tabs)/requests')}
+                    >
+                      <Text style={styles.createRequestButtonText}>Browse Requests</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
 
         </ScrollView>
       </ThemedView>
@@ -800,6 +848,66 @@ const styles = StyleSheet.create({
   createRequestButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  notificationButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  dashboardCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  dashboardCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+  },
+  dashboardCardText: {
+    flex: 1,
+  },
+  dashboardCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  dashboardCardSubtitle: {
+    fontSize: 14,
+    color: '#666',
   },
 });

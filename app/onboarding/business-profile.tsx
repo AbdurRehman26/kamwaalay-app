@@ -1,17 +1,17 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { BusinessProfile, useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
+  Alert,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  Alert,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth, BusinessProfile } from '@/contexts/AuthContext';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
 
 export default function BusinessProfileScreen() {
   const router = useRouter();
@@ -34,7 +34,6 @@ export default function BusinessProfileScreen() {
     const profileData: BusinessProfile = {
       businessName,
       ownerName: user.name,
-      email: user.email,
       bio: businessDescription,
       businessAddress,
       serviceOfferings: [],
@@ -42,7 +41,8 @@ export default function BusinessProfileScreen() {
     };
 
     await completeOnboarding(profileData);
-    router.replace('/(tabs)');
+    // Navigate to add workers step
+    router.push('/onboarding/add-workers');
   };
 
   return (
@@ -114,26 +114,22 @@ export default function BusinessProfileScreen() {
           onPress={handleContinue}
           disabled={!businessName.trim()}
         >
-          <Text style={styles.buttonText}>Complete Profile</Text>
+          <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => {
-            if (!businessName.trim()) {
-              Alert.alert('Required', 'Business name is required');
-              return;
-            }
+          onPress={async () => {
+            // Allow skipping without business name
             const profileData: BusinessProfile = {
-              businessName,
+              businessName: businessName.trim() || 'My Business',
               ownerName: user?.name || '',
-              email: user?.email,
               businessAddress,
               bio: businessDescription,
               serviceOfferings: [],
               locations: [],
             };
-            completeOnboarding(profileData);
+            await completeOnboarding(profileData);
             router.replace('/(tabs)');
           }}
         >

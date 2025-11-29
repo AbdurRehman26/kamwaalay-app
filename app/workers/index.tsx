@@ -10,32 +10,22 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function WorkersListScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     // TODO: Fetch workers from API
     const workers: any[] = [];
 
     return (
         <ThemedView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <IconSymbol name="chevron.left" size={24} color="#6366F1" />
-                </TouchableOpacity>
-                <ThemedText type="title" style={styles.title}>
-                    All Workers
-                </ThemedText>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => router.push('/workers/add')}
-                >
-                    <IconSymbol name="plus" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={styles.scrollView} 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+            >
                 {workers.length === 0 ? (
                     <View style={styles.emptyState}>
                         <IconSymbol name="person.2.fill" size={64} color="#CCCCCC" />
@@ -66,34 +56,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F8F9FA',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 20,
-        paddingTop: 60,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E8E8E8',
-    },
-    backButton: {
-        padding: 4,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
-        flex: 1,
-        textAlign: 'center',
-    },
-    addButton: {
-        backgroundColor: '#6366F1',
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     scrollView: {
         flex: 1,

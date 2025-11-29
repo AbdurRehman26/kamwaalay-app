@@ -193,6 +193,22 @@ function RootLayoutNav() {
             <Stack.Screen name="requests/create" options={{ headerShown: false }} />
             <Stack.Screen name="requests/[id]" options={{ headerShown: false }} />
             <Stack.Screen 
+              name="business/dashboard" 
+              options={{ 
+                headerShown: true,
+                title: 'Business Dashboard',
+                headerBackTitleVisible: false,
+              }} 
+            />
+            <Stack.Screen 
+              name="workers/index" 
+              options={{ 
+                headerShown: true,
+                title: 'All Workers',
+                headerBackTitleVisible: false,
+              }} 
+            />
+            <Stack.Screen 
               name="workers/add" 
               options={{ 
                 headerShown: true,

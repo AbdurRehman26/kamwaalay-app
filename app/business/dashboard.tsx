@@ -9,9 +9,11 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BusinessDashboardScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<'workers' | 'bookings'>('workers');
 
     // Mock data - replace with real data from API
@@ -27,25 +29,24 @@ export default function BusinessDashboardScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.headerContent}>
-                    <ThemedText type="title" style={styles.title}>
-                        Business Dashboard
-                    </ThemedText>
+                {/* Header */}
+                <View style={styles.header}>
                     <ThemedText style={styles.subtitle}>
                         Manage your agency workers and bookings
                     </ThemedText>
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => router.push('/workers/add')}
+                    >
+                        <Text style={styles.addButtonText}>Add New Worker</Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => router.push('/workers/add')}
-                >
-                    <Text style={styles.addButtonText}>Add New Worker</Text>
-                </TouchableOpacity>
-            </View>
 
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                    style={styles.scrollView} 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+                >
                 {/* Stats Cards */}
                 <View style={styles.statsContainer}>
                     <View style={styles.statCard}>
@@ -127,34 +128,27 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8F9FA',
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
         padding: 20,
-        paddingTop: 60,
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
         borderBottomColor: '#E8E8E8',
     },
-    headerContent: {
-        flex: 1,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
-        marginBottom: 4,
-    },
     subtitle: {
         fontSize: 14,
         color: '#666',
+        marginBottom: 16,
+        textAlign: 'center',
     },
     addButton: {
         backgroundColor: '#6366F1',
         paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingVertical: 12,
         borderRadius: 8,
-        marginLeft: 12,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
     },
     addButtonText: {
         color: '#FFFFFF',

@@ -17,6 +17,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SERVICE_TYPES = [
     { id: 'maid', label: 'Maid', emoji: '🧹' },
@@ -41,6 +42,7 @@ interface Location {
 
 export default function AddWorkerScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     // Basic Info
     const [fullName, setFullName] = useState('');
@@ -222,7 +224,11 @@ export default function AddWorkerScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
-                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                    style={styles.scrollView} 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+                >
                     <View style={styles.form}>
                         {/* Basic Information */}
                         <View style={styles.section}>
@@ -230,30 +236,28 @@ export default function AddWorkerScreen() {
                                 Basic Information
                             </ThemedText>
 
-                            <View style={styles.row}>
-                                <View style={[styles.inputGroup, styles.halfWidth]}>
-                                    <ThemedText style={styles.label}>Full Name *</ThemedText>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Enter full name"
-                                        placeholderTextColor="#999"
-                                        value={fullName}
-                                        onChangeText={setFullName}
-                                    />
-                                </View>
+                            <View style={styles.inputGroup}>
+                                <ThemedText style={styles.label}>Full Name *</ThemedText>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter full name"
+                                    placeholderTextColor="#999"
+                                    value={fullName}
+                                    onChangeText={setFullName}
+                                />
+                            </View>
 
-                                <View style={[styles.inputGroup, styles.halfWidth]}>
-                                    <ThemedText style={styles.label}>Phone *</ThemedText>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="03XXXXXXXXX"
-                                        placeholderTextColor="#999"
-                                        value={phone}
-                                        onChangeText={setPhone}
-                                        keyboardType="phone-pad"
-                                        maxLength={11}
-                                    />
-                                </View>
+                            <View style={styles.inputGroup}>
+                                <ThemedText style={styles.label}>Phone *</ThemedText>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="03XXXXXXXXX"
+                                    placeholderTextColor="#999"
+                                    value={phone}
+                                    onChangeText={setPhone}
+                                    keyboardType="phone-pad"
+                                    maxLength={11}
+                                />
                             </View>
 
                             <View style={styles.inputGroup}>
@@ -535,29 +539,29 @@ const styles = StyleSheet.create({
     serviceGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 10,
     },
     serviceCard: {
-        width: '31%',
-        aspectRatio: 1,
+        width: '30%',
+        minHeight: 90,
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
         borderWidth: 2,
         borderColor: '#E8E8E8',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 12,
+        padding: 10,
     },
     serviceCardActive: {
         borderColor: '#6366F1',
         backgroundColor: '#EEF2FF',
     },
     serviceEmoji: {
-        fontSize: 32,
-        marginBottom: 8,
+        fontSize: 28,
+        marginBottom: 6,
     },
     serviceLabel: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '600',
         color: '#1A1A1A',
         textAlign: 'center',
@@ -627,6 +631,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         marginTop: 24,
+        marginBottom: 20,
         shadowColor: '#6366F1',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,

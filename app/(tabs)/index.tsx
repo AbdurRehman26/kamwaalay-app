@@ -15,9 +15,8 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -317,17 +316,14 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <IconSymbol name="magnifyingglass" size={20} color="#999" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for helpers or businesses..."
-              placeholderTextColor="#999"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
+          {/* View Helpers Button */}
+          <TouchableOpacity
+            style={styles.viewHelpersButton}
+            onPress={() => router.push('/(tabs)/explore')}
+          >
+            <IconSymbol name="magnifyingglass" size={20} color="#FFFFFF" />
+            <Text style={styles.viewHelpersButtonText}>View Helpers</Text>
+          </TouchableOpacity>
 
           {/* For Users/Customers - Show content if user is null or user type is 'user' */}
           {(!user || user?.userType === 'user' || user?.userType === undefined) && (
@@ -364,11 +360,11 @@ export default function HomeScreen() {
                 />
               </View>
 
-              {/* My Service Requests */}
+              {/* My Postings */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <ThemedText type="subtitle" style={styles.sectionTitle}>
-                    My Service Requests
+                    My Postings
                   </ThemedText>
                   <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
                     <ThemedText style={styles.seeAll}>See All</ThemedText>
@@ -530,7 +526,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
@@ -568,7 +563,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 12,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     color: '#1A1A1A',
   },
@@ -624,7 +619,8 @@ const styles = StyleSheet.create({
   },
   servicesContainer: {
     gap: 16,
-    paddingRight: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   serviceCard: {
     width: 110,
@@ -909,5 +905,28 @@ const styles = StyleSheet.create({
   dashboardCardSubtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  viewHelpersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    borderRadius: 16,
+    paddingVertical: 16,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+    gap: 10,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  viewHelpersButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

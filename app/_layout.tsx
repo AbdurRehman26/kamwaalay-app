@@ -1,14 +1,14 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { AppProvider } from '@/contexts/AppContext';
 import { SplashScreen as CustomSplashScreen } from '@/components/splash-screen';
+import { AppProvider } from '@/contexts/AppContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -16,19 +16,19 @@ SplashScreen.preventAutoHideAsync();
 // Suppress browser extension errors (web only)
 if (typeof window !== 'undefined' && typeof window.onerror !== 'undefined') {
   const originalError = window.onerror;
-  window.onerror = function(message, source, lineno, colno, error) {
+  window.onerror = function (message, source, lineno, colno, error) {
     // Suppress errors from browser extension content scripts
     if (
       typeof message === 'string' &&
       (message.includes('content_script.js') ||
-       message.includes('Cannot read properties of undefined') ||
-       message.includes("reading 'control'") ||
-       message.includes('ControlLooksLikePasswordCredentialField') ||
-       message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
-       message.includes('ControlLooksLikeOneTimeCodeField') ||
-       message.includes('ControlUniqueID') ||
-       message.includes('ControlIsLabeledUsernameField') ||
-       source?.includes('content_script.js'))
+        message.includes('Cannot read properties of undefined') ||
+        message.includes("reading 'control'") ||
+        message.includes('ControlLooksLikePasswordCredentialField') ||
+        message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
+        message.includes('ControlLooksLikeOneTimeCodeField') ||
+        message.includes('ControlUniqueID') ||
+        message.includes('ControlIsLabeledUsernameField') ||
+        source?.includes('content_script.js'))
     ) {
       return true; // Suppress the error
     }
@@ -42,19 +42,19 @@ if (typeof window !== 'undefined' && typeof window.onerror !== 'undefined') {
   // Also handle unhandled promise rejections (web only)
   if (typeof window.onunhandledrejection !== 'undefined') {
     const originalUnhandledRejection = window.onunhandledrejection;
-    window.onunhandledrejection = function(event) {
+    window.onunhandledrejection = function (event) {
       if (
         event.reason &&
         typeof event.reason === 'object' &&
         event.reason.message &&
         (event.reason.message.includes('content_script.js') ||
-         event.reason.message.includes('Cannot read properties of undefined') ||
-         event.reason.message.includes("reading 'control'") ||
-         event.reason.message.includes('ControlLooksLikePasswordCredentialField') ||
-         event.reason.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
-         event.reason.message.includes('ControlLooksLikeOneTimeCodeField') ||
-         event.reason.message.includes('ControlUniqueID') ||
-         event.reason.message.includes('ControlIsLabeledUsernameField'))
+          event.reason.message.includes('Cannot read properties of undefined') ||
+          event.reason.message.includes("reading 'control'") ||
+          event.reason.message.includes('ControlLooksLikePasswordCredentialField') ||
+          event.reason.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
+          event.reason.message.includes('ControlLooksLikeOneTimeCodeField') ||
+          event.reason.message.includes('ControlUniqueID') ||
+          event.reason.message.includes('ControlIsLabeledUsernameField'))
       ) {
         event.preventDefault(); // Suppress the error
         return;
@@ -69,18 +69,18 @@ if (typeof window !== 'undefined' && typeof window.onerror !== 'undefined') {
   // Add global error event listener for more comprehensive error catching
   // Only add event listener if window.addEventListener exists (web only)
   if (typeof window.addEventListener === 'function') {
-    window.addEventListener('error', function(event: ErrorEvent) {
+    window.addEventListener('error', function (event: ErrorEvent) {
       if (
         event.message &&
         (event.message.includes('content_script.js') ||
-         event.message.includes('Cannot read properties of undefined') ||
-         event.message.includes("reading 'control'") ||
-         event.message.includes('ControlLooksLikePasswordCredentialField') ||
-         event.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
-         event.message.includes('ControlLooksLikeOneTimeCodeField') ||
-         event.message.includes('ControlUniqueID') ||
-         event.message.includes('ControlIsLabeledUsernameField') ||
-         event.filename?.includes('content_script.js'))
+          event.message.includes('Cannot read properties of undefined') ||
+          event.message.includes("reading 'control'") ||
+          event.message.includes('ControlLooksLikePasswordCredentialField') ||
+          event.message.includes('ControlClaimsToBeUsernameViaAutocompleteAttribute') ||
+          event.message.includes('ControlLooksLikeOneTimeCodeField') ||
+          event.message.includes('ControlUniqueID') ||
+          event.message.includes('ControlIsLabeledUsernameField') ||
+          event.filename?.includes('content_script.js'))
       ) {
         event.preventDefault();
         event.stopPropagation();
@@ -147,7 +147,7 @@ function RootLayoutNav() {
           // User is on the stepper onboarding screen - allow them to stay
           return;
         }
-        
+
         if (user.onboardingStatus === 'completed') {
           router.replace('/(tabs)');
         } else if (user.onboardingStatus === 'in_progress') {
@@ -181,50 +181,52 @@ function RootLayoutNav() {
       <Stack.Screen name="onboarding/start" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding/helper-profile" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding/business-profile" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/bookings" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/service-offerings" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/change-password" options={{ headerShown: false }} />
-            <Stack.Screen name="help" options={{ headerShown: false }} />
-            <Stack.Screen name="terms" options={{ headerShown: false }} />
-            <Stack.Screen name="privacy" options={{ headerShown: false }} />
-            <Stack.Screen name="about" options={{ headerShown: false }} />
-            <Stack.Screen name="requests/create" options={{ headerShown: false }} />
-            <Stack.Screen name="requests/[id]" options={{ headerShown: false }} />
-            <Stack.Screen 
-              name="business/dashboard" 
-              options={{ 
-                headerShown: true,
-                title: 'Business Dashboard',
-                headerBackTitleVisible: false,
-              }} 
-            />
-            <Stack.Screen 
-              name="workers/index" 
-              options={{ 
-                headerShown: true,
-                title: 'All Workers',
-                headerBackTitleVisible: false,
-              }} 
-            />
-            <Stack.Screen 
-              name="workers/add" 
-              options={{ 
-                headerShown: true,
-                title: 'Add New Worker',
-                headerBackTitleVisible: false,
-              }} 
-            />
-            <Stack.Screen 
-              name="chat/[id]" 
-              options={{ 
-                headerShown: true,
-                title: 'Chat',
-                headerBackTitleVisible: false,
-              }} 
-            />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/bookings" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/service-offerings" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/[type]/[id]" options={{ headerShown: false, title: 'View Profile' }} />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/change-password" options={{ headerShown: false }} />
+      <Stack.Screen name="help" options={{ headerShown: false }} />
+      <Stack.Screen name="terms" options={{ headerShown: false }} />
+      <Stack.Screen name="privacy" options={{ headerShown: false }} />
+      <Stack.Screen name="about" options={{ headerShown: false }} />
+      <Stack.Screen name="requests/create" options={{ headerShown: false }} />
+      <Stack.Screen name="requests/[id]" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="business/dashboard"
+        options={{
+          headerShown: true,
+          title: 'Business Dashboard',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="workers/index"
+        options={{
+          headerShown: true,
+          title: 'All Workers',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="workers/add"
+        options={{
+          headerShown: true,
+          title: 'Add New Worker',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="chat/[id]"
+        options={{
+          headerShown: true,
+          title: 'Chat',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );
 }
@@ -233,11 +235,16 @@ export default function RootLayout() {
   const [showCustomSplash, setShowCustomSplash] = useState(true);
 
   useEffect(() => {
-    // Hide native splash screen after custom splash is shown
-    if (!showCustomSplash) {
-      SplashScreen.hideAsync();
-    }
-  }, [showCustomSplash]);
+    // Hide native splash screen as soon as custom splash is mounted
+    // This ensures smooth transition from native to custom splash
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors if splash screen is already hidden
+      });
+    }, 100); // Small delay to ensure custom splash is rendered
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Force light mode - always use DefaultTheme
   return (

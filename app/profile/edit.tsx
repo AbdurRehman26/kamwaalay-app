@@ -15,11 +15,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   // Basic profile fields
   const [name, setName] = useState(
@@ -117,7 +120,11 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        >
           {/* Profile Picture Section */}
           <View style={styles.section}>
             <View style={styles.avatarContainer}>

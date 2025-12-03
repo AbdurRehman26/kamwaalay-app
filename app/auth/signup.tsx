@@ -127,7 +127,7 @@ export default function SignupScreen() {
                   style={[styles.roleCard, role === 'user' && styles.roleCardActive]}
                   onPress={() => setRole('user')}
                 >
-                  <IconSymbol name="person.fill" size={32} color={role === 'user' ? '#6366F1' : '#666'} />
+                  <Text style={styles.roleEmoji}>🏠</Text>
                   <Text style={[styles.roleTitle, role === 'user' && styles.roleTitleActive]}>
                     User
                   </Text>
@@ -136,7 +136,7 @@ export default function SignupScreen() {
                   style={[styles.roleCard, role === 'helper' && styles.roleCardActive]}
                   onPress={() => setRole('helper')}
                 >
-                  <IconSymbol name="briefcase.fill" size={32} color={role === 'helper' ? '#6366F1' : '#8B4513'} />
+                  <Text style={styles.roleEmoji}>👷</Text>
                   <Text style={[styles.roleTitle, role === 'helper' && styles.roleTitleActive]}>
                     Worker
                   </Text>
@@ -145,7 +145,7 @@ export default function SignupScreen() {
                   style={[styles.roleCard, role === 'business' && styles.roleCardActive]}
                   onPress={() => setRole('business')}
                 >
-                  <IconSymbol name="building.2.fill" size={32} color={role === 'business' ? '#6366F1' : '#666'} />
+                  <Text style={styles.roleEmoji}>💼</Text>
                   <Text style={[styles.roleTitle, role === 'business' && styles.roleTitleActive]}>
                     Business
                   </Text>
@@ -284,6 +284,13 @@ export default function SignupScreen() {
               <Text style={styles.buttonText}>Create Account</Text>
             </TouchableOpacity>
 
+            <View style={styles.signinContainer}>
+              <Text style={styles.signinText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/auth/phone-login')}>
+                <Text style={styles.signinLink}>Sign in</Text>
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.termsText}>
               By registering, you agree to our{' '}
               <Text style={styles.linkText}>Terms</Text> and{' '}
@@ -376,6 +383,10 @@ const styles = StyleSheet.create({
   roleCardActive: {
     backgroundColor: '#EEF2FF',
     borderColor: '#6366F1',
+  },
+  roleEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
   },
   roleTitle: {
     fontSize: 14,
@@ -513,6 +524,21 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  signinContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  signinText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  signinLink: {
+    fontSize: 14,
+    color: '#6366F1',
     fontWeight: '600',
   },
   termsText: {

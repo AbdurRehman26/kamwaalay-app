@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemedView } from '@/components/themed-view';
@@ -28,69 +29,75 @@ export default function UserTypeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Choose Your Role
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Select how you want to use Kamwaalay
-          </ThemedText>
-        </View>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <ThemedView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.header}>
+            <ThemedText type="title" style={styles.title}>
+              Choose Your Role
+            </ThemedText>
+            <ThemedText style={styles.subtitle}>
+              Select how you want to use Kamwaalay
+            </ThemedText>
+          </View>
 
-        <View style={styles.optionsContainer}>
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => handleSelectType('user')}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: '#EEF2FF' }]}>
-              <Text style={styles.icon}>👤</Text>
-            </View>
-            <ThemedText type="subtitle" style={styles.optionTitle}>
-              I need help
-            </ThemedText>
-            <ThemedText style={styles.optionDescription}>
-              Hire helpers or businesses for household services
-            </ThemedText>
-          </TouchableOpacity>
+          <View style={styles.optionsContainer}>
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => handleSelectType('user')}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: '#EEF2FF' }]}>
+                <Text style={styles.icon}>🏠</Text>
+              </View>
+              <ThemedText type="subtitle" style={styles.optionTitle}>
+                I need help
+              </ThemedText>
+              <ThemedText style={styles.optionDescription}>
+                Hire helpers or businesses for household services
+              </ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => handleSelectType('helper')}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: '#E8F5E9' }]}>
-              <Text style={styles.icon}>🛠️</Text>
-            </View>
-            <ThemedText type="subtitle" style={styles.optionTitle}>
-              I'm a Helper
-            </ThemedText>
-            <ThemedText style={styles.optionDescription}>
-              Offer your services and find work opportunities
-            </ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => handleSelectType('helper')}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: '#E8F5E9' }]}>
+                <Text style={styles.icon}>👷</Text>
+              </View>
+              <ThemedText type="subtitle" style={styles.optionTitle}>
+                I'm a Helper
+              </ThemedText>
+              <ThemedText style={styles.optionDescription}>
+                Offer your services and find work opportunities
+              </ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => handleSelectType('business')}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
-              <Text style={styles.icon}>🏢</Text>
-            </View>
-            <ThemedText type="subtitle" style={styles.optionTitle}>
-              I'm a Business
-            </ThemedText>
-            <ThemedText style={styles.optionDescription}>
-              Register your business and offer services
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </ThemedView>
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={() => handleSelectType('business')}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
+                <Text style={styles.icon}>💼</Text>
+              </View>
+              <ThemedText type="subtitle" style={styles.optionTitle}>
+                I'm a Business
+              </ThemedText>
+              <ThemedText style={styles.optionDescription}>
+                Register your business and offer services
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',

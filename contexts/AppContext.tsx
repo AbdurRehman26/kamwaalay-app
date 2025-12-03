@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ServiceRequest } from './AuthContext';
-import { apiService } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
+import { apiService } from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { ServiceRequest } from './AuthContext';
 
 interface AppContextType {
   serviceRequests: ServiceRequest[];
@@ -38,21 +38,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let rawRequests = [];
         if (requestsResponse.data.bookings) {
           // Handle paginated response
-          rawRequests = Array.isArray(requestsResponse.data.bookings.data) 
-            ? requestsResponse.data.bookings.data 
+          rawRequests = Array.isArray(requestsResponse.data.bookings.data)
+            ? requestsResponse.data.bookings.data
             : (Array.isArray(requestsResponse.data.bookings) ? requestsResponse.data.bookings : []);
         } else {
-          rawRequests = Array.isArray(requestsResponse.data) 
-            ? requestsResponse.data 
+          rawRequests = Array.isArray(requestsResponse.data)
+            ? requestsResponse.data
             : (requestsResponse.data.requests || requestsResponse.data.data || []);
         }
-        
+
         // Map API booking format to app ServiceRequest format
         const requests = rawRequests.map((booking: any) => ({
           id: booking.id?.toString() || booking.booking_id?.toString() || Date.now().toString(),
           userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
           userName: booking.user?.name || booking.name || 'Unknown',
-          serviceName: booking.service_type 
+          serviceName: booking.service_type
             ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
             : booking.service_name || 'Service',
           description: booking.special_requirements || booking.description || '',
@@ -60,13 +60,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           budget: booking.monthly_rate || booking.budget || booking.price,
           status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
           createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
-          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) || 
-                     booking.applicants || 
-                     [],
+          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
+            booking.applicants ||
+            [],
           // Keep original data for reference
           _original: booking,
         }));
-        
+
         setServiceRequests(requests);
         await AsyncStorage.setItem('serviceRequests', JSON.stringify(requests));
       } else {
@@ -84,27 +84,161 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Load helpers from API
-      const helpersResponse = await apiService.get(
-        API_ENDPOINTS.HELPERS.LIST,
+      // Load service listings from API (as requested by user)
+      const listingsResponse = await apiService.get(
+        API_ENDPOINTS.SERVICE_LISTINGS.LIST,
         undefined,
-        undefined, // queryParams - can add filters like user_type, service_type, location_id, etc.
-        false // Public endpoint - no auth required
+        undefined,
+        false
       );
-      if (helpersResponse.success && helpersResponse.data) {
-        // API returns paginated data with 'helpers' key
-        // Ensure data is an array
-        let helpers = [];
-        if (helpersResponse.data.helpers) {
-          // Handle paginated response
-          helpers = Array.isArray(helpersResponse.data.helpers.data) 
-            ? helpersResponse.data.helpers.data 
-            : (Array.isArray(helpersResponse.data.helpers) ? helpersResponse.data.helpers : []);
-        } else {
-          helpers = Array.isArray(helpersResponse.data) 
-            ? helpersResponse.data 
-            : (helpersResponse.data.data || []);
+
+      if (listingsResponse.success && listingsResponse.data) {
+        let listings = [];
+
+        // Handle different response formats - API returns under listings.data
+        if (listingsResponse.data.listings) {
+          // Check if it's paginated (listings.data)
+          if (listingsResponse.data.listings.data) {
+            listings = Array.isArray(listingsResponse.data.listings.data)
+              ? listingsResponse.data.listings.data
+              : [];
+          } else {
+            // Direct array under listings
+            listings = Array.isArray(listingsResponse.data.listings)
+              ? listingsResponse.data.listings
+              : [];
+          }
+        } else if (listingsResponse.data.service_listings) {
+          // Fallback: check service_listings key
+          listings = Array.isArray(listingsResponse.data.service_listings.data)
+            ? listingsResponse.data.service_listings.data
+            : (Array.isArray(listingsResponse.data.service_listings) ? listingsResponse.data.service_listings : []);
+        } else if (Array.isArray(listingsResponse.data)) {
+          // Direct array
+          listings = listingsResponse.data;
+        } else if (listingsResponse.data.data) {
+          // Generic data key
+          listings = Array.isArray(listingsResponse.data.data) ? listingsResponse.data.data : [];
         }
+
+        console.log('📋 Total service listings fetched:', listings.length);
+
+        // Map each listing to a helper format (no grouping)
+        const helpers = listings
+          .filter((listing: any) => listing.user) // Only include listings with user data
+          .map((listing: any) => {
+            const user = listing.user;
+
+            // Parse experience if it's a string like "5 years"
+            let experience = 0;
+            const expRaw = user.profileData?.experience || user.experience;
+            if (typeof expRaw === 'number') {
+              experience = expRaw;
+            } else if (typeof expRaw === 'string') {
+              const match = expRaw.match(/(\d+)/);
+              if (match) experience = parseInt(match[1], 10);
+            }
+
+            return {
+              id: listing.id, // Use listing ID instead of user ID
+              name: user.name,
+              user: user,
+              bio: user.profileData?.bio || user.bio || listing.description || '',
+              experience_years: experience,
+              // Handle both single service_type and array of service_types
+              services: (() => {
+                const servicesList = [];
+
+                // Check if service_types is an array
+                if (listing.service_types && Array.isArray(listing.service_types)) {
+                  listing.service_types.forEach((serviceType: string) => {
+                    servicesList.push({
+                      id: listing.id,
+                      service_type: serviceType,
+                      monthly_rate: listing.monthly_rate,
+                      location_id: listing.location_id,
+                      location: listing.location,
+                      area: listing.area,
+                      description: listing.description
+                    });
+                  });
+                } else if (listing.service_type) {
+                  // Single service_type
+                  servicesList.push({
+                    id: listing.id,
+                    service_type: listing.service_type,
+                    monthly_rate: listing.monthly_rate,
+                    location_id: listing.location_id,
+                    location: listing.location,
+                    area: listing.area,
+                    description: listing.description
+                  });
+                }
+
+                return servicesList.length > 0 ? servicesList : [{
+                  id: listing.id,
+                  service_type: 'Service',
+                  monthly_rate: listing.monthly_rate,
+                  location_id: listing.location_id,
+                  location: listing.location,
+                  area: listing.area,
+                  description: listing.description
+                }];
+              })(),
+              area: listing.area || listing.location?.name || '',
+              rating: user.rating || 0,
+              reviews_count: user.reviews_count || 0,
+              profile_image: user.profile_image,
+              role: user.user_type || user.role || 'helper',
+              // Handle multiple locations - prioritize location_details
+              location_details: listing.location_details && Array.isArray(listing.location_details) 
+                ? listing.location_details 
+                : undefined,
+              // Handle multiple locations (fallback)
+              locations: (() => {
+                const locationsList = [];
+
+                // First check location_details
+                if (listing.location_details && Array.isArray(listing.location_details)) {
+                  listing.location_details.forEach((loc: any) => {
+                    const locationName = loc.name || loc.location_name || '';
+                    const area = loc.area || loc.area_name || '';
+                    if (locationName && area) {
+                      locationsList.push(`${locationName}, ${area}`);
+                    } else if (locationName) {
+                      locationsList.push(locationName);
+                    } else if (area) {
+                      locationsList.push(area);
+                    }
+                  });
+                }
+
+                // Check if locations is an array
+                if (listing.locations && Array.isArray(listing.locations)) {
+                  listing.locations.forEach((loc: any) => {
+                    if (typeof loc === 'string') {
+                      locationsList.push(loc);
+                    } else if (loc.name) {
+                      locationsList.push(loc.name);
+                    } else if (loc.area) {
+                      locationsList.push(loc.area);
+                    }
+                  });
+                }
+
+                // Add individual location fields
+                if (listing.area) locationsList.push(listing.area);
+                if (listing.location?.name) locationsList.push(listing.location.name);
+                if (listing.location_name) locationsList.push(listing.location_name);
+
+                // Remove duplicates and filter out empty values
+                return [...new Set(locationsList.filter(Boolean))];
+              })()
+            };
+          });
+
+        console.log('👥 Service listings displayed as cards:', helpers.length);
+
         setHelpers(helpers);
         await AsyncStorage.setItem('helpers', JSON.stringify(helpers));
       } else {
@@ -172,7 +306,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         start_date: requestData.startDate,
         start_time: requestData.startTime,
       };
-      
+
       const response = await apiService.post(
         API_ENDPOINTS.BOOKINGS.CREATE,
         apiData
@@ -185,7 +319,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           id: booking.id?.toString() || Date.now().toString(),
           userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
           userName: booking.user?.name || booking.name || 'Unknown',
-          serviceName: booking.service_type 
+          serviceName: booking.service_type
             ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
             : 'Service',
           description: booking.special_requirements || booking.description || '',
@@ -193,9 +327,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           budget: booking.monthly_rate || booking.budget || booking.price,
           status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
           createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
-          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString()) || 
-                     booking.applicants || 
-                     [],
+          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString()) ||
+            booking.applicants ||
+            [],
         };
         const updated = [...serviceRequests, newRequest];
         setServiceRequests(updated);
@@ -290,8 +424,8 @@ export function useApp() {
     return {
       serviceRequests: [],
       helpers: [],
-      addServiceRequest: async () => {},
-      applyToServiceRequest: async () => {},
+      addServiceRequest: async () => { },
+      applyToServiceRequest: async () => { },
       getServiceRequests: () => [],
       getHelpers: () => [],
     } as AppContextType;

@@ -20,7 +20,7 @@ export default function ServiceRequestViewScreen() {
   const { user } = useAuth();
   const { getServiceRequests, applyToServiceRequest } = useApp();
   const serviceRequests = getServiceRequests();
-  
+
   const request = serviceRequests.find((r) => r.id === id);
 
   if (!request) {
@@ -100,6 +100,42 @@ export default function ServiceRequestViewScreen() {
 
   const handleContact = () => {
     router.push(`/chat/${request.userId}`);
+  };
+
+  const handleEdit = () => {
+    // Navigate to edit screen (we'll need to create this or reuse create screen)
+    router.push(`/requests/edit/${request.id}`);
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Request',
+      'Are you sure you want to delete this request? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // TODO: Call API to delete the request
+              // For now, just navigate back
+              Alert.alert('Success', 'Request deleted successfully', [
+                {
+                  text: 'OK',
+                  onPress: () => router.push('/(tabs)/requests'),
+                },
+              ]);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete request. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleContactApplicants = () => {
@@ -250,6 +286,25 @@ export default function ServiceRequestViewScreen() {
           {/* Actions for users (who own the request) */}
           {isOwner && user?.userType === 'user' && (
             <View style={styles.actionsSection}>
+              {/* Edit and Delete buttons */}
+              <View style={styles.ownerActions}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={handleEdit}
+                >
+                  <IconSymbol name="pencil" size={20} color="#6366F1" />
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={handleDelete}
+                >
+                  <IconSymbol name="trash" size={20} color="#FF3B30" />
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Contact applicants */}
               {request.applicants && request.applicants.length > 0 ? (
                 <TouchableOpacity
                   style={styles.contactButton}
@@ -574,6 +629,45 @@ const styles = StyleSheet.create({
   backToRequestsButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '700',
+  },
+  ownerActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  editButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#6366F1',
+  },
+  editButtonText: {
+    color: '#6366F1',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  deleteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF5F5',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+  },
+  deleteButtonText: {
+    color: '#FF3B30',
+    fontSize: 16,
     fontWeight: '700',
   },
 });

@@ -17,7 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 
 export default function OnboardingStartScreen() {
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,9 +33,9 @@ export default function OnboardingStartScreen() {
     }
   }, [user]);
 
-  // Ensure token is saved/available before making API calls
+  // Check token on mount and log out if not found
   useEffect(() => {
-    const ensureToken = async () => {
+    const checkTokenAndLogout = async () => {
       try {
         // Check if token exists in AsyncStorage
         let token = await AsyncStorage.getItem('authToken');
@@ -46,17 +46,24 @@ export default function OnboardingStartScreen() {
           if (userToken) {
             // Save token to AsyncStorage for API service to use
             await AsyncStorage.setItem('authToken', userToken);
+            token = userToken;
           }
         }
+
+        // If no token found, log out and redirect to login
+        if (!token) {
+          await logout();
+          router.replace('/auth/phone-login');
+        }
       } catch (error) {
-        // Error ensuring token availability
+        // Error checking token - log out as a safety measure
+        await logout();
+        router.replace('/auth/phone-login');
       }
     };
 
-    if (user) {
-      ensureToken();
-    }
-  }, [user]);
+    checkTokenAndLogout();
+  }, [user, logout, router]);
 
   const handleContinue = async () => {
     if (!name.trim()) {

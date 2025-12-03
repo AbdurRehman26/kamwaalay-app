@@ -1,23 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
+import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/api';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
+  ActivityIndicator,
   Image,
   Modal,
-  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { useApp } from '@/contexts/AppContext';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { apiService } from '@/services/api';
-import { API_ENDPOINTS } from '@/constants/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Helper {
   id: string | number;
@@ -44,6 +45,14 @@ interface Helper {
   rating?: number;
   reviews_count?: number;
   profile_image?: string;
+  location_details?: Array<{
+    id?: number | string;
+    name?: string;
+    area?: string;
+    location_name?: string;
+    area_name?: string;
+  }>;
+  locations?: string[];
 }
 
 interface Location {
@@ -63,6 +72,7 @@ export default function ExploreScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { getHelpers } = useApp();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'helper' | 'business'>('all');
   const [selectedTab, setSelectedTab] = useState<'all' | 'top-rated' | 'experienced' | 'verified'>('all');
@@ -71,7 +81,7 @@ export default function ExploreScreen() {
   const [locationSearch, setLocationSearch] = useState('');
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const helpers = getHelpers();
-  
+
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
     services: [],
@@ -79,7 +89,7 @@ export default function ExploreScreen() {
     minExperience: null,
     minRating: null,
   });
-  
+
   // Get service filter from route params
   const routeParams = useLocalSearchParams();
   const serviceFilter = routeParams?.service as string | undefined;
@@ -127,7 +137,7 @@ export default function ExploreScreen() {
       setLocations([]);
       return;
     }
-    
+
     try {
       setIsLoadingLocations(true);
       const response = await apiService.get(
@@ -139,7 +149,7 @@ export default function ExploreScreen() {
 
       if (response.success && response.data) {
         let locationsData: Location[] = [];
-        
+
         if (response.data.locations) {
           locationsData = Array.isArray(response.data.locations.data)
             ? response.data.locations.data
@@ -202,8 +212,9 @@ export default function ExploreScreen() {
     return helper.name || helper.user?.name || 'Unknown';
   };
 
-  // Helper function to get helper ID
+  // Helper function to get helper ID (listing ID for service listing detail)
   const getHelperId = (helper: Helper) => {
+    // Use listing ID for service listing detail navigation
     return helper.id?.toString() || helper.user?.id?.toString() || '';
   };
 
@@ -239,27 +250,71 @@ export default function ExploreScreen() {
     return 0;
   };
 
-  // Helper function to get location
-  const getLocation = (helper: Helper) => {
-    if (helper.services && helper.services.length > 0) {
-      const service = helper.services[0];
-      const locationName = service.location?.name || '';
-      const area = service.area || helper.area || '';
-      
-      if (locationName && area) {
-        return `${locationName}, ${area}`;
-      } else if (locationName) {
-        return locationName;
-      } else if (area) {
-        return area;
-      }
-      return 'Location not specified';
+  // Helper function to get all locations formatted
+  const getAllLocationsFormatted = (helper: Helper): string[] => {
+    const locationList: string[] = [];
+    
+    // First, check for location_details (primary source)
+    if (helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
+      helper.location_details.forEach((loc) => {
+        const locationName = loc.name || loc.location_name || '';
+        const area = loc.area || loc.area_name || '';
+        
+        if (locationName && area) {
+          const formatted = `${locationName}, ${area}`;
+          if (!locationList.includes(formatted)) {
+            locationList.push(formatted);
+          }
+        } else if (locationName) {
+          if (!locationList.includes(locationName)) {
+            locationList.push(locationName);
+          }
+        } else if (area) {
+          if (!locationList.includes(area)) {
+            locationList.push(area);
+          }
+        }
+      });
     }
+    
+    // Fallback to locations array if location_details is not available
+    if (locationList.length === 0 && helper.locations && Array.isArray(helper.locations) && helper.locations.length > 0) {
+      helper.locations.forEach((loc) => {
+        if (loc && !locationList.includes(loc)) {
+          locationList.push(loc);
+        }
+      });
+    }
+    
+    // Fallback to services locations
+    if (locationList.length === 0 && helper.services && helper.services.length > 0) {
+      helper.services.forEach((service) => {
+        const locationName = service.location?.name || '';
+        const area = service.area || '';
+        
+        if (locationName && area) {
+          const formatted = `${locationName}, ${area}`;
+          if (!locationList.includes(formatted)) {
+            locationList.push(formatted);
+          }
+        } else if (locationName) {
+          if (!locationList.includes(locationName)) {
+            locationList.push(locationName);
+          }
+        } else if (area) {
+          if (!locationList.includes(area)) {
+            locationList.push(area);
+          }
+        }
+      });
+    }
+    
     // Check if area is at helper level
-    if (helper.area) {
-      return helper.area;
+    if (locationList.length === 0 && helper.area && !locationList.includes(helper.area)) {
+      locationList.push(helper.area);
     }
-    return 'Location not specified';
+    
+    return locationList.length > 0 ? locationList : ['Location not specified'];
   };
 
   // Render card for any provider (helper or business)
@@ -269,7 +324,7 @@ export default function ExploreScreen() {
     const role = getRole(item);
     const service = getPrimaryService(item);
     const price = getPrice(item);
-    const location = getLocation(item);
+    const locations = getAllLocationsFormatted(item);
     const rating = typeof item.rating === 'number' ? item.rating : (typeof item.rating === 'string' ? parseFloat(item.rating) : 0);
     const reviewsCount = typeof item.reviews_count === 'number' ? item.reviews_count : (typeof item.reviews_count === 'string' ? parseInt(item.reviews_count, 10) : 0);
     const bio = item.bio || 'No bio available';
@@ -293,10 +348,27 @@ export default function ExploreScreen() {
             <ThemedText type="subtitle" style={styles.cardName}>
               {providerName}
             </ThemedText>
-            <View style={styles.roleAndService}>
-              <ThemedText style={styles.cardRole}>{role}</ThemedText>
-              <ThemedText style={styles.cardService}>{service}</ThemedText>
+
+            {/* Services Tags */}
+            <View style={styles.cardServicesContainer}>
+              {item.services && item.services.length > 0 ? (
+                item.services.map((s, index) => {
+                  const serviceName = s.service_type
+                    ? s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace('_', ' ')
+                    : 'Service';
+                  return (
+                    <View key={index} style={styles.cardServiceTag}>
+                      <Text style={styles.cardServiceTagText}>{serviceName}</Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <View style={styles.cardServiceTag}>
+                  <Text style={styles.cardServiceTagText}>Service Provider</Text>
+                </View>
+              )}
             </View>
+
             {experience && (
               <ThemedText style={styles.experience}>{experience} experience</ThemedText>
             )}
@@ -323,7 +395,9 @@ export default function ExploreScreen() {
         <View style={styles.cardFooter}>
           <View style={styles.locationContainer}>
             <IconSymbol name="location.fill" size={14} color="#999" />
-            <ThemedText style={styles.location}>{location}</ThemedText>
+            <ThemedText style={styles.location} numberOfLines={2}>
+              {locations.join(', ')}
+            </ThemedText>
           </View>
           {price > 0 && (
             <ThemedText style={styles.price}>₨{price.toLocaleString()}/month</ThemedText>
@@ -366,7 +440,7 @@ export default function ExploreScreen() {
   // Get filtered providers based on tab selection
   const getFilteredByTab = () => {
     let providers = helpers;
-    
+
     switch (selectedTab) {
       case 'top-rated':
         // Sort by rating (highest first) and take top rated
@@ -391,7 +465,7 @@ export default function ExploreScreen() {
       default:
         providers = helpers;
     }
-    
+
     return providers;
   };
 
@@ -401,55 +475,55 @@ export default function ExploreScreen() {
     const service = getPrimaryService(h).toLowerCase();
     const role = getRole(h).toLowerCase();
     const bio = (h.bio || '').toLowerCase();
-    
+
     // Get the actual role from API data (not the formatted display role)
     const apiRole = ((h as any).role || (h as any).user_type || (h as any).userType || '').toLowerCase();
-    
+
     // If current user is a helper, exclude other helpers (only show businesses)
     if (user?.userType === 'helper' && (apiRole === 'helper' || apiRole === '')) {
       return false;
     }
-    
+
     // Filter by role (helper or business)
-    const matchesRole = selectedFilter === 'all' || 
+    const matchesRole = selectedFilter === 'all' ||
       apiRole === selectedFilter.toLowerCase() ||
       (selectedFilter === 'helper' && (apiRole === 'helper' || apiRole === '')) ||
       (selectedFilter === 'business' && apiRole === 'business');
-    
+
     const matchesSearch = searchQuery.trim() === '' ||
       providerName.includes(searchQuery.toLowerCase()) ||
       service.includes(searchQuery.toLowerCase()) ||
       role.includes(searchQuery.toLowerCase()) ||
       bio.includes(searchQuery.toLowerCase());
-    
-    const matchesServiceFilter = !serviceFilter || 
+
+    const matchesServiceFilter = !serviceFilter ||
       service.includes(serviceFilter.toLowerCase()) ||
       serviceFilter.toLowerCase().includes(service);
-    
+
     // Filter by selected services
-    const matchesServices = filters.services.length === 0 || 
+    const matchesServices = filters.services.length === 0 ||
       getAllServices(h).some((s) => filters.services.includes(s));
-    
+
     // Filter by selected locations
     const matchesLocations = filters.locations.length === 0 ||
-      getAllLocations(h).some((loc) => 
-        filters.locations.some((filterLoc) => 
-          loc.toLowerCase().includes(filterLoc.toLowerCase()) || 
+      getAllLocations(h).some((loc) =>
+        filters.locations.some((filterLoc) =>
+          loc.toLowerCase().includes(filterLoc.toLowerCase()) ||
           filterLoc.toLowerCase().includes(loc.toLowerCase())
         )
       );
-    
+
     // Filter by minimum experience
     const matchesExperience = filters.minExperience === null ||
       (h.experience_years !== undefined && h.experience_years >= filters.minExperience);
-    
+
     // Filter by minimum rating
     const rating = typeof h.rating === 'number' ? h.rating : (typeof h.rating === 'string' ? parseFloat(h.rating) : 0);
     const matchesRating = filters.minRating === null ||
       (!isNaN(rating) && rating >= filters.minRating);
-    
-    return matchesRole && matchesSearch && matchesServiceFilter && matchesServices && 
-           matchesLocations && matchesExperience && matchesRating;
+
+    return matchesRole && matchesSearch && matchesServiceFilter && matchesServices &&
+      matchesLocations && matchesExperience && matchesRating;
   });
 
   // Count active filters
@@ -473,14 +547,18 @@ export default function ExploreScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom + 20
+        }}
+      >
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            {serviceFilter ? `${serviceFilter} Services` : 'Explore'}
-          </ThemedText>
           <ThemedText style={styles.subtitle}>
-            {serviceFilter 
+            {serviceFilter
               ? `Find ${serviceFilter.toLowerCase()} service providers near you`
               : 'Find service providers near you'}
           </ThemedText>
@@ -545,41 +623,7 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tab Filters (similar to requests screen) */}
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tabButton, selectedTab === 'all' && styles.tabButtonActive]}
-            onPress={() => setSelectedTab('all')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'all' && styles.tabTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, selectedTab === 'top-rated' && styles.tabButtonActive]}
-            onPress={() => setSelectedTab('top-rated')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'top-rated' && styles.tabTextActive]}>
-              Top Rated
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, selectedTab === 'experienced' && styles.tabButtonActive]}
-            onPress={() => setSelectedTab('experienced')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'experienced' && styles.tabTextActive]}>
-              Experienced
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, selectedTab === 'verified' && styles.tabButtonActive]}
-            onPress={() => setSelectedTab('verified')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'verified' && styles.tabTextActive]}>
-              Verified
-            </Text>
-          </TouchableOpacity>
-        </View>
+
 
         {/* Results */}
         <View style={styles.results}>
@@ -690,31 +734,33 @@ export default function ExploreScreen() {
                       </Text>
                     </TouchableOpacity>
                   ))}
-                  {/* Show API search results */}
+                  {/* Show API search results - show all locations from API */}
                   {locations.map((location) => {
-                    const locationName = location.name;
-                    if (availableLocationsFromHelpers.includes(locationName)) return null;
+                    const locationDisplayName = location.area 
+                      ? `${location.name}, ${location.area}` 
+                      : location.name;
+                    const locationKey = `${location.id}-${locationDisplayName}`;
                     return (
                       <TouchableOpacity
-                        key={location.id}
+                        key={locationKey}
                         style={[
                           styles.chip,
-                          filters.locations.includes(locationName) && styles.chipActive
+                          filters.locations.includes(locationDisplayName) && styles.chipActive
                         ]}
                         onPress={() => {
                           setFilters((prev) => ({
                             ...prev,
-                            locations: prev.locations.includes(locationName)
-                              ? prev.locations.filter((l) => l !== locationName)
-                              : [...prev.locations, locationName],
+                            locations: prev.locations.includes(locationDisplayName)
+                              ? prev.locations.filter((l) => l !== locationDisplayName)
+                              : [...prev.locations, locationDisplayName],
                           }));
                         }}
                       >
                         <Text style={[
                           styles.chipText,
-                          filters.locations.includes(locationName) && styles.chipTextActive
+                          filters.locations.includes(locationDisplayName) && styles.chipTextActive
                         ]}>
-                          {locationName}
+                          {locationDisplayName}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -812,7 +858,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 60,
   },
   title: {
     fontSize: 28,
@@ -835,6 +880,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6366F1',
     fontWeight: '600',
+  },
+  cardServicesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  cardServiceTag: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  cardServiceTagText: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -1176,12 +1238,15 @@ const styles = StyleSheet.create({
   },
   locationContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 4,
+    flex: 1,
+    marginRight: 8,
   },
   location: {
     fontSize: 12,
     opacity: 0.6,
+    flex: 1,
   },
   price: {
     fontSize: 16,

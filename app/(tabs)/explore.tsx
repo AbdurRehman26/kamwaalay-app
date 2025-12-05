@@ -647,13 +647,6 @@ export default function ExploreScreen() {
           <View style={styles.serviceListingBody}>
             <View style={styles.serviceMetaRow}>
               <View style={styles.serviceMetaItem}>
-                <IconSymbol name="star.fill" size={14} color="#FFC107" />
-                <Text style={styles.serviceMetaText}>
-                  {rating > 0 ? rating.toFixed(1) : 'New'} ({reviewsCount})
-                </Text>
-              </View>
-              <View style={styles.serviceMetaDivider} />
-              <View style={styles.serviceMetaItem}>
                 <IconSymbol name="location.fill" size={14} color="#6B7280" />
                 <Text style={styles.serviceMetaText} numberOfLines={1}>
                   {locations.length > 0 ? locations[0] : 'Location not specified'}
@@ -1186,13 +1179,8 @@ export default function ExploreScreen() {
     const matchesExperience = filters.minExperience === null ||
       (h.experience_years !== undefined && h.experience_years >= filters.minExperience);
 
-    // Filter by minimum rating
-    const rating = typeof h.rating === 'number' ? h.rating : (typeof h.rating === 'string' ? parseFloat(h.rating) : 0);
-    const matchesRating = filters.minRating === null ||
-      (!isNaN(rating) && rating >= filters.minRating);
-
     return matchesRole && matchesSearch && matchesServiceFilter && matchesServices &&
-      matchesLocations && matchesExperience && matchesRating;
+      matchesLocations && matchesExperience;
   });
 
   // Count active filters for current tab
@@ -1204,7 +1192,6 @@ export default function ExploreScreen() {
     if (currentFilters.services.length > 0) count++;
     if (currentFilters.locations.length > 0) count++;
     if (currentFilters.minExperience !== null) count++;
-    if (currentFilters.minRating !== null) count++;
     return count;
   }, [mainTab, filtersHelpers, filtersServices, selectedFilterHelpers, selectedFilterServices]);
 
@@ -1213,7 +1200,6 @@ export default function ExploreScreen() {
       services: [],
       locations: [],
       minExperience: null,
-      minRating: null,
     });
     setSelectedFilter('all');
   };
@@ -1518,35 +1504,6 @@ export default function ExploreScreen() {
                 </View>
               </View>
 
-              {/* Rating Filter */}
-              <View style={styles.filterSection}>
-                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Minimum Rating</ThemedText>
-                <View style={styles.ratingFilterContainer}>
-                  {[0, 3, 3.5, 4, 4.5, 5].map((rating) => (
-                    <TouchableOpacity
-                      key={rating}
-                      style={[
-                        styles.ratingChip,
-                        filters.minRating === rating && styles.ratingChipActive
-                      ]}
-                      onPress={() => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          minRating: prev.minRating === rating ? null : rating,
-                        }));
-                      }}
-                    >
-                      <IconSymbol name="star.fill" size={14} color={filters.minRating === rating ? "#FFFFFF" : "#FFC107"} />
-                      <Text style={[
-                        styles.ratingChipText,
-                        filters.minRating === rating && styles.ratingChipTextActive
-                      ]}>
-                        {rating === 0 ? 'Any' : rating.toFixed(1) + '+'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -1902,22 +1859,22 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 0,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#6366F1',
+    borderWidth: 2,
+    borderColor: Colors.light.primaryLight,
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 4,
     overflow: 'hidden',
   },
   cardHeaderWrapper: {
-    backgroundColor: '#F8FAFF',
+    backgroundColor: Colors.light.primaryLight,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#E0E7FF',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -2034,11 +1991,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
+    backgroundColor: Colors.light.primaryLight,
+    borderRadius: 8,
   },
   experienceText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6366F1',
+    color: Colors.light.primary,
   },
   priceBadge: {
     alignItems: 'flex-end',
@@ -2090,7 +2049,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardServiceTag: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: Colors.light.primaryLight,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -2099,7 +2058,7 @@ const styles = StyleSheet.create({
   },
   cardServiceTagText: {
     fontSize: 12,
-    color: '#6366F1',
+    color: Colors.light.primary,
     fontWeight: '600',
   },
   cardServiceTagMore: {
@@ -2207,9 +2166,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
     paddingTop: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.light.primaryLight,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#E0E7FF',
   },
   priceContainer: {
     flex: 1,
@@ -2384,13 +2343,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: Colors.light.primaryLight,
   },
   serviceListingHeader: {
     flexDirection: 'row',
@@ -2401,10 +2360,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: Colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
   },
   serviceHeaderInfo: {
     flex: 1,
@@ -2467,11 +2428,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.light.primaryLight,
+    borderRadius: 8,
   },
   viewDetailsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: Colors.light.primary,
   },
   serviceListingTags: {
     flexDirection: 'row',
@@ -2480,15 +2445,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   serviceListingTag: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.light.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
   },
   serviceListingTagText: {
     fontSize: 12,
-    color: '#4B5563',
-    fontWeight: '500',
+    color: Colors.light.primary,
+    fontWeight: '600',
   },
   serviceListingTagMore: {
     backgroundColor: '#F3F4F6',

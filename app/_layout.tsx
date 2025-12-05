@@ -186,6 +186,7 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/bookings" options={{ headerShown: false }} />
       <Stack.Screen name="profile/service-offerings" options={{ headerShown: false }} />
       <Stack.Screen name="profile/[type]/[id]" options={{ headerShown: false, title: 'View Profile' }} />
+      <Stack.Screen name="service/[id]" options={{ headerShown: false, title: 'Service Details' }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="settings/change-password" options={{ headerShown: false }} />
       <Stack.Screen name="help" options={{ headerShown: false }} />

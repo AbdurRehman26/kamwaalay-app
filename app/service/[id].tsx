@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { Colors } from '@/constants/theme';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -42,8 +42,21 @@ export default function ServiceDetailScreen() {
             console.log('📦 Service Details API Response:', JSON.stringify(response, null, 2));
 
             if (response.success && response.data) {
-                const serviceData = response.data;
+                // Handle nested response structure
+                let serviceData = response.data;
+                
+                // Check if data is nested under 'listing' or 'service_listing'
+                if (response.data.listing) {
+                    serviceData = response.data.listing;
+                } else if (response.data.service_listing) {
+                    serviceData = response.data.service_listing;
+                }
+                
                 console.log('✅ Service Data:', JSON.stringify(serviceData, null, 2));
+                console.log('📋 service_types:', serviceData.service_types);
+                console.log('📍 location_details:', serviceData.location_details);
+                console.log('📦 other_listings:', serviceData.other_listings);
+                
                 setService(serviceData);
 
                 // Extract provider info - user is directly in the response
@@ -53,12 +66,28 @@ export default function ServiceDetailScreen() {
                 if (providerData) {
                     setProvider(providerData);
 
-                    // Check if other_services is already in the response
-                    if (serviceData.other_services && Array.isArray(serviceData.other_services)) {
+                    // Check if other_listings is already in the response (preferred)
+                    if (serviceData.other_listings && Array.isArray(serviceData.other_listings) && serviceData.other_listings.length > 0) {
+                        const others = serviceData.other_listings.filter((s: any) => s.id.toString() !== id?.toString());
+                        console.log('✅ Using other_listings from API response:', others.length, 'listings');
+                        setOtherServices(others);
+                    } else if (response.data.other_listings && Array.isArray(response.data.other_listings) && response.data.other_listings.length > 0) {
+                        // Check in response.data as well
+                        const others = response.data.other_listings.filter((s: any) => s.id.toString() !== id?.toString());
+                        console.log('✅ Using other_listings from response.data:', others.length, 'listings');
+                        setOtherServices(others);
+                    } else if (serviceData.other_services && Array.isArray(serviceData.other_services) && serviceData.other_services.length > 0) {
+                        // Fallback to other_services
                         const others = serviceData.other_services.filter((s: any) => s.id.toString() !== id?.toString());
+                        console.log('✅ Using other_services from API:', others.length, 'services');
                         setOtherServices(others);
                     } else if (providerData.id) {
+                        // Fetch from provider profile if not in response
+                        console.log('📞 Fetching other services from provider profile...');
                         fetchOtherServices(providerData.id);
+                    } else {
+                        console.log('⚠️ No other listings found and no provider ID available');
+                        setOtherServices([]);
                     }
                 }
             } else {
@@ -149,20 +178,31 @@ export default function ServiceDetailScreen() {
     if (!service) return null;
 
     // Get service types - use service_types array if available, otherwise fallback to service_type
-    const serviceTypes = service.service_types && Array.isArray(service.service_types) && service.service_types.length > 0
-        ? service.service_types
-        : service.service_type
-        ? [service.service_type]
-        : ['Service'];
+    const serviceTypes = (() => {
+        if (service.service_types && Array.isArray(service.service_types) && service.service_types.length > 0) {
+            console.log('✅ Using service_types array:', service.service_types);
+            return service.service_types;
+        } else if (service.service_type) {
+            console.log('✅ Using single service_type:', service.service_type);
+            return [service.service_type];
+        } else {
+            console.log('⚠️ No service types found, using default');
+            return ['Service'];
+        }
+    })();
 
     // Format service type names
     const formatServiceType = (type: string) => {
-        return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+        if (!type) return 'Service';
+        return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
     };
 
     const serviceName = serviceTypes.length === 1 
         ? formatServiceType(serviceTypes[0])
         : `${formatServiceType(serviceTypes[0])} +${serviceTypes.length - 1} more`;
+    
+    console.log('📋 Final serviceTypes:', serviceTypes);
+    console.log('📋 Final serviceName:', serviceName);
 
     // Extract provider info from user object
     const providerName = service.user?.name || provider?.name || provider?.user?.name || 'Provider';
@@ -175,8 +215,11 @@ export default function ServiceDetailScreen() {
 
     // Format locations from location_details - use display_text if available
     const locations: string[] = [];
-    if (service.location_details && Array.isArray(service.location_details)) {
+    console.log('📍 Raw location_details:', service.location_details);
+    
+    if (service.location_details && Array.isArray(service.location_details) && service.location_details.length > 0) {
         service.location_details.forEach((loc: any) => {
+            console.log('📍 Processing location:', loc);
             // Prefer display_text, then city_name + area, then individual fields
             if (loc.display_text) {
                 locations.push(loc.display_text);
@@ -199,17 +242,32 @@ export default function ServiceDetailScreen() {
     } else if (service.city) {
         locations.push(service.city);
     }
+    
+    console.log('📍 Final locations:', locations);
 
     // Parse monthly_rate (it's a string)
     const monthlyRate = parseFloat(service.monthly_rate || '0');
 
     return (
-        <View style={styles.container}>
+        <>
+            <Stack.Screen options={{ headerShown: false, title: 'Service Details' }} />
+            <View style={styles.container}>
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* Header Background */}
                 <View style={styles.headerBackground}>
                     <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <TouchableOpacity 
+                            onPress={() => {
+                                if (router.canGoBack()) {
+                                    router.back();
+                                } else {
+                                    router.push('/(tabs)/explore');
+                                }
+                            }} 
+                            style={styles.backButton}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            activeOpacity={0.7}
+                        >
                             <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Service Details</Text>
@@ -242,14 +300,18 @@ export default function ServiceDetailScreen() {
                         <View style={styles.section}>
                             <Text style={styles.sectionLabel}>Service Types</Text>
                             <View style={styles.tagsContainer}>
-                                {serviceTypes.length > 0 ? (
-                                    serviceTypes.map((serviceType: string, index: number) => (
-                                        <View key={index} style={styles.serviceTag}>
-                                            <Text style={styles.serviceTagText}>
-                                                {formatServiceType(serviceType)}
-                                            </Text>
-                                        </View>
-                                    ))
+                                {serviceTypes.length > 0 && serviceTypes[0] !== 'Service' ? (
+                                    serviceTypes.map((serviceType: string, index: number) => {
+                                        if (!serviceType || serviceType.trim() === '') return null;
+                                        const formatted = formatServiceType(serviceType);
+                                        return (
+                                            <View key={index} style={styles.serviceTag}>
+                                                <Text style={styles.serviceTagText}>
+                                                    {formatted}
+                                                </Text>
+                                            </View>
+                                        );
+                                    })
                                 ) : (
                                     <Text style={styles.noDataText}>No service types specified</Text>
                                 )}
@@ -294,14 +356,21 @@ export default function ServiceDetailScreen() {
                         </View>
 
                         {/* All Locations Tags */}
-                        {locations.length > 0 && (
+                        {locations.length > 0 ? (
                             <View style={styles.locationsContainer}>
                                 <IconSymbol name="mappin.circle.fill" size={16} color="#8B5CF6" />
-                                {locations.map((loc, index) => (
-                                    <View key={index} style={styles.locationTag}>
-                                        <Text style={styles.locationTagText}>{loc}</Text>
-                                    </View>
-                                ))}
+                                {locations.map((loc, index) => {
+                                    if (!loc || loc.trim() === '') return null;
+                                    return (
+                                        <View key={index} style={styles.locationTag}>
+                                            <Text style={styles.locationTagText}>{loc}</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        ) : (
+                            <View style={styles.section}>
+                                <Text style={styles.noDataText}>No locations specified</Text>
                             </View>
                         )}
                     </View>
@@ -587,6 +656,7 @@ export default function ServiceDetailScreen() {
                 </View>
             </View>
         </View>
+        </>
     );
 }
 
@@ -627,6 +697,7 @@ const styles = StyleSheet.create({
         marginLeft: -8,
         backgroundColor: 'rgba(255,255,255,0.2)',
         borderRadius: 12,
+        zIndex: 11,
     },
     headerTitle: {
         fontSize: 18,

@@ -252,10 +252,9 @@ export default function ServiceDetailScreen() {
         <>
             <Stack.Screen options={{ headerShown: false, title: 'Service Details' }} />
             <View style={styles.container}>
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Header Background */}
-                <View style={styles.headerBackground}>
-                    <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+                {/* Fixed Header */}
+                <View style={[styles.headerBackground, { paddingTop: insets.top }]}>
+                    <View style={styles.headerContent}>
                         <TouchableOpacity 
                             onPress={() => {
                                 if (router.canGoBack()) {
@@ -275,8 +274,18 @@ export default function ServiceDetailScreen() {
                     </View>
                 </View>
 
-                {/* Content Container */}
-                <View style={styles.contentContainer}>
+                {/* Scrollable Content */}
+                <ScrollView 
+                    style={styles.scrollView} 
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled={true}
+                    bounces={true}
+                    scrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Content Container */}
+                    <View style={styles.contentContainer}>
                     {/* Service Card */}
                     <View style={styles.serviceCard}>
                         <View style={styles.serviceHeader}>
@@ -543,7 +552,12 @@ export default function ServiceDetailScreen() {
                     {otherServices.length > 0 && (
                         <View style={styles.otherServicesSection}>
                             <Text style={styles.sectionTitle}>More Services from {providerName}</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.otherServicesList}>
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false} 
+                                contentContainerStyle={styles.otherServicesList}
+                                nestedScrollEnabled={true}
+                            >
                                 {otherServices.map((item, index) => {
                                     // Get service types for other services
                                     const otherServiceTypes = item.service_types && Array.isArray(item.service_types) && item.service_types.length > 0
@@ -674,23 +688,23 @@ const styles = StyleSheet.create({
     scrollView: {
         flex: 1,
     },
+    scrollContent: {
+        paddingTop: 20, // Space after header
+        paddingBottom: 120, // Extra padding for bottom action bar
+    },
     headerBackground: {
         backgroundColor: Colors.light.primary,
-        height: 180,
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 0,
+        paddingBottom: 20,
+        zIndex: 10,
     },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        zIndex: 1,
+        paddingVertical: 10,
     },
     backButton: {
         padding: 8,
@@ -706,7 +720,6 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         padding: 20,
-        paddingTop: 100, // Push content down to overlap header
     },
     serviceCard: {
         backgroundColor: '#FFFFFF',
@@ -1071,6 +1084,7 @@ const styles = StyleSheet.create({
         borderTopColor: '#F3F4F6',
     },
     bottomActions: {
+        pointerEvents: 'auto',
         flexDirection: 'row',
         gap: 12,
     },

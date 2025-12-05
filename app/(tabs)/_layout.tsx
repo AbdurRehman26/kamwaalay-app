@@ -55,6 +55,13 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Helpers tab - hidden, redirects to explore */}
+      <Tabs.Screen
+        name="helpers"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
       {/* Explore tab - only for users/customers */}
       <Tabs.Screen
         name="explore"

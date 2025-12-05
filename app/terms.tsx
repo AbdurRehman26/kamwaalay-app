@@ -66,10 +66,10 @@ export default function TermsScreen() {
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              4. Service Requests and Bookings
+              4. Jobs and Bookings
             </ThemedText>
             <ThemedText style={styles.text}>
-              When you create a service request or apply to provide services, you agree to:
+              When you create a job or apply to provide services, you agree to:
             </ThemedText>
             <View style={styles.list}>
               <ThemedText style={styles.listItem}>• Provide accurate and complete information</ThemedText>

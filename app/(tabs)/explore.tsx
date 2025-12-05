@@ -73,31 +73,115 @@ export default function ExploreScreen() {
   const { user } = useAuth();
   const { getHelpers } = useApp();
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'helper' | 'business'>('all');
-  const [selectedTab, setSelectedTab] = useState<'all' | 'top-rated' | 'experienced' | 'verified'>('all');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [locationSearch, setLocationSearch] = useState('');
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
-  const helpers = getHelpers();
-
-  // Filter state
-  const [filters, setFilters] = useState<FilterState>({
+  const [mainTab, setMainTab] = useState<'helpers' | 'service-providers'>('service-providers');
+  
+  // Tab-specific search queries
+  const [searchQueryHelpers, setSearchQueryHelpers] = useState('');
+  const [searchQueryServices, setSearchQueryServices] = useState('');
+  
+  // Tab-specific role filters
+  const [selectedFilterHelpers, setSelectedFilterHelpers] = useState<'all' | 'helper' | 'business'>('all');
+  const [selectedFilterServices, setSelectedFilterServices] = useState<'all' | 'helper' | 'business'>('all');
+  
+  // Tab-specific secondary filters
+  const [selectedTabHelpers, setSelectedTabHelpers] = useState<'all' | 'top-rated' | 'experienced' | 'verified'>('all');
+  const [selectedTabServices, setSelectedTabServices] = useState<'all' | 'top-rated' | 'experienced' | 'verified'>('all');
+  
+  // Tab-specific filter states
+  const [filtersHelpers, setFiltersHelpers] = useState<FilterState>({
     services: [],
     locations: [],
     minExperience: null,
     minRating: null,
   });
+  const [filtersServices, setFiltersServices] = useState<FilterState>({
+    services: [],
+    locations: [],
+    minExperience: null,
+    minRating: null,
+  });
+  
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [helpersFromAPI, setHelpersFromAPI] = useState<Helper[]>([]);
+  const [isLoadingHelpers, setIsLoadingHelpers] = useState(false);
+  const serviceProviders = getHelpers(); // Service listings from AppContext
+
+  // Get current tab's state
+  const searchQuery = mainTab === 'helpers' ? searchQueryHelpers : searchQueryServices;
+  const setSearchQuery = mainTab === 'helpers' ? setSearchQueryHelpers : setSearchQueryServices;
+  const selectedFilter = mainTab === 'helpers' ? selectedFilterHelpers : selectedFilterServices;
+  const setSelectedFilter = mainTab === 'helpers' ? setSelectedFilterHelpers : setSelectedFilterServices;
+  const selectedTab = mainTab === 'helpers' ? selectedTabHelpers : selectedTabServices;
+  const setSelectedTab = mainTab === 'helpers' ? setSelectedTabHelpers : setSelectedTabServices;
+  const filters = mainTab === 'helpers' ? filtersHelpers : filtersServices;
+  const setFilters = mainTab === 'helpers' ? setFiltersHelpers : setFiltersServices;
 
   // Get service filter from route params
   const routeParams = useLocalSearchParams();
   const serviceFilter = routeParams?.service as string | undefined;
 
-  // Extract unique services from helpers
+  // Fetch helpers from API when helpers tab is selected
+  useEffect(() => {
+    if (mainTab === 'helpers') {
+      fetchHelpersFromAPI();
+    }
+  }, [mainTab]);
+
+  const fetchHelpersFromAPI = async () => {
+    try {
+      setIsLoadingHelpers(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.HELPERS.LIST,
+        undefined,
+        {
+          sort_by: 'rating',
+          user_type: 'all',
+          page: '1',
+        },
+        false
+      );
+
+      if (response.success && response.data) {
+        let helpersData: Helper[] = [];
+
+        if (response.data.helpers) {
+          if (response.data.helpers.data) {
+            helpersData = Array.isArray(response.data.helpers.data)
+              ? response.data.helpers.data
+              : [];
+          } else {
+            helpersData = Array.isArray(response.data.helpers)
+              ? response.data.helpers
+              : [];
+          }
+        } else if (Array.isArray(response.data)) {
+          helpersData = response.data;
+        } else if (response.data.data) {
+          helpersData = Array.isArray(response.data.data) ? response.data.data : [];
+        }
+
+        setHelpersFromAPI(helpersData);
+      } else {
+        setHelpersFromAPI([]);
+      }
+    } catch (error) {
+      console.error('Error fetching helpers:', error);
+      setHelpersFromAPI([]);
+    } finally {
+      setIsLoadingHelpers(false);
+    }
+  };
+
+  // Get current data source based on main tab
+  const currentData = mainTab === 'helpers' ? helpersFromAPI : serviceProviders;
+
+  // Extract unique services from current data
   const availableServices = useMemo(() => {
     const serviceSet = new Set<string>();
-    helpers.forEach((helper: Helper) => {
+    currentData.forEach((helper: Helper) => {
       if (helper.services && helper.services.length > 0) {
         helper.services.forEach((service) => {
           if (service.service_type) {
@@ -108,12 +192,30 @@ export default function ExploreScreen() {
       }
     });
     return Array.from(serviceSet).sort();
-  }, [helpers]);
+  }, [currentData]);
 
-  // Extract unique locations from helpers
+  // Extract unique locations from current data
   const availableLocationsFromHelpers = useMemo(() => {
     const locationSet = new Set<string>();
-    helpers.forEach((helper: Helper) => {
+    currentData.forEach((helper: Helper) => {
+      if (helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
+        helper.location_details.forEach((loc) => {
+          const locationName = loc.name || loc.location_name || '';
+          const area = loc.area || loc.area_name || '';
+          if (locationName && area) {
+            locationSet.add(`${locationName}, ${area}`);
+          } else if (locationName) {
+            locationSet.add(locationName);
+          } else if (area) {
+            locationSet.add(area);
+          }
+        });
+      }
+      if (helper.locations && Array.isArray(helper.locations)) {
+        helper.locations.forEach((loc) => {
+          if (loc) locationSet.add(loc);
+        });
+      }
       if (helper.services && helper.services.length > 0) {
         helper.services.forEach((service) => {
           if (service.location?.name) {
@@ -129,7 +231,7 @@ export default function ExploreScreen() {
       }
     });
     return Array.from(locationSet).sort();
-  }, [helpers]);
+  }, [currentData]);
 
   // Search locations from API
   const searchLocations = async (query: string) => {
@@ -190,7 +292,7 @@ export default function ExploreScreen() {
     return () => clearTimeout(timer);
   }, [locationSearch]);
 
-  // For helpers/businesses, redirect to requests tab (which shows service requests)
+  // For helpers/businesses, redirect to requests tab (which shows jobs)
   useEffect(() => {
     if (user?.userType === 'helper' || user?.userType === 'business') {
       router.replace('/(tabs)/requests');
@@ -421,7 +523,31 @@ export default function ExploreScreen() {
   // Helper function to get all locations for a helper
   const getAllLocations = (helper: Helper): string[] => {
     const locationList: string[] = [];
-    if (helper.services && helper.services.length > 0) {
+    
+    // First, check for location_details (primary source for helpers from API)
+    if (helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
+      helper.location_details.forEach((loc) => {
+        const locationName = loc.name || loc.location_name || '';
+        const area = loc.area || loc.area_name || '';
+        if (locationName && area) {
+          locationList.push(`${locationName}, ${area}`);
+        } else if (locationName) {
+          locationList.push(locationName);
+        } else if (area) {
+          locationList.push(area);
+        }
+      });
+    }
+    
+    // Fallback to locations array
+    if (locationList.length === 0 && helper.locations && Array.isArray(helper.locations)) {
+      helper.locations.forEach((loc) => {
+        if (loc) locationList.push(loc);
+      });
+    }
+    
+    // Fallback to services locations
+    if (locationList.length === 0 && helper.services && helper.services.length > 0) {
       helper.services.forEach((service) => {
         if (service.location?.name) {
           locationList.push(service.location.name);
@@ -431,20 +557,23 @@ export default function ExploreScreen() {
         }
       });
     }
-    if (helper.area) {
+    
+    // Check if area is at helper level
+    if (locationList.length === 0 && helper.area) {
       locationList.push(helper.area);
     }
+    
     return locationList;
   };
 
   // Get filtered providers based on tab selection
   const getFilteredByTab = () => {
-    let providers = helpers;
+    let providers = currentData;
 
     switch (selectedTab) {
       case 'top-rated':
         // Sort by rating (highest first) and take top rated
-        providers = [...helpers].sort((a, b) => {
+        providers = [...currentData].sort((a, b) => {
           const ratingA = typeof a.rating === 'number' ? a.rating : (typeof a.rating === 'string' ? parseFloat(a.rating) : 0);
           const ratingB = typeof b.rating === 'number' ? b.rating : (typeof b.rating === 'string' ? parseFloat(b.rating) : 0);
           return ratingB - ratingA;
@@ -455,15 +584,15 @@ export default function ExploreScreen() {
         break;
       case 'experienced':
         // Filter by experience (5+ years)
-        providers = helpers.filter((h) => h.experience_years !== undefined && h.experience_years >= 5);
+        providers = currentData.filter((h) => h.experience_years !== undefined && h.experience_years >= 5);
         break;
       case 'verified':
         // Filter verified helpers (check if there's a verified field)
-        providers = helpers.filter((h) => (h as any).verified === true || (h as any).is_verified === true);
+        providers = currentData.filter((h) => (h as any).verified === true || (h as any).is_verified === true);
         break;
       case 'all':
       default:
-        providers = helpers;
+        providers = currentData;
     }
 
     return providers;
@@ -526,15 +655,18 @@ export default function ExploreScreen() {
       matchesLocations && matchesExperience && matchesRating;
   });
 
-  // Count active filters
+  // Count active filters for current tab
   const activeFiltersCount = useMemo(() => {
+    const currentFilters = mainTab === 'helpers' ? filtersHelpers : filtersServices;
+    const currentRoleFilter = mainTab === 'helpers' ? selectedFilterHelpers : selectedFilterServices;
     let count = 0;
-    if (filters.services.length > 0) count++;
-    if (filters.locations.length > 0) count++;
-    if (filters.minExperience !== null) count++;
-    if (filters.minRating !== null) count++;
+    if (currentRoleFilter !== 'all') count++;
+    if (currentFilters.services.length > 0) count++;
+    if (currentFilters.locations.length > 0) count++;
+    if (currentFilters.minExperience !== null) count++;
+    if (currentFilters.minRating !== null) count++;
     return count;
-  }, [filters]);
+  }, [mainTab, filtersHelpers, filtersServices, selectedFilterHelpers, selectedFilterServices]);
 
   const clearFilters = () => {
     setFilters({
@@ -543,6 +675,7 @@ export default function ExploreScreen() {
       minExperience: null,
       minRating: null,
     });
+    setSelectedFilter('all');
   };
 
   return (
@@ -558,9 +691,11 @@ export default function ExploreScreen() {
         {/* Header */}
         <View style={styles.header}>
           <ThemedText style={styles.subtitle}>
-            {serviceFilter
-              ? `Find ${serviceFilter.toLowerCase()} service providers near you`
-              : 'Find service providers near you'}
+            {mainTab === 'helpers'
+              ? 'Find helpers and businesses near you'
+              : serviceFilter
+                ? `Find ${serviceFilter.toLowerCase()} services near you`
+                : 'Find services near you'}
           </ThemedText>
           {serviceFilter && (
             <TouchableOpacity
@@ -577,7 +712,7 @@ export default function ExploreScreen() {
           <IconSymbol name="magnifyingglass" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search service providers..."
+            placeholder={mainTab === 'helpers' ? "Search helpers..." : "Search services..."}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -595,51 +730,48 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Role Filters */}
-        <View style={styles.filters}>
+        {/* Main Tabs */}
+        <View style={styles.mainTabs}>
           <TouchableOpacity
-            style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
-            onPress={() => setSelectedFilter('all')}
+            style={[styles.mainTabButton, mainTab === 'helpers' && styles.mainTabButtonActive]}
+            onPress={() => setMainTab('helpers')}
           >
-            <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, selectedFilter === 'helper' && styles.filterButtonActive]}
-            onPress={() => setSelectedFilter('helper')}
-          >
-            <Text style={[styles.filterText, selectedFilter === 'helper' && styles.filterTextActive]}>
+            <Text style={[styles.mainTabText, mainTab === 'helpers' && styles.mainTabTextActive]}>
               Helpers
             </Text>
+            {mainTab === 'helpers' && <View style={styles.tabIndicator} />}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, selectedFilter === 'business' && styles.filterButtonActive]}
-            onPress={() => setSelectedFilter('business')}
+            style={[styles.mainTabButton, mainTab === 'service-providers' && styles.mainTabButtonActive]}
+            onPress={() => setMainTab('service-providers')}
           >
-            <Text style={[styles.filterText, selectedFilter === 'business' && styles.filterTextActive]}>
-              Businesses
+            <Text style={[styles.mainTabText, mainTab === 'service-providers' && styles.mainTabTextActive]}>
+              Services
             </Text>
+            {mainTab === 'service-providers' && <View style={styles.tabIndicator} />}
           </TouchableOpacity>
         </View>
-
-
 
         {/* Results */}
         <View style={styles.results}>
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Service Providers ({filteredProviders.length})
+              {mainTab === 'helpers' ? 'Helpers' : 'Services'} ({filteredProviders.length})
             </ThemedText>
-            {filteredProviders.length > 0 ? (
+            {isLoadingHelpers && mainTab === 'helpers' ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6366F1" />
+                <ThemedText style={styles.loadingText}>Loading helpers...</ThemedText>
+              </View>
+            ) : filteredProviders.length > 0 ? (
               filteredProviders.map((provider: Helper) => renderProviderCard(provider))
             ) : (
               <View style={styles.emptyState}>
                 <IconSymbol name="person.fill" size={48} color="#CCCCCC" />
                 <ThemedText style={styles.emptyText}>
                   {searchQuery.trim() || serviceFilter
-                    ? 'No service providers found matching your search'
-                    : 'No service providers available at the moment'}
+                    ? `No ${mainTab === 'helpers' ? 'helpers' : 'services'} found matching your search`
+                    : `No ${mainTab === 'helpers' ? 'helpers' : 'services'} available at the moment`}
                 </ThemedText>
               </View>
             )}
@@ -664,6 +796,55 @@ export default function ExploreScreen() {
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              {/* Type/Role Filter */}
+              <View style={styles.filterSection}>
+                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Type</ThemedText>
+                <View style={styles.chipContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.chip,
+                      selectedFilter === 'all' && styles.chipActive
+                    ]}
+                    onPress={() => setSelectedFilter('all')}
+                  >
+                    <Text style={[
+                      styles.chipText,
+                      selectedFilter === 'all' && styles.chipTextActive
+                    ]}>
+                      All
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.chip,
+                      selectedFilter === 'helper' && styles.chipActive
+                    ]}
+                    onPress={() => setSelectedFilter('helper')}
+                  >
+                    <Text style={[
+                      styles.chipText,
+                      selectedFilter === 'helper' && styles.chipTextActive
+                    ]}>
+                      Helpers
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.chip,
+                      selectedFilter === 'business' && styles.chipActive
+                    ]}
+                    onPress={() => setSelectedFilter('business')}
+                  >
+                    <Text style={[
+                      styles.chipText,
+                      selectedFilter === 'business' && styles.chipTextActive
+                    ]}>
+                      Businesses
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* Services Filter */}
               <View style={styles.filterSection}>
                 <ThemedText type="subtitle" style={styles.filterSectionTitle}>Services</ThemedText>
@@ -1091,6 +1272,46 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  mainTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 0,
+    marginBottom: 0,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
+  },
+  mainTabButton: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  mainTabButtonActive: {
+    // Active state handled by indicator
+  },
+  mainTabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#8E8E93',
+  },
+  mainTabTextActive: {
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: '#6366F1',
+    borderTopLeftRadius: 2,
+    borderTopRightRadius: 2,
+  },
   filters: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -1142,6 +1363,7 @@ const styles = StyleSheet.create({
   },
   results: {
     paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 20,
   },
   section: {

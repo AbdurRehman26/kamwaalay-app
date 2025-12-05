@@ -81,7 +81,7 @@ export default function PrivacyScreen() {
               We do not sell your personal information. We may share your information in the following circumstances:
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={styles.listItem}>• With other users as necessary to facilitate service requests and bookings</ThemedText>
+              <ThemedText style={styles.listItem}>• With other users as necessary to facilitate jobs and bookings</ThemedText>
               <ThemedText style={styles.listItem}>• With service providers who assist us in operating our platform</ThemedText>
               <ThemedText style={styles.listItem}>• When required by law or to protect our rights</ThemedText>
               <ThemedText style={styles.listItem}>• In connection with a business transfer or merger</ThemedText>

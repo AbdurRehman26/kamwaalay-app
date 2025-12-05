@@ -50,7 +50,7 @@ export default function UserTypeScreen() {
                 <Text style={styles.icon}>🏠</Text>
               </View>
               <ThemedText type="subtitle" style={styles.optionTitle}>
-                I need help
+                I am looking for househelp
               </ThemedText>
               <ThemedText style={styles.optionDescription}>
                 Hire helpers or businesses for household services

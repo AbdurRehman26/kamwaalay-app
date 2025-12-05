@@ -84,6 +84,7 @@ export default function SignupScreen() {
       }
 
       // Wait a moment to show the success message, then navigate
+      // Only navigate if registration was successful (no error thrown)
       setTimeout(() => {
         router.push('/auth/otp-verify');
       }, 1500);
@@ -99,11 +100,15 @@ export default function SignupScreen() {
         extractedErrorMessage = error.message || error.error || JSON.stringify(error);
       }
 
-      // Set error message to display inline
+      // Do NOT navigate on error - stay on signup screen
       setErrorMessage(extractedErrorMessage);
 
       // Also show Alert as fallback
       Alert.alert('Signup Failed', extractedErrorMessage);
+      
+      console.log('[Signup] Registration failed - staying on signup screen');
+      // Exit early to prevent any navigation
+      return;
     }
   };
 

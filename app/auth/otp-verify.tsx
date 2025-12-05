@@ -229,14 +229,15 @@ export default function OTPVerifyScreen() {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTENT_PADDING = 24;
-const OTP_GAP = 6;
+const OTP_GAP = 8;
 const OTP_COUNT = 6;
 // Calculate available width: screen width - content padding (both sides)
 const AVAILABLE_WIDTH = SCREEN_WIDTH - (CONTENT_PADDING * 2);
 // Calculate total gap space: (number of inputs - 1) * gap
 const TOTAL_GAP_SPACE = (OTP_COUNT - 1) * OTP_GAP;
-// Calculate width per input
-const OTP_INPUT_WIDTH = Math.floor((AVAILABLE_WIDTH - TOTAL_GAP_SPACE) / OTP_COUNT);
+// Calculate width per input, but limit max width to 50
+const CALCULATED_WIDTH = Math.floor((AVAILABLE_WIDTH - TOTAL_GAP_SPACE) / OTP_COUNT);
+const OTP_INPUT_WIDTH = Math.min(CALCULATED_WIDTH, 50);
 
 const styles = StyleSheet.create({
   container: {
@@ -316,12 +317,12 @@ const styles = StyleSheet.create({
   },
   otpInput: {
     width: OTP_INPUT_WIDTH,
-    height: 68,
+    height: 50,
     borderWidth: 2,
     borderColor: '#E0E0E0',
-    borderRadius: 16,
+    borderRadius: 12,
     textAlign: 'center',
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
     backgroundColor: '#FFFFFF',
     color: '#1A1A1A',

@@ -17,19 +17,19 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 export default function BookingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { getServiceRequests } = useApp();
+  const { getJobs } = useApp();
   const [selectedTab, setSelectedTab] = useState<'active' | 'completed' | 'cancelled'>('active');
   const [searchQuery, setSearchQuery] = useState('');
-  const serviceRequests = getServiceRequests();
+  const jobs = getJobs();
 
   // For users: show their own bookings (in_progress, completed, cancelled)
   // For helpers/businesses: show bookings they've applied to
   const getBookings = () => {
     if (user?.userType === 'user') {
-      return serviceRequests.filter((r) => r.userId === user.id);
+      return jobs.filter((r) => r.userId === user.id);
     } else {
-      // For helpers/businesses: show requests they've applied to
-      return serviceRequests.filter(
+      // For helpers/businesses: show jobs they've applied to
+      return jobs.filter(
         (r) => r.applicants?.includes(user?.id || '') && r.status !== 'open'
       );
     }

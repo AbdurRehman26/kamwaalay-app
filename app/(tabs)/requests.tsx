@@ -36,7 +36,7 @@ interface FilterState {
 export default function RequestsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { getServiceRequests, applyToServiceRequest } = useApp();
+  const { getJobs, applyToJob } = useApp();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'my' | 'all' | 'open' | 'applied'>(
@@ -46,7 +46,7 @@ export default function RequestsScreen() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
-  const serviceRequests = getServiceRequests();
+  const jobs = getJobs();
   
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
@@ -57,36 +57,36 @@ export default function RequestsScreen() {
   });
 
   // For users: show their own requests
-  const myRequests = serviceRequests.filter((r) => r.userId === user?.id);
+  const myRequests = jobs.filter((r) => r.userId === user?.id);
   
   // For helpers/businesses: filter requests
-  const allRequests = serviceRequests;
+  const allRequests = jobs;
   const openRequests = allRequests.filter((r) => r.status === 'open');
   const appliedRequests = allRequests.filter((r) => 
     r.applicants && r.applicants.includes(user?.id || '')
   );
 
-  // Extract unique services from service requests
+  // Extract unique services from jobs
   const availableServices = useMemo(() => {
     const serviceSet = new Set<string>();
-    serviceRequests.forEach((request) => {
+    jobs.forEach((request) => {
       if (request.serviceName) {
         serviceSet.add(request.serviceName);
       }
     });
     return Array.from(serviceSet).sort();
-  }, [serviceRequests]);
+  }, [jobs]);
 
-  // Extract unique locations from service requests
+  // Extract unique locations from jobs
   const availableLocationsFromRequests = useMemo(() => {
     const locationSet = new Set<string>();
-    serviceRequests.forEach((request) => {
+    jobs.forEach((request) => {
       if (request.location) {
         locationSet.add(request.location);
       }
     });
     return Array.from(locationSet).sort();
-  }, [serviceRequests]);
+  }, [jobs]);
 
   // Search locations from API
   const searchLocations = async (query: string) => {
@@ -238,13 +238,13 @@ export default function RequestsScreen() {
 
     const request = allRequests.find((r) => r.id === requestId);
     if (request?.applicants?.includes(user.id)) {
-      Alert.alert('Already Applied', 'You have already applied to this service request');
+      Alert.alert('Already Applied', 'You have already applied to this job');
       return;
     }
 
     try {
-      await applyToServiceRequest(requestId, user.id);
-      Alert.alert('Success', 'You have successfully applied to this service request!');
+      await applyToJob(requestId, user.id);
+      Alert.alert('Success', 'You have successfully applied to this job!');
     } catch (error) {
       Alert.alert('Error', 'Failed to apply. Please try again.');
     }
@@ -406,7 +406,7 @@ export default function RequestsScreen() {
         {/* Header */}
         <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
-          {user?.userType === 'user' ? 'My Service Requests' : 'Service Requests'}
+          {user?.userType === 'user' ? 'My Jobs' : 'Jobs'}
         </ThemedText>
         {user?.userType === 'user' && (
           <TouchableOpacity
@@ -424,7 +424,7 @@ export default function RequestsScreen() {
           <IconSymbol name="magnifyingglass" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search service requests..."
+            placeholder="Search jobs..."
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -498,11 +498,11 @@ export default function RequestsScreen() {
           <View style={styles.emptyState}>
             <IconSymbol name="list.bullet" size={48} color="#CCCCCC" />
             <ThemedText type="subtitle" style={styles.emptyTitle}>
-              {user?.userType === 'user' ? 'No Service Requests Yet' : 'No Service Requests Found'}
+              {user?.userType === 'user' ? 'No Jobs Yet' : 'No Jobs Found'}
             </ThemedText>
             <ThemedText style={styles.emptyText}>
               {user?.userType === 'user' ? (
-                'Create your first service request to get started'
+                'Create your first job to get started'
               ) : activeFiltersCount > 0 ? (
                 'No requests match your filters. Try adjusting your filters.'
               ) : searchQuery.trim() ? (
@@ -510,7 +510,7 @@ export default function RequestsScreen() {
               ) : selectedTab === 'applied' ? (
                 "You haven't applied to any requests yet"
               ) : (
-                'No service requests available at the moment'
+                'No jobs available at the moment'
               )}
             </ThemedText>
             {user?.userType === 'user' && (
@@ -518,7 +518,7 @@ export default function RequestsScreen() {
                 style={styles.createButton}
                 onPress={() => router.push('/requests/create')}
               >
-                <Text style={styles.createButtonText}>Create Your First Request</Text>
+                <Text style={styles.createButtonText}>Create Your First Job</Text>
               </TouchableOpacity>
             )}
           </View>

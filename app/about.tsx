@@ -66,7 +66,7 @@ export default function AboutScreen() {
             <View style={styles.featureList}>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                <ThemedText style={styles.featureText}>Easy service request creation</ThemedText>
+                <ThemedText style={styles.featureText}>Easy job creation</ThemedText>
               </View>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />

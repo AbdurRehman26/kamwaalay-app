@@ -14,14 +14,14 @@ import {
   View,
 } from 'react-native';
 
-export default function ServiceRequestViewScreen() {
+export default function JobViewScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const { getServiceRequests, applyToServiceRequest } = useApp();
-  const serviceRequests = getServiceRequests();
+  const { getJobs, applyToJob } = useApp();
+  const jobs = getJobs();
 
-  const request = serviceRequests.find((r) => r.id === id);
+  const request = jobs.find((r) => r.id === id);
 
   if (!request) {
     return (
@@ -34,7 +34,7 @@ export default function ServiceRequestViewScreen() {
             <IconSymbol name="chevron.left" size={24} color="#6366F1" />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.headerTitle}>
-            Service Request
+            Job
           </ThemedText>
           <View style={styles.placeholder} />
         </View>
@@ -44,7 +44,7 @@ export default function ServiceRequestViewScreen() {
             Request Not Found
           </ThemedText>
           <ThemedText style={styles.emptyText}>
-            The service request you're looking for doesn't exist or has been removed.
+            The job you're looking for doesn't exist or has been removed.
           </ThemedText>
           <TouchableOpacity
             style={styles.backToRequestsButton}
@@ -69,7 +69,7 @@ export default function ServiceRequestViewScreen() {
     }
 
     if (hasApplied) {
-      Alert.alert('Already Applied', 'You have already applied to this service request');
+      Alert.alert('Already Applied', 'You have already applied to this job');
       return;
     }
 
@@ -87,8 +87,8 @@ export default function ServiceRequestViewScreen() {
           style: 'default',
           onPress: async () => {
             try {
-              await applyToServiceRequest(request.id, user.id);
-              Alert.alert('Success', 'You have successfully applied to this service request!');
+              await applyToJob(request.id, user.id);
+              Alert.alert('Success', 'You have successfully applied to this job!');
             } catch (error) {
               Alert.alert('Error', 'Failed to apply. Please try again.');
             }
@@ -192,7 +192,7 @@ export default function ServiceRequestViewScreen() {
           <IconSymbol name="chevron.left" size={24} color="#6366F1" />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.headerTitle}>
-          Service Request
+          Job
         </ThemedText>
         <View style={styles.placeholder} />
       </View>

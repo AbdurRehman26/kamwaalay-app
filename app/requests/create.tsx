@@ -36,7 +36,7 @@ interface Location {
 
 export default function CreateRequestScreen() {
   const router = useRouter();
-  const { user, addServiceRequest } = useApp();
+  const { user, addJob } = useApp();
   const [serviceName, setServiceName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -148,7 +148,7 @@ export default function CreateRequestScreen() {
     // Use the first selected location's name for the location field
     const locationName = selectedLocations.map((loc) => loc.name).join(', ');
 
-    await addServiceRequest({
+    await addJob({
       userId: user.id,
       userName: user.name,
       serviceName,
@@ -157,7 +157,7 @@ export default function CreateRequestScreen() {
       budget: budget ? parseFloat(budget) : undefined,
     });
 
-    Alert.alert('Success', 'Service request created successfully', [
+    Alert.alert('Success', 'Job created successfully', [
       { text: 'OK', onPress: () => router.back() },
     ]);
   };

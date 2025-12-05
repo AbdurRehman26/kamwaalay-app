@@ -95,6 +95,7 @@ export default function PhoneLoginScreen() {
         requiresOTP: result?.requiresOTP,
       });
 
+      // Only navigate if login was successful (no error thrown)
       // If OTP is required, navigate to OTP verify screen
       if (authMethod === 'otp' && result?.requiresOTP) {
         console.log('[PhoneLogin] Navigating to OTP verify screen');
@@ -146,8 +147,14 @@ export default function PhoneLoginScreen() {
         error: error,
         stack: error.stack,
       });
+      
+      // Do NOT navigate on error - stay on login screen
       setErrorMessage(errorMsg);
       Alert.alert('Error', errorMsg);
+      
+      console.log('[PhoneLogin] Login failed - staying on login screen');
+      // Exit early to prevent any navigation - finally block will handle setIsLoading
+      return;
     } finally {
       setIsLoading(false);
       console.log('[PhoneLogin] handleContinue completed');

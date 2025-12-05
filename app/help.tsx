@@ -17,15 +17,15 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 const FAQ_ITEMS = [
   {
     id: '1',
-    question: 'How do I create a service request?',
+    question: 'How do I create a job?',
     answer:
-      'Go to the Home tab and tap "Post a Service Request". Fill in the service details, location, and budget, then submit your request. Helpers and businesses will be able to see and apply to your request.',
+      'Go to the Home tab and tap "Post a Job". Fill in the service details, location, and budget, then submit your job. Helpers and businesses will be able to see and apply to your job.',
   },
   {
     id: '2',
-    question: 'How do I apply to a service request?',
+    question: 'How do I apply to a job?',
     answer:
-      'Browse available service requests in the Requests tab. When you find a request you want to apply to, tap "Apply Now". You can also contact the customer directly using the "Contact" button.',
+      'Browse available jobs in the Requests tab. When you find a job you want to apply to, tap "Apply Now". You can also contact the customer directly using the "Contact" button.',
   },
   {
     id: '3',

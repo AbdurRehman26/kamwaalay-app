@@ -38,9 +38,9 @@ export const API_ENDPOINTS = {
     HELPER: '/onboarding/helper',
   },
 
-  // Service Requests (for helpers/businesses to browse)
-  SERVICE_REQUESTS: {
-    LIST: '/service-requests', // Browse available service requests
+  // Jobs (for helpers/businesses to browse)
+  JOBS: {
+    LIST: '/service-requests', // Browse available jobs
   },
 
   // Bookings (service requests created by users)

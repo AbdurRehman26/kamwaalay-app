@@ -2,21 +2,21 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ServiceRequest } from './AuthContext';
+import { Job } from './AuthContext';
 
 interface AppContextType {
-  serviceRequests: ServiceRequest[];
+  jobs: Job[];
   helpers: any[];
-  addServiceRequest: (request: Omit<ServiceRequest, 'id' | 'createdAt' | 'status' | 'applicants'>) => Promise<void>;
-  applyToServiceRequest: (requestId: string, applicantId: string) => Promise<void>;
-  getServiceRequests: () => ServiceRequest[];
+  addJob: (request: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => Promise<void>;
+  applyToJob: (requestId: string, applicantId: string) => Promise<void>;
+  getJobs: () => Job[];
   getHelpers: () => any[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [helpers, setHelpers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -25,9 +25,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadData = async () => {
     try {
-      // Load service requests from API (available bookings for helpers/businesses)
+      // Load jobs from API (available bookings for helpers/businesses)
       const requestsResponse = await apiService.get(
-        API_ENDPOINTS.SERVICE_REQUESTS.LIST,
+        API_ENDPOINTS.JOBS.LIST,
         undefined,
         undefined, // queryParams - can add filters like service_type, location_id, etc.
         false // Public endpoint - no auth required
@@ -47,7 +47,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : (requestsResponse.data.requests || requestsResponse.data.data || []);
         }
 
-        // Map API booking format to app ServiceRequest format
+        // Map API booking format to app Job format
         const requests = rawRequests.map((booking: any) => ({
           id: booking.id?.toString() || booking.booking_id?.toString() || Date.now().toString(),
           userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
@@ -67,20 +67,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           _original: booking,
         }));
 
-        setServiceRequests(requests);
-        await AsyncStorage.setItem('serviceRequests', JSON.stringify(requests));
+        setJobs(requests);
+        await AsyncStorage.setItem('jobs', JSON.stringify(requests));
       } else {
         // Fallback to local storage
-        const requests = await AsyncStorage.getItem('serviceRequests');
+        const requests = await AsyncStorage.getItem('jobs');
         if (requests) {
           try {
             const parsed = JSON.parse(requests);
-            setServiceRequests(Array.isArray(parsed) ? parsed : []);
+            setJobs(Array.isArray(parsed) ? parsed : []);
           } catch (e) {
-            setServiceRequests([]);
+            setJobs([]);
           }
         } else {
-          setServiceRequests([]);
+          setJobs([]);
         }
       }
 
@@ -260,18 +260,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Error loading app data
       // Fallback to local storage
       try {
-        const requests = await AsyncStorage.getItem('serviceRequests');
+        const requests = await AsyncStorage.getItem('jobs');
         const helpersData = await AsyncStorage.getItem('helpers');
 
         if (requests) {
           try {
             const parsed = JSON.parse(requests);
-            setServiceRequests(Array.isArray(parsed) ? parsed : []);
+            setJobs(Array.isArray(parsed) ? parsed : []);
           } catch (e) {
-            setServiceRequests([]);
+            setJobs([]);
           }
         } else {
-          setServiceRequests([]);
+          setJobs([]);
         }
         if (helpersData) {
           try {
@@ -289,9 +289,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addServiceRequest = async (requestData: Omit<ServiceRequest, 'id' | 'createdAt' | 'status' | 'applicants'>) => {
+  const addJob = async (requestData: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => {
     try {
-      // Call API to create booking (service request)
+      // Call API to create booking (job)
       // According to API docs, bookings are created via /api/bookings (POST)
       // Map our request data to API format
       const apiData = {
@@ -313,9 +313,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (response.success && response.data) {
-        // Map API booking response to app ServiceRequest format
+        // Map API booking response to app Job format
         const booking = response.data.booking || response.data;
-        const newRequest: ServiceRequest = {
+        const newRequest: Job = {
           id: booking.id?.toString() || Date.now().toString(),
           userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
           userName: booking.user?.name || booking.name || 'Unknown',
@@ -331,39 +331,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             booking.applicants ||
             [],
         };
-        const updated = [...serviceRequests, newRequest];
-        setServiceRequests(updated);
-        await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
+        const updated = [...jobs, newRequest];
+        setJobs(updated);
+        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
       } else {
         // Fallback to local creation
-        const newRequest: ServiceRequest = {
+        const newRequest: Job = {
           ...requestData,
           id: Date.now().toString(),
           createdAt: new Date().toISOString(),
           status: 'open',
           applicants: [],
         };
-        const updated = [...serviceRequests, newRequest];
-        setServiceRequests(updated);
-        await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
+        const updated = [...jobs, newRequest];
+        setJobs(updated);
+        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
       }
     } catch (error) {
-      // Add service request error
+      // Add job error
       // Fallback to local creation
-      const newRequest: ServiceRequest = {
+      const newRequest: Job = {
         ...requestData,
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
         status: 'open',
         applicants: [],
       };
-      const updated = [...serviceRequests, newRequest];
-      setServiceRequests(updated);
-      await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
+      const updated = [...jobs, newRequest];
+      setJobs(updated);
+      await AsyncStorage.setItem('jobs', JSON.stringify(updated));
     }
   };
 
-  const applyToServiceRequest = async (requestId: string, applicantId: string) => {
+  const applyToJob = async (requestId: string, applicantId: string) => {
     try {
       // According to API docs, applications are made via /api/bookings/{id}/apply
       const response = await apiService.post(
@@ -373,42 +373,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (response.success && response.data) {
         // Update local state with API response
-        const updated = serviceRequests.map((req) =>
+        const updated = jobs.map((req) =>
           req.id === requestId ? response.data : req
         );
-        setServiceRequests(updated);
-        await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
+        setJobs(updated);
+        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
       } else {
         // Fallback to local update
-        const updated = serviceRequests.map((req) =>
+        const updated = jobs.map((req) =>
           req.id === requestId
             ? { ...req, applicants: [...req.applicants, applicantId] }
             : req
         );
-        setServiceRequests(updated);
-        await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
+        setJobs(updated);
+        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
       }
     } catch (error) {
-      // Apply to service request error
+      // Apply to job error
       // Fallback to local update
-      const updated = serviceRequests.map((req) =>
+      const updated = jobs.map((req) =>
         req.id === requestId
           ? { ...req, applicants: [...req.applicants, applicantId] }
           : req
       );
-      setServiceRequests(updated);
-      await AsyncStorage.setItem('serviceRequests', JSON.stringify(updated));
+      setJobs(updated);
+      await AsyncStorage.setItem('jobs', JSON.stringify(updated));
     }
   };
 
   return (
     <AppContext.Provider
       value={{
-        serviceRequests,
+        jobs,
         helpers,
-        addServiceRequest,
-        applyToServiceRequest,
-        getServiceRequests: () => Array.isArray(serviceRequests) ? serviceRequests : [],
+        addJob,
+        applyToJob,
+        getJobs: () => Array.isArray(jobs) ? jobs : [],
         getHelpers: () => Array.isArray(helpers) ? helpers : [],
       }}
     >
@@ -422,11 +422,11 @@ export function useApp() {
   if (context === undefined) {
     // Return a default context instead of throwing to prevent crashes during hot reload
     return {
-      serviceRequests: [],
+      jobs: [],
       helpers: [],
-      addServiceRequest: async () => { },
-      applyToServiceRequest: async () => { },
-      getServiceRequests: () => [],
+      addJob: async () => { },
+      applyToJob: async () => { },
+      getJobs: () => [],
       getHelpers: () => [],
     } as AppContextType;
   }

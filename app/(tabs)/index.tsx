@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
-import { ServiceRequest, useAuth } from '@/contexts/AuthContext';
+import { Job, useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
 import { notificationService } from '@/services/notification.service';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -32,12 +32,12 @@ const SERVICES = [
 export default function HomeScreen() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { getServiceRequests, applyToServiceRequest } = useApp();
+  const { getJobs, applyToJob } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
-  const [myServiceRequests, setMyServiceRequests] = useState<ServiceRequest[]>([]);
+  const [myJobs, setMyJobs] = useState<Job[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const serviceRequests = getServiceRequests();
+  const jobs = getJobs();
 
   useFocusEffect(
     useCallback(() => {
@@ -58,8 +58,8 @@ export default function HomeScreen() {
     }, [user])
   );
 
-  // Define loadMyServiceRequests using useCallback to avoid recreating it on every render
-  const loadMyServiceRequests = useCallback(async () => {
+  // Define loadMyJobs using useCallback to avoid recreating it on every render
+  const loadMyJobs = useCallback(async () => {
     try {
       setIsLoadingRequests(true);
       const response = await apiService.get(
@@ -83,8 +83,8 @@ export default function HomeScreen() {
           rawBookings = Array.isArray(response.data.data) ? response.data.data : [];
         }
 
-        // Map API booking format to app ServiceRequest format
-        const requests: ServiceRequest[] = rawBookings.map((booking: any) => ({
+        // Map API booking format to app Job format
+        const requests: Job[] = rawBookings.map((booking: any) => ({
           id: booking.id?.toString() || Date.now().toString(),
           userId: booking.user_id?.toString() || booking.user?.id?.toString() || user?.id || '',
           userName: booking.user?.name || booking.name || user?.name || 'Unknown',
@@ -101,28 +101,28 @@ export default function HomeScreen() {
             [],
         }));
 
-        setMyServiceRequests(requests);
+        setMyJobs(requests);
       } else {
         // Fallback to context data
-        const contextRequests = serviceRequests.filter((r) => r.userId === user?.id);
-        setMyServiceRequests(contextRequests);
+        const contextRequests = jobs.filter((r) => r.userId === user?.id);
+        setMyJobs(contextRequests);
       }
     } catch (error) {
-      // Error loading my service requests
+      // Error loading my jobs
       // Fallback to context data
-      const contextRequests = serviceRequests.filter((r) => r.userId === user?.id);
-      setMyServiceRequests(contextRequests);
+      const contextRequests = jobs.filter((r) => r.userId === user?.id);
+      setMyJobs(contextRequests);
     } finally {
       setIsLoadingRequests(false);
     }
-  }, [user?.id, serviceRequests]);
+  }, [user?.id, jobs]);
 
-  // Fetch user's own service requests (bookings) from API
+  // Fetch user's own jobs (bookings) from API
   useEffect(() => {
     if (user?.userType === 'user' && user?.id) {
-      loadMyServiceRequests();
+      loadMyJobs();
     }
-  }, [user?.id, user?.userType, loadMyServiceRequests]);
+  }, [user?.id, user?.userType, loadMyJobs]);
 
   // Show loading while auth is loading
   if (isAuthLoading) {
@@ -167,15 +167,15 @@ export default function HomeScreen() {
       return;
     }
 
-    const request = serviceRequests.find((r) => r.id === requestId);
+    const request = jobs.find((r) => r.id === requestId);
     if (request?.applicants?.includes(user.id)) {
-      Alert.alert('Already Applied', 'You have already applied to this service request');
+      Alert.alert('Already Applied', 'You have already applied to this job');
       return;
     }
 
     try {
-      await applyToServiceRequest(requestId, user.id);
-      Alert.alert('Success', 'You have successfully applied to this service request!');
+      await applyToJob(requestId, user.id);
+      Alert.alert('Success', 'You have successfully applied to this job!');
     } catch (error) {
       Alert.alert('Error', 'Failed to apply. Please try again.');
     }
@@ -319,7 +319,7 @@ export default function HomeScreen() {
           {/* View Helpers Button */}
           <TouchableOpacity
             style={styles.viewHelpersButton}
-            onPress={() => router.push('/(tabs)/explore')}
+            onPress={() => router.push('/(tabs)/helpers')}
           >
             <IconSymbol name="magnifyingglass" size={20} color="#FFFFFF" />
             <Text style={styles.viewHelpersButtonText}>View Helpers</Text>
@@ -334,16 +334,16 @@ export default function HomeScreen() {
                 onPress={() => router.push('/requests/create')}
               >
                 <IconSymbol name="plus.circle.fill" size={24} color="#FFFFFF" />
-                <Text style={styles.quickActionText}>Post a Service Request</Text>
+                <Text style={styles.quickActionText}>Post a Job</Text>
               </TouchableOpacity>
 
               {/* Services - Prominent Section */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <ThemedText type="subtitle" style={styles.sectionTitle}>
-                    Browse Services
+                    Find Helpers
                   </ThemedText>
-                  <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+                  <TouchableOpacity onPress={() => router.push('/(tabs)/helpers')}>
                     <ThemedText style={styles.seeAll}>View All</ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -375,21 +375,21 @@ export default function HomeScreen() {
                     <ActivityIndicator size="small" color="#6366F1" />
                     <ThemedText style={styles.loadingText}>Loading requests...</ThemedText>
                   </View>
-                ) : myServiceRequests.length > 0 ? (
-                  myServiceRequests.slice(0, 3).map((request) => (
+                ) : myJobs.length > 0 ? (
+                  myJobs.slice(0, 3).map((request) => (
                     <View key={request.id}>{renderRequestCard(request)}</View>
                   ))
                 ) : (
                   <View style={styles.emptyCard}>
                     <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
                     <ThemedText style={styles.emptyCardText}>
-                      You haven't created any service requests yet
+                      You haven't created any jobs yet
                     </ThemedText>
                     <TouchableOpacity
                       style={styles.createRequestButton}
                       onPress={() => router.push('/requests/create')}
                     >
-                      <Text style={styles.createRequestButtonText}>Create Your First Request</Text>
+                      <Text style={styles.createRequestButtonText}>Create Your First Job</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -397,7 +397,7 @@ export default function HomeScreen() {
             </>
           )}
 
-          {/* For Helpers/Businesses - Show available service requests */}
+          {/* For Helpers/Businesses - Show available jobs */}
           {(user?.userType === 'helper' || user?.userType === 'business') && (
             <>
               {/* Business Dashboard Link - Only for businesses */}
@@ -430,7 +430,7 @@ export default function HomeScreen() {
                 <Text style={styles.quickActionText}>Browse All Requests</Text>
               </TouchableOpacity>
 
-              {/* Available Service Requests */}
+              {/* Available Jobs */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -443,8 +443,8 @@ export default function HomeScreen() {
                 <ThemedText style={styles.sectionDescription}>
                   Find new opportunities to apply for
                 </ThemedText>
-                {serviceRequests.filter((r) => r.status === 'open').length > 0 ? (
-                  serviceRequests
+                {jobs.filter((r) => r.status === 'open').length > 0 ? (
+                  jobs
                     .filter((r) => r.status === 'open')
                     .slice(0, 3)
                     .map((request) => (
@@ -454,7 +454,7 @@ export default function HomeScreen() {
                   <View style={styles.emptyCard}>
                     <IconSymbol name="list.bullet" size={32} color="#CCCCCC" />
                     <ThemedText style={styles.emptyCardText}>
-                      No available service requests at the moment
+                      No available jobs at the moment
                     </ThemedText>
                   </View>
                 )}
@@ -473,10 +473,10 @@ export default function HomeScreen() {
                 <ThemedText style={styles.sectionDescription}>
                   Requests you've applied to
                 </ThemedText>
-                {serviceRequests.filter((r) =>
+                {jobs.filter((r) =>
                   r.applicants && r.applicants.includes(user?.id || '')
                 ).length > 0 ? (
-                  serviceRequests
+                  jobs
                     .filter((r) => r.applicants && r.applicants.includes(user?.id || ''))
                     .slice(0, 3)
                     .map((request) => (

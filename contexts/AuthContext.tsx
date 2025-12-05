@@ -7,6 +7,35 @@ export type UserType = 'user' | 'helper' | 'business' | null;
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed';
 
 /**
+ * Helper function to format phone number with +92 country code
+ * Ensures phone numbers are sent with the +92 prefix
+ */
+function formatPhoneNumberWithCountryCode(phone: string): string {
+  if (!phone) return phone;
+  
+  // Remove all spaces, dashes, and other formatting
+  let cleaned = phone.replace(/\s+/g, '').replace(/-/g, '').replace(/\(/g, '').replace(/\)/g, '');
+  
+  // If already starts with +92, return as is
+  if (cleaned.startsWith('+92')) {
+    return cleaned;
+  }
+  
+  // If starts with 92 (without +), add +
+  if (cleaned.startsWith('92')) {
+    return '+' + cleaned;
+  }
+  
+  // If starts with 0, remove it and add +92
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
+  }
+  
+  // Add +92 prefix
+  return '+92' + cleaned;
+}
+
+/**
  * Helper function to extract onboarding status from API response
  * Handles both boolean fields (is_onboarded, onboarded) and status strings (onboarding_status, onboardingStatus)
  */
@@ -82,7 +111,7 @@ export interface ServiceOffering {
   category: string;
 }
 
-export interface ServiceRequest {
+export interface Job {
   id: string;
   userId: string;
   userName: string;
@@ -173,8 +202,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Add identifier (phone or email)
       if (data.phone) {
-        // Format phone number (remove spaces, dashes, etc.)
-        requestBody.phone = data.phone.replace(/\s+/g, '').replace(/-/g, '');
+        // Format phone number with +92 country code
+        requestBody.phone = formatPhoneNumberWithCountryCode(data.phone);
       } else if (data.email) {
         requestBody.email = data.email.trim();
       } else {
@@ -341,7 +370,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         API_ENDPOINTS.AUTH.REGISTER,
         {
           name: data.name,
-          phone: data.phone,
+          phone: data.phone ? formatPhoneNumberWithCountryCode(data.phone) : undefined,
           email: data.email,
           password: data.password,
           password_confirmation: data.password_confirmation,
@@ -530,7 +559,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // For email users, use email; for phone users, use phone
       const identifier = user.email && (!user.phoneNumber || user.phoneNumber.trim() === '')
         ? { email: user.email, resend: true }
-        : { phone: user.phoneNumber, resend: true };
+        : { phone: formatPhoneNumberWithCountryCode(user.phoneNumber), resend: true };
 
       const response = await apiService.post(
         API_ENDPOINTS.AUTH.LOGIN,
@@ -891,7 +920,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await AsyncStorage.multiRemove([
           'user',
           'authToken',
-          'serviceRequests',
+          'jobs',
           'helpers',
         ]);
       } catch (error) {
@@ -899,7 +928,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           await AsyncStorage.removeItem('user');
           await AsyncStorage.removeItem('authToken');
-          await AsyncStorage.removeItem('serviceRequests');
+          await AsyncStorage.removeItem('jobs');
           await AsyncStorage.removeItem('helpers');
         } catch (e) {
           // Error clearing storage

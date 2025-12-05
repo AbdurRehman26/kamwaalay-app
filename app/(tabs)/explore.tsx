@@ -2,14 +2,19 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { Colors } from '@/constants/theme';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -27,7 +32,11 @@ interface Helper {
     id: string | number;
     name?: string;
     email?: string;
+    phone_number?: string;
+    phoneNumber?: string;
   };
+  phone_number?: string;
+  phoneNumber?: string;
   bio?: string;
   experience_years?: number;
   services?: Array<{
@@ -41,6 +50,24 @@ interface Helper {
     };
     area?: string;
   }>;
+  service_listings?: Array<{
+    id?: string | number;
+    service_type?: string;
+    monthly_rate?: number;
+    location_id?: number;
+    location?: {
+      id?: number;
+      name?: string;
+    };
+    area?: string;
+    location_details?: Array<{
+      id?: number | string;
+      name?: string;
+      area?: string;
+      location_name?: string;
+      area_name?: string;
+    }>;
+  }>;
   area?: string;
   rating?: number;
   reviews_count?: number;
@@ -53,6 +80,10 @@ interface Helper {
     area_name?: string;
   }>;
   locations?: string[];
+  role?: string;
+  user_type?: string;
+  verified?: boolean;
+  is_verified?: boolean;
 }
 
 interface Location {
@@ -74,19 +105,19 @@ export default function ExploreScreen() {
   const { getHelpers } = useApp();
   const insets = useSafeAreaInsets();
   const [mainTab, setMainTab] = useState<'helpers' | 'service-providers'>('service-providers');
-  
+
   // Tab-specific search queries
   const [searchQueryHelpers, setSearchQueryHelpers] = useState('');
   const [searchQueryServices, setSearchQueryServices] = useState('');
-  
+
   // Tab-specific role filters
   const [selectedFilterHelpers, setSelectedFilterHelpers] = useState<'all' | 'helper' | 'business'>('all');
   const [selectedFilterServices, setSelectedFilterServices] = useState<'all' | 'helper' | 'business'>('all');
-  
+
   // Tab-specific secondary filters
   const [selectedTabHelpers, setSelectedTabHelpers] = useState<'all' | 'top-rated' | 'experienced' | 'verified'>('all');
   const [selectedTabServices, setSelectedTabServices] = useState<'all' | 'top-rated' | 'experienced' | 'verified'>('all');
-  
+
   // Tab-specific filter states
   const [filtersHelpers, setFiltersHelpers] = useState<FilterState>({
     services: [],
@@ -100,7 +131,7 @@ export default function ExploreScreen() {
     minExperience: null,
     minRating: null,
   });
-  
+
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
@@ -337,6 +368,12 @@ export default function ExploreScreen() {
 
   // Helper function to get primary service
   const getPrimaryService = (helper: Helper) => {
+    // Check service_listings first (for helpers)
+    if (helper.service_listings && helper.service_listings.length > 0) {
+      const serviceType = helper.service_listings[0].service_type || '';
+      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+    }
+    // Fallback to services
     if (helper.services && helper.services.length > 0) {
       const serviceType = helper.services[0].service_type || '';
       return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
@@ -344,8 +381,26 @@ export default function ExploreScreen() {
     return 'Service Provider';
   };
 
+  // Helper function to get primary service ID
+  const getPrimaryServiceId = (helper: Helper) => {
+    // Check service_listings first (for helpers)
+    if (helper.service_listings && helper.service_listings.length > 0) {
+      return helper.service_listings[0].id;
+    }
+    // Fallback to services
+    if (helper.services && helper.services.length > 0) {
+      return helper.services[0].id;
+    }
+    return null;
+  };
+
   // Helper function to get price
   const getPrice = (helper: Helper) => {
+    // Check service_listings first (for helpers)
+    if (helper.service_listings && helper.service_listings.length > 0) {
+      return helper.service_listings[0].monthly_rate || 0;
+    }
+    // Fallback to services
     if (helper.services && helper.services.length > 0) {
       return helper.services[0].monthly_rate || 0;
     }
@@ -355,68 +410,182 @@ export default function ExploreScreen() {
   // Helper function to get all locations formatted
   const getAllLocationsFormatted = (helper: Helper): string[] => {
     const locationList: string[] = [];
-    
-    // First, check for location_details (primary source)
-    if (helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
+    const seenLocations = new Set<string>();
+
+    // Helper function to add unique location
+    const addUniqueLocation = (location: string) => {
+      if (location) {
+        const locationLower = location.toLowerCase().trim();
+        if (!seenLocations.has(locationLower)) {
+          seenLocations.add(locationLower);
+          locationList.push(location);
+        }
+      }
+    };
+
+    // First, check service_listings for helpers (primary source)
+    if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
+      for (let i = 0; i < helper.service_listings.length; i++) {
+        const serviceListing = helper.service_listings[i];
+        if (serviceListing.location_details && Array.isArray(serviceListing.location_details)) {
+          for (let j = 0; j < serviceListing.location_details.length; j++) {
+            const loc = serviceListing.location_details[j];
+            const locationName = loc.name || loc.location_name || '';
+            const area = loc.area || loc.area_name || '';
+
+            if (locationName && area) {
+              addUniqueLocation(`${locationName}, ${area}`);
+            } else if (locationName) {
+              addUniqueLocation(locationName);
+            } else if (area) {
+              addUniqueLocation(area);
+            }
+          }
+        }
+      }
+    }
+
+    // Check for location_details (primary source for non-helpers)
+    if (locationList.length === 0 && helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
       helper.location_details.forEach((loc) => {
         const locationName = loc.name || loc.location_name || '';
         const area = loc.area || loc.area_name || '';
-        
+
         if (locationName && area) {
-          const formatted = `${locationName}, ${area}`;
-          if (!locationList.includes(formatted)) {
-            locationList.push(formatted);
-          }
+          addUniqueLocation(`${locationName}, ${area}`);
         } else if (locationName) {
-          if (!locationList.includes(locationName)) {
-            locationList.push(locationName);
-          }
+          addUniqueLocation(locationName);
         } else if (area) {
-          if (!locationList.includes(area)) {
-            locationList.push(area);
-          }
+          addUniqueLocation(area);
         }
       });
     }
-    
+
     // Fallback to locations array if location_details is not available
     if (locationList.length === 0 && helper.locations && Array.isArray(helper.locations) && helper.locations.length > 0) {
       helper.locations.forEach((loc) => {
-        if (loc && !locationList.includes(loc)) {
-          locationList.push(loc);
+        if (loc) {
+          addUniqueLocation(loc);
         }
       });
     }
-    
+
     // Fallback to services locations
     if (locationList.length === 0 && helper.services && helper.services.length > 0) {
       helper.services.forEach((service) => {
         const locationName = service.location?.name || '';
         const area = service.area || '';
-        
+
         if (locationName && area) {
-          const formatted = `${locationName}, ${area}`;
-          if (!locationList.includes(formatted)) {
-            locationList.push(formatted);
-          }
+          addUniqueLocation(`${locationName}, ${area}`);
         } else if (locationName) {
-          if (!locationList.includes(locationName)) {
-            locationList.push(locationName);
-          }
+          addUniqueLocation(locationName);
         } else if (area) {
-          if (!locationList.includes(area)) {
-            locationList.push(area);
-          }
+          addUniqueLocation(area);
         }
       });
     }
-    
+
     // Check if area is at helper level
-    if (locationList.length === 0 && helper.area && !locationList.includes(helper.area)) {
-      locationList.push(helper.area);
+    if (locationList.length === 0 && helper.area) {
+      addUniqueLocation(helper.area);
     }
-    
+
     return locationList.length > 0 ? locationList : ['Location not specified'];
+  };
+
+  // Helper function to get phone number
+  const getPhoneNumber = (helper: Helper): string | null => {
+    return helper.phone_number || helper.phoneNumber || helper.user?.phone_number || helper.user?.phoneNumber || null;
+  };
+
+  // Helper function to format phone number for WhatsApp
+  const formatPhoneForWhatsApp = (phone: string): string => {
+    // Remove all non-digit characters except +
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    // Ensure it starts with country code
+    if (!cleaned.startsWith('+')) {
+      if (cleaned.startsWith('92')) {
+        cleaned = '+' + cleaned;
+      } else if (cleaned.startsWith('0')) {
+        cleaned = '+92' + cleaned.substring(1);
+      } else {
+        cleaned = '+92' + cleaned;
+      }
+    }
+    return cleaned;
+  };
+
+  // Handle phone call
+  const handleCall = (phoneNumber: string | null, e?: any) => {
+    if (e) e.stopPropagation();
+    if (!phoneNumber) {
+      Alert.alert('Phone Number', 'Phone number not available for this provider');
+      return;
+    }
+    const url = `tel:${phoneNumber}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'Phone dialer is not available on this device');
+        }
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Unable to open phone dialer');
+      });
+  };
+
+  // Handle WhatsApp
+  const handleWhatsApp = (phoneNumber: string | null, e?: any) => {
+    if (e) e.stopPropagation();
+    if (!phoneNumber) {
+      Alert.alert('Phone Number', 'Phone number not available for this provider');
+      return;
+    }
+    const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
+    const url = `https://wa.me/${formattedPhone.replace(/\+/g, '')}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'WhatsApp is not available on this device');
+        }
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Unable to open WhatsApp');
+      });
+  };
+
+  // Handle in-app message
+  const handleInAppMessage = (providerId: string, providerName: string, e?: any) => {
+    if (e) e.stopPropagation();
+    router.push(`/chat/${providerId}?name=${encodeURIComponent(providerName)}`);
+  };
+
+  // Helper function to format services as "x, x +2 more"
+  const formatServicesText = (helper: Helper): string => {
+    if (!helper.services || helper.services.length === 0) return '';
+    const serviceNames = helper.services.map((s) => {
+      const serviceType = s.service_type || '';
+      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+    });
+
+    if (serviceNames.length <= 2) {
+      return serviceNames.join(', ');
+    }
+    return `${serviceNames.slice(0, 2).join(', ')} +${serviceNames.length - 2} more`;
+  };
+
+  // Helper function to format locations as "x, x +2 more"
+  const formatLocationsText = (locations: string[]): string => {
+    if (locations.length === 0) return '';
+    if (locations.length <= 2) {
+      return locations.join(', ');
+    }
+    return `${locations.slice(0, 2).join(', ')} +${locations.length - 2} more`;
   };
 
   // Render card for any provider (helper or business)
@@ -431,79 +600,409 @@ export default function ExploreScreen() {
     const reviewsCount = typeof item.reviews_count === 'number' ? item.reviews_count : (typeof item.reviews_count === 'string' ? parseInt(item.reviews_count, 10) : 0);
     const bio = item.bio || 'No bio available';
     const experience = item.experience_years ? `${item.experience_years} years` : '';
+    const isVerified = (item as any).verified === true || (item as any).is_verified === true;
+    const servicesCount = item.services ? item.services.length : 0;
+    const locationsCount = locations.length;
+    const apiRole = (item.role || item.user_type || (item as any).userType || '').toLowerCase();
+    const phoneNumber = getPhoneNumber(item);
+    const isHelper = apiRole === 'helper';
+
+    // Distinct card design for Service Listings (Services Tab)
+    if (mainTab === 'service-providers') {
+      return (
+        <TouchableOpacity
+          key={providerId}
+          style={styles.serviceListingCard}
+          onPress={() => {
+            const serviceId = getPrimaryServiceId(item);
+            if (serviceId) {
+              router.push(`/service/${serviceId}`);
+            } else {
+              const profileType = apiRole === 'business' ? 'business' : 'helper';
+              router.push(`/profile/${profileType}/${providerId}` as any);
+            }
+          }}
+          activeOpacity={0.9}
+        >
+          <View style={styles.serviceListingHeader}>
+            <View style={styles.serviceIconContainer}>
+              {item.profile_image ? (
+                <Image source={{ uri: item.profile_image }} style={styles.serviceAvatarImage} />
+              ) : (
+                <Text style={styles.serviceAvatarText}>{providerName.charAt(0).toUpperCase()}</Text>
+              )}
+            </View>
+            <View style={styles.serviceHeaderInfo}>
+              <Text style={styles.serviceListingTitle}>{service}</Text>
+              <Text style={styles.serviceListingProvider}>{providerName}</Text>
+            </View>
+            {price > 0 && (
+              <View style={styles.serviceListingPrice}>
+                <Text style={styles.servicePriceText}>₨{Math.floor(price).toLocaleString()}</Text>
+                <Text style={styles.servicePricePeriod}>/mo</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.serviceListingBody}>
+            <View style={styles.serviceMetaRow}>
+              <View style={styles.serviceMetaItem}>
+                <IconSymbol name="star.fill" size={14} color="#FFC107" />
+                <Text style={styles.serviceMetaText}>
+                  {rating > 0 ? rating.toFixed(1) : 'New'} ({reviewsCount})
+                </Text>
+              </View>
+              <View style={styles.serviceMetaDivider} />
+              <View style={styles.serviceMetaItem}>
+                <IconSymbol name="location.fill" size={14} color="#6B7280" />
+                <Text style={styles.serviceMetaText} numberOfLines={1}>
+                  {locations.length > 0 ? locations[0] : 'Location not specified'}
+                  {locations.length > 1 && ` +${locations.length - 1}`}
+                </Text>
+              </View>
+              {servicesCount > 1 && (
+                <>
+                  <View style={styles.serviceMetaDivider} />
+                  <View style={styles.serviceMetaItem}>
+                    <IconSymbol name="square.stack.3d.up.fill" size={14} color="#6B7280" />
+                    <Text style={styles.serviceMetaText}>
+                      {servicesCount} Services
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* Service Tags */}
+          {(item.service_listings || item.services) && (() => {
+            // Get unique service types
+            const uniqueServices: string[] = [];
+            const seenServices = new Set<string>();
+
+            // Check service_listings first
+            if (item.service_listings && Array.isArray(item.service_listings) && item.service_listings.length > 0) {
+              for (let i = 0; i < item.service_listings.length; i++) {
+                const serviceListing = item.service_listings[i];
+                if (serviceListing.service_type) {
+                  const serviceType = serviceListing.service_type.toLowerCase();
+                  if (!seenServices.has(serviceType)) {
+                    seenServices.add(serviceType);
+                    const serviceName = serviceListing.service_type.charAt(0).toUpperCase() + serviceListing.service_type.slice(1).replace('_', ' ');
+                    uniqueServices.push(serviceName);
+                  }
+                }
+              }
+            }
+
+            // Fallback to services array
+            if (uniqueServices.length === 0 && item.services && Array.isArray(item.services) && item.services.length > 0) {
+              for (let i = 0; i < item.services.length; i++) {
+                const service = item.services[i];
+                if (service.service_type) {
+                  const serviceType = service.service_type.toLowerCase();
+                  if (!seenServices.has(serviceType)) {
+                    seenServices.add(serviceType);
+                    const serviceName = service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ');
+                    uniqueServices.push(serviceName);
+                  }
+                }
+              }
+            }
+
+            return uniqueServices.length > 0 ? (
+              <View style={styles.serviceListingTags}>
+                {uniqueServices.slice(0, 3).map((serviceName, index) => (
+                  <View key={index} style={styles.serviceListingTag}>
+                    <Text style={styles.serviceListingTagText}>{serviceName}</Text>
+                  </View>
+                ))}
+                {uniqueServices.length > 3 && (
+                  <View style={styles.serviceListingTagMore}>
+                    <Text style={styles.serviceListingTagMoreText}>+{uniqueServices.length - 3}</Text>
+                  </View>
+                )}
+              </View>
+            ) : null;
+          })()}
+
+          <View style={styles.serviceListingFooter}>
+            <View style={styles.viewDetailsButton}>
+              <Text style={styles.viewDetailsText}>View Details</Text>
+              <IconSymbol name="chevron.right" size={16} color={Colors.light.primary} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
 
     return (
       <TouchableOpacity
         key={providerId}
         style={styles.card}
-        onPress={() => router.push(`/profile/helper/${providerId}` as any)}
+        onPress={() => {
+          const profileType = apiRole === 'business' ? 'business' : 'helper';
+          router.push(`/profile/${profileType}/${providerId}` as any);
+        }}
+        activeOpacity={0.8}
       >
-        <View style={styles.cardHeader}>
-          <View style={styles.avatar}>
-            {item.profile_image ? (
-              <Image source={{ uri: item.profile_image }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarText}>{providerName.charAt(0).toUpperCase()}</Text>
-            )}
-          </View>
-          <View style={styles.cardInfo}>
-            <ThemedText type="subtitle" style={styles.cardName}>
-              {providerName}
-            </ThemedText>
-
-            {/* Services Tags */}
-            <View style={styles.cardServicesContainer}>
-              {item.services && item.services.length > 0 ? (
-                item.services.map((s, index) => {
-                  const serviceName = s.service_type
-                    ? s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace('_', ' ')
-                    : 'Service';
-                  return (
-                    <View key={index} style={styles.cardServiceTag}>
-                      <Text style={styles.cardServiceTagText}>{serviceName}</Text>
-                    </View>
-                  );
-                })
-              ) : (
-                <View style={styles.cardServiceTag}>
-                  <Text style={styles.cardServiceTagText}>Service Provider</Text>
+        {/* Card Header with Gradient Background */}
+        <View style={styles.cardHeaderWrapper}>
+          <View style={styles.cardHeader}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                {item.profile_image ? (
+                  <Image source={{ uri: item.profile_image }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarText}>{providerName.charAt(0).toUpperCase()}</Text>
+                )}
+              </View>
+              {isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <IconSymbol name="checkmark.seal.fill" size={12} color="#FFFFFF" />
                 </View>
               )}
             </View>
+            <View style={styles.cardInfo}>
+              <View style={styles.nameRow}>
+                <ThemedText type="subtitle" style={styles.cardName}>
+                  {providerName}
+                </ThemedText>
+                {experience && (
+                  <View style={styles.experienceBadge}>
+                    <IconSymbol name="clock.fill" size={12} color="#6366F1" />
+                    <Text style={styles.experienceText}>{experience}</Text>
+                  </View>
+                )}
+              </View>
+              {apiRole && (
+                <View style={[styles.roleBadge, apiRole === 'business' && styles.roleBadgeBusiness]}>
+                  <Text style={styles.roleBadgeText}>
+                    {apiRole === 'business' ? 'Business' : 'Helper'}
+                  </Text>
+                </View>
+              )}
 
-            {experience && (
-              <ThemedText style={styles.experience}>{experience} experience</ThemedText>
-            )}
-            <View style={styles.ratingContainer}>
-              <IconSymbol name="star.fill" size={14} color="#FFC107" />
-              <ThemedText style={styles.rating}>
-                {isNaN(rating) ? '0.0' : rating.toFixed(1)}
-              </ThemedText>
-              {reviewsCount > 0 && (
-                <ThemedText style={styles.reviews}>({reviewsCount} reviews)</ThemedText>
+              {/* Price Row */}
+              {price > 0 && (
+                <View style={styles.priceRow}>
+                  <View style={styles.priceBadge}>
+                    <Text style={styles.priceLabelSmall}>Starting from</Text>
+                    <Text style={styles.priceAmount}>₨{Math.floor(price).toLocaleString()}/mo</Text>
+                  </View>
+                </View>
               )}
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={() => router.push(`/chat/${providerId}?name=${encodeURIComponent(providerName)}`)}
-          >
-            <IconSymbol name="message.fill" size={20} color="#6366F1" />
-          </TouchableOpacity>
         </View>
+
+        {/* Bio Section */}
         <ThemedText style={styles.cardBio} numberOfLines={2}>
           {bio}
         </ThemedText>
+
+        {/* Services Tags for Businesses */}
+        {!isHelper && (item.service_listings || item.services) && (() => {
+          // Get unique service types
+          const uniqueServices: string[] = [];
+          const seenServices = new Set<string>();
+
+          // Check service_listings first (similar to helpers)
+          if (item.service_listings && Array.isArray(item.service_listings) && item.service_listings.length > 0) {
+            for (let i = 0; i < item.service_listings.length; i++) {
+              const serviceListing = item.service_listings[i];
+              if (serviceListing.service_type) {
+                const serviceType = serviceListing.service_type.toLowerCase();
+                if (!seenServices.has(serviceType)) {
+                  seenServices.add(serviceType);
+                  const serviceName = serviceListing.service_type.charAt(0).toUpperCase() + serviceListing.service_type.slice(1).replace('_', ' ');
+                  uniqueServices.push(serviceName);
+                }
+              }
+            }
+          }
+
+          // Fallback to services array
+          if (uniqueServices.length === 0 && item.services && Array.isArray(item.services) && item.services.length > 0) {
+            for (let i = 0; i < item.services.length; i++) {
+              const service = item.services[i];
+              if (service.service_type) {
+                const serviceType = service.service_type.toLowerCase();
+                if (!seenServices.has(serviceType)) {
+                  seenServices.add(serviceType);
+                  const serviceName = service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ');
+                  uniqueServices.push(serviceName);
+                }
+              }
+            }
+          }
+
+          return uniqueServices.length > 0 ? (
+            <View style={styles.cardServicesContainer}>
+              {uniqueServices.slice(0, 2).map((serviceName, index) => (
+                <View key={index} style={styles.cardServiceTag}>
+                  <Text style={styles.cardServiceTagText}>{serviceName}</Text>
+                </View>
+              ))}
+              {uniqueServices.length > 2 && (
+                <View style={styles.cardServiceTagMore}>
+                  <Text style={styles.cardServiceTagMoreText}>+{uniqueServices.length - 2} more</Text>
+                </View>
+              )}
+            </View>
+          ) : null;
+        })()}
+
+        {/* Services Tags for Helpers */}
+        {isHelper && item.service_listings && item.service_listings.length > 0 && (() => {
+          // Get unique service types
+          const uniqueServices: string[] = [];
+          const seenServices = new Set<string>();
+
+          for (let i = 0; i < item.service_listings.length; i++) {
+            const serviceListing = item.service_listings[i];
+            if (serviceListing.service_type) {
+              const serviceType = serviceListing.service_type.toLowerCase();
+              if (!seenServices.has(serviceType)) {
+                seenServices.add(serviceType);
+                const serviceName = serviceListing.service_type.charAt(0).toUpperCase() + serviceListing.service_type.slice(1).replace('_', ' ');
+                uniqueServices.push(serviceName);
+              }
+            }
+          }
+
+          return uniqueServices.length > 0 ? (
+            <View style={styles.cardServicesContainer}>
+              {uniqueServices.slice(0, 2).map((serviceName, index) => (
+                <View key={index} style={styles.cardServiceTag}>
+                  <Text style={styles.cardServiceTagText}>{serviceName}</Text>
+                </View>
+              ))}
+              {uniqueServices.length > 2 && (
+                <View style={styles.cardServiceTagMore}>
+                  <Text style={styles.cardServiceTagMoreText}>+{uniqueServices.length - 2} more</Text>
+                </View>
+              )}
+            </View>
+          ) : null;
+        })()}
+
+        {/* Areas Tags for Helpers - From service_listings location_details */}
+        {isHelper && item.service_listings && item.service_listings.length > 0 && (() => {
+          // Get unique areas
+          const uniqueAreas: string[] = [];
+          const seenAreas = new Set<string>();
+
+          for (let i = 0; i < item.service_listings.length; i++) {
+            const serviceListing = item.service_listings[i];
+            if (serviceListing.location_details && Array.isArray(serviceListing.location_details)) {
+              for (let j = 0; j < serviceListing.location_details.length; j++) {
+                const locationDetail = serviceListing.location_details[j];
+                const area = locationDetail.area || locationDetail.area_name || '';
+                if (area) {
+                  const areaLower = area.toLowerCase().trim();
+                  if (!seenAreas.has(areaLower)) {
+                    seenAreas.add(areaLower);
+                    uniqueAreas.push(area);
+                  }
+                }
+              }
+            }
+          }
+
+          return uniqueAreas.length > 0 ? (
+            <View style={styles.locationTagsContainer}>
+              <IconSymbol name="location.fill" size={14} color="#8B5CF6" />
+              <View style={styles.locationTags}>
+                {uniqueAreas.slice(0, 2).map((area, index) => (
+                  <View key={index} style={styles.locationTag}>
+                    <Text style={styles.locationTagText}>{area}</Text>
+                  </View>
+                ))}
+                {uniqueAreas.length > 2 && (
+                  <View style={styles.locationTagMore}>
+                    <Text style={styles.locationTagMoreText}>+{uniqueAreas.length - 2} more</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ) : null;
+        })()}
+
+        {/* Location Tags for Businesses */}
+        {!isHelper && locations.length > 0 && (() => {
+          // Get unique locations
+          const uniqueLocations: string[] = [];
+          const seenLocations = new Set<string>();
+
+          for (let i = 0; i < locations.length; i++) {
+            const location = locations[i];
+            if (location) {
+              const locationLower = location.toLowerCase().trim();
+              if (!seenLocations.has(locationLower)) {
+                seenLocations.add(locationLower);
+                uniqueLocations.push(location);
+              }
+            }
+          }
+
+          return uniqueLocations.length > 0 ? (
+            <View style={styles.locationTagsContainer}>
+              <IconSymbol name="location.fill" size={14} color="#8B5CF6" />
+              <View style={styles.locationTags}>
+                {uniqueLocations.slice(0, 2).map((location, index) => (
+                  <View key={index} style={styles.locationTag}>
+                    <Text style={styles.locationTagText}>{location}</Text>
+                  </View>
+                ))}
+                {uniqueLocations.length > 2 && (
+                  <View style={styles.locationTagMore}>
+                    <Text style={styles.locationTagMoreText}>+{uniqueLocations.length - 2} more</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ) : null;
+        })()}
+
+        {/* Footer with Contact Options and Action */}
         <View style={styles.cardFooter}>
-          <View style={styles.locationContainer}>
-            <IconSymbol name="location.fill" size={14} color="#999" />
-            <ThemedText style={styles.location} numberOfLines={2}>
-              {locations.join(', ')}
-            </ThemedText>
+          <View style={styles.contactOptionsContainer}>
+            <View style={styles.contactButtonsRow}>
+              <TouchableOpacity
+                style={styles.contactOptionIconButton}
+                onPress={(e) => handleCall(phoneNumber, e)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol name="phone.fill" size={16} color="#10B981" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.contactOptionIconButton}
+                onPress={(e) => handleWhatsApp(phoneNumber, e)}
+                activeOpacity={0.7}
+              >
+                <FontAwesome name="whatsapp" size={16} color="#25D366" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.contactOptionIconButton}
+                onPress={(e) => handleInAppMessage(providerId, providerName, e)}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="message" size={16} color="#6366F1" />
+              </TouchableOpacity>
+            </View>
           </View>
-          {price > 0 && (
-            <ThemedText style={styles.price}>₨{price.toLocaleString()}/month</ThemedText>
-          )}
+          <TouchableOpacity
+            style={styles.viewProfileButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              const profileType = apiRole === 'business' ? 'business' : 'helper';
+              router.push(`/profile/${profileType}/${providerId}` as any);
+            }}
+          >
+            <Text style={styles.viewProfileButtonText}>View Profile</Text>
+            <IconSymbol name="chevron.right" size={14} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -511,6 +1010,14 @@ export default function ExploreScreen() {
 
   // Helper function to get all services for a helper
   const getAllServices = (helper: Helper): string[] => {
+    // Check service_listings first (for helpers)
+    if (helper.service_listings && helper.service_listings.length > 0) {
+      return helper.service_listings.map((s) => {
+        const serviceType = s.service_type || '';
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+      });
+    }
+    // Fallback to services
     if (helper.services && helper.services.length > 0) {
       return helper.services.map((s) => {
         const serviceType = s.service_type || '';
@@ -523,46 +1030,79 @@ export default function ExploreScreen() {
   // Helper function to get all locations for a helper
   const getAllLocations = (helper: Helper): string[] => {
     const locationList: string[] = [];
-    
-    // First, check for location_details (primary source for helpers from API)
-    if (helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
+    const seenLocations = new Set<string>();
+
+    // Helper function to add unique location
+    const addUniqueLocation = (location: string) => {
+      if (location) {
+        const locationLower = location.toLowerCase().trim();
+        if (!seenLocations.has(locationLower)) {
+          seenLocations.add(locationLower);
+          locationList.push(location);
+        }
+      }
+    };
+
+    // First, check service_listings for helpers (primary source)
+    if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
+      for (let i = 0; i < helper.service_listings.length; i++) {
+        const serviceListing = helper.service_listings[i];
+        if (serviceListing.location_details && Array.isArray(serviceListing.location_details)) {
+          for (let j = 0; j < serviceListing.location_details.length; j++) {
+            const loc = serviceListing.location_details[j];
+            const locationName = loc.name || loc.location_name || '';
+            const area = loc.area || loc.area_name || '';
+            if (locationName && area) {
+              addUniqueLocation(`${locationName}, ${area}`);
+            } else if (locationName) {
+              addUniqueLocation(locationName);
+            } else if (area) {
+              addUniqueLocation(area);
+            }
+          }
+        }
+      }
+    }
+
+    // Check for location_details (primary source for helpers from API)
+    if (locationList.length === 0 && helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
       helper.location_details.forEach((loc) => {
         const locationName = loc.name || loc.location_name || '';
         const area = loc.area || loc.area_name || '';
         if (locationName && area) {
-          locationList.push(`${locationName}, ${area}`);
+          addUniqueLocation(`${locationName}, ${area}`);
         } else if (locationName) {
-          locationList.push(locationName);
+          addUniqueLocation(locationName);
         } else if (area) {
-          locationList.push(area);
+          addUniqueLocation(area);
         }
       });
     }
-    
+
     // Fallback to locations array
     if (locationList.length === 0 && helper.locations && Array.isArray(helper.locations)) {
       helper.locations.forEach((loc) => {
-        if (loc) locationList.push(loc);
+        if (loc) addUniqueLocation(loc);
       });
     }
-    
+
     // Fallback to services locations
     if (locationList.length === 0 && helper.services && helper.services.length > 0) {
       helper.services.forEach((service) => {
         if (service.location?.name) {
-          locationList.push(service.location.name);
+          addUniqueLocation(service.location.name);
         }
         if (service.area) {
-          locationList.push(service.area);
+          addUniqueLocation(service.area);
         }
       });
     }
-    
+
     // Check if area is at helper level
     if (locationList.length === 0 && helper.area) {
-      locationList.push(helper.area);
+      addUniqueLocation(helper.area);
     }
-    
+
     return locationList;
   };
 
@@ -917,8 +1457,8 @@ export default function ExploreScreen() {
                   ))}
                   {/* Show API search results - show all locations from API */}
                   {locations.map((location) => {
-                    const locationDisplayName = location.area 
-                      ? `${location.name}, ${location.area}` 
+                    const locationDisplayName = location.area
+                      ? `${location.name}, ${location.area}`
                       : location.name;
                     const locationKey = `${location.id}-${locationDisplayName}`;
                     return (
@@ -1061,23 +1601,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6366F1',
     fontWeight: '600',
-  },
-  cardServicesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
-  },
-  cardServiceTag: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  cardServiceTagText: {
-    fontSize: 12,
-    color: '#6366F1',
-    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -1376,104 +1899,386 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 0,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
-    shadowColor: '#000',
+    borderColor: '#E5E7EB',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  cardHeaderWrapper: {
+    backgroundColor: '#F8FAFF',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  avatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   avatarText: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#6366F1',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardInfo: {
     flex: 1,
   },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  roleAndService: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  cardRole: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6366F1',
+  cardName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  roleBadge: {
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
   },
-  cardService: {
-    fontSize: 14,
-    opacity: 0.7,
+  roleBadgeBusiness: {
+    backgroundColor: '#FEF3C7',
+  },
+  roleBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#6366F1',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   rating: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#92400E',
   },
   reviews: {
     fontSize: 12,
-    opacity: 0.6,
+    color: '#92400E',
+    fontWeight: '500',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  experienceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  experienceText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  priceBadge: {
+    alignItems: 'flex-end',
+  },
+  priceLabelSmall: {
+    fontSize: 9,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  priceAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10B981',
   },
   contactButton: {
-    padding: 8,
+    padding: 4,
+  },
+  contactButtonInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   cardBio: {
     fontSize: 14,
-    opacity: 0.7,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginTop: 12,
     marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  cardServicesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  cardServiceTag: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  cardServiceTagText: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  cardServiceTagMore: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  cardServiceTagMoreText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  helperInfoContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 8,
+  },
+  helperInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  helperInfoText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+    flex: 1,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  infoItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  infoItemContent: {
+    flex: 1,
+  },
+  infoItemLabel: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  infoItemValue: {
+    fontSize: 13,
+    color: '#1F2937',
+    fontWeight: '700',
+  },
+  locationTagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  locationTags: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  locationTag: {
+    backgroundColor: '#FAF5FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+  },
+  locationTagText: {
+    fontSize: 12,
+    color: '#7C3AED',
+    fontWeight: '600',
+  },
+  locationTagMore: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  locationTagMoreText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 12,
+    backgroundColor: '#F9FAFB',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 4,
+  priceContainer: {
     flex: 1,
-    marginRight: 8,
   },
-  location: {
-    fontSize: 12,
-    opacity: 0.6,
+  contactOptionsContainer: {
     flex: 1,
+  },
+  priceLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   price: {
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  contactButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  contactOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  contactOptionIconButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  contactOptionText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#6366F1',
+    color: '#374151',
+  },
+  viewProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  viewProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   ctaButton: {
     flexDirection: 'row',
@@ -1573,14 +2378,138 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.6,
   },
-  avatarImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  // Service Listing Card Styles
+  serviceListingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
-  experience: {
-    fontSize: 12,
-    opacity: 0.6,
+  serviceListingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  serviceIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  serviceHeaderInfo: {
+    flex: 1,
+  },
+  serviceListingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
     marginBottom: 4,
   },
+  serviceListingProvider: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  serviceListingPrice: {
+    alignItems: 'flex-end',
+  },
+  servicePriceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  servicePricePeriod: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  serviceListingBody: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  serviceMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  serviceMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  serviceMetaDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 12,
+  },
+  serviceMetaText: {
+    fontSize: 13,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  serviceListingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  viewDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewDetailsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  serviceListingTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  serviceListingTag: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  serviceListingTagText: {
+    fontSize: 12,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  serviceListingTagMore: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  serviceListingTagMoreText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  serviceAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+  },
+  serviceAvatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#6366F1',
+  },
 });
+

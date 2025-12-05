@@ -75,6 +75,14 @@ export const API_ENDPOINTS = {
     EDIT: '/helpers/:id/edit',
   },
 
+  // Businesses
+  BUSINESSES: {
+    LIST: '/businesses', // List verified businesses
+    CREATE: '/businesses', // Create business profile
+    GET: '/businesses/:id',
+    EDIT: '/businesses/:id/edit',
+  },
+
   // Service Listings (services offered by helpers/businesses)
   SERVICE_LISTINGS: {
     LIST: '/service-listings',

@@ -21,6 +21,7 @@ const MAPPING = {
   'magnifyingglass': 'search',
   'list.bullet': 'list',
   'message.fill': 'message',
+  'message.circle.fill': 'message',
   'person.fill': 'person',
   'bell.fill': 'notifications',
   'plus.circle.fill': 'add-circle',

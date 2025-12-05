@@ -2,11 +2,16 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { Colors } from '@/constants/theme';
 import { apiService } from '@/services/api';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -45,17 +50,151 @@ export default function ProfileViewScreen() {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
-        // Fetch service listing detail using the listing ID
-        const endpoint = API_ENDPOINTS.SERVICE_LISTINGS.GET;
+
+        // Determine which API to use based on type
+        const isHelper = type === 'helper';
+        const isBusiness = type === 'business';
+        let endpoint: string;
+
+        if (isHelper) {
+          endpoint = API_ENDPOINTS.HELPERS.GET;
+        } else if (isBusiness) {
+          endpoint = API_ENDPOINTS.BUSINESSES.GET;
+        } else {
+          endpoint = API_ENDPOINTS.SERVICE_LISTINGS.GET;
+        }
 
         const response = await apiService.get(
           endpoint,
           { id: id as string }
         );
 
-        console.log('📦 Service Listing API Response:', JSON.stringify(response, null, 2));
+        console.log(`📦 ${isHelper ? 'Helper' : isBusiness ? 'Business' : 'Service Listing'} API Response:`, JSON.stringify(response, null, 2));
 
         if (response.success && response.data) {
+          // Handle business API response
+          if (isBusiness) {
+            let business = response.data;
+
+            // Check if data is nested under 'business'
+            if (response.data.business) {
+              business = response.data.business;
+            }
+
+            console.log('🏢 Business Data:', JSON.stringify(business, null, 2));
+
+            // Map business response to profile structure
+            const mappedProfile = {
+              id: business.id || business.user?.id || id,
+              name: business.business_name || business.name || business.user?.name || 'Unknown',
+              service: 'Business',
+              rating: business.rating || 0,
+              reviews: business.reviews_count || 0,
+              price: business.service_listings?.[0]?.monthly_rate || 0,
+              location: business.location_details?.[0]?.area || business.location_details?.[0]?.area_name || business.area || 'Location not specified',
+              distance: 'N/A',
+              experience: business.experience_years ? `${business.experience_years} years` : 'N/A',
+              bio: business.bio || business.description || 'No description available',
+              services: (() => {
+                const servicesList: string[] = [];
+                if (business.service_listings && Array.isArray(business.service_listings)) {
+                  business.service_listings.forEach((s: any) => {
+                    if (s.service_type) {
+                      const serviceName = s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace('_', ' ');
+                      if (!servicesList.includes(serviceName)) {
+                        servicesList.push(serviceName);
+                      }
+                    }
+                  });
+                }
+                return servicesList;
+              })(),
+              locations: (() => {
+                const locationsList: string[] = [];
+                if (business.location_details && Array.isArray(business.location_details)) {
+                  business.location_details.forEach((loc: any) => {
+                    const area = loc.area || loc.area_name || '';
+                    if (area && !locationsList.includes(area)) {
+                      locationsList.push(area);
+                    }
+                  });
+                }
+                return locationsList;
+              })(),
+              profileImage: business.profile_image || business.user?.profile_image,
+              service_listings: business.service_listings || [],
+              location_details: business.location_details || [],
+              verified: business.verified || business.is_verified || false,
+              phone_number: business.phone_number || business.user?.phone_number || business.user?.phoneNumber || null,
+            };
+
+            setProfile(mappedProfile);
+            setIsLoading(false);
+            return;
+          }
+
+          // Handle helper API response
+          if (isHelper) {
+            let helper = response.data;
+
+            // Check if data is nested under 'helper'
+            if (response.data.helper) {
+              helper = response.data.helper;
+            }
+
+            console.log('👤 Helper Data:', JSON.stringify(helper, null, 2));
+
+            // Map helper response to profile structure
+            const mappedProfile = {
+              id: helper.id || helper.user?.id || id,
+              name: helper.name || helper.user?.name || 'Unknown',
+              service: 'Helper',
+              rating: helper.rating || 0,
+              reviews: helper.reviews_count || 0,
+              price: helper.service_listings?.[0]?.monthly_rate || 0,
+              location: helper.location_details?.[0]?.area || helper.location_details?.[0]?.area_name || helper.area || 'Location not specified',
+              distance: 'N/A',
+              experience: helper.experience_years ? `${helper.experience_years} years` : 'N/A',
+              bio: helper.bio || 'No description available',
+              services: (() => {
+                const servicesList: string[] = [];
+                if (helper.service_listings && Array.isArray(helper.service_listings)) {
+                  helper.service_listings.forEach((s: any) => {
+                    if (s.service_type) {
+                      const serviceName = s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace('_', ' ');
+                      if (!servicesList.includes(serviceName)) {
+                        servicesList.push(serviceName);
+                      }
+                    }
+                  });
+                }
+                return servicesList;
+              })(),
+              locations: (() => {
+                const locationsList: string[] = [];
+                if (helper.location_details && Array.isArray(helper.location_details)) {
+                  helper.location_details.forEach((loc: any) => {
+                    const area = loc.area || loc.area_name || '';
+                    if (area && !locationsList.includes(area)) {
+                      locationsList.push(area);
+                    }
+                  });
+                }
+                return locationsList;
+              })(),
+              profileImage: helper.profile_image || helper.user?.profile_image,
+              service_listings: helper.service_listings || [],
+              location_details: helper.location_details || [],
+              verified: helper.verified || helper.is_verified || false,
+              phone_number: helper.phone_number || helper.user?.phone_number || helper.user?.phoneNumber || null,
+            };
+
+            setProfile(mappedProfile);
+            setIsLoading(false);
+            return;
+          }
+
+          // Handle service listing API response (existing code)
           // Handle different response structures
           let listing = response.data;
 
@@ -88,11 +227,11 @@ export default function ProfileViewScreen() {
               ? `${user.experience_years} years`
               : (user.profileData?.experience || user.experience || 'N/A'),
             bio: listing.description || user.bio || user.profileData?.bio || 'No description available',
-            // Handle multiple services - check service_types array first
+            // Handle multiple services - get from listing.service_types array
             services: (() => {
-              const servicesList = [];
-              
-              // Check if service_types is an array (multiple services)
+              const servicesList: string[] = [];
+
+              // Primary source: listing.service_types array
               if (listing.service_types && Array.isArray(listing.service_types) && listing.service_types.length > 0) {
                 listing.service_types.forEach((serviceType: string) => {
                   const formatted = serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
@@ -101,9 +240,9 @@ export default function ProfileViewScreen() {
                   }
                 });
               }
-              
-              // Check if services is an array
-              if (listing.services && Array.isArray(listing.services) && listing.services.length > 0) {
+
+              // Fallback: Check if services is an array
+              if (servicesList.length === 0 && listing.services && Array.isArray(listing.services) && listing.services.length > 0) {
                 listing.services.forEach((s: any) => {
                   const serviceName = s.service_type
                     ? s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace('_', ' ')
@@ -113,50 +252,64 @@ export default function ProfileViewScreen() {
                   }
                 });
               }
-              
-              // Fallback to single service_type
+
+              // Fallback: single service_type
               if (servicesList.length === 0 && listing.service_type) {
                 servicesList.push(
                   listing.service_type.charAt(0).toUpperCase() + listing.service_type.slice(1).replace('_', ' ')
                 );
               }
-              
+
               // Final fallback
               if (servicesList.length === 0) {
                 servicesList.push('Service');
               }
-              
+
+              console.log('📋 Services from listing.service_types:', servicesList);
               return servicesList;
             })(),
-            // Handle multiple locations - prioritize location_details
+            // Handle multiple locations - get from listing.location_details array
             locations: (() => {
-              const locs = [];
+              const locs: string[] = [];
 
-              // First, check location_details (primary source)
+              // Primary source: listing.location_details array
               if (listing.location_details && Array.isArray(listing.location_details) && listing.location_details.length > 0) {
                 listing.location_details.forEach((loc: any) => {
-                  const locationName = loc.name || loc.location_name || '';
-                  const area = loc.area || loc.area_name || '';
-                  
-                  if (locationName && area) {
-                    const formatted = `${locationName}, ${area}`;
-                    if (!locs.includes(formatted)) {
-                      locs.push(formatted);
+                  // Prefer display_text if available (e.g., "Karachi, DHA Phase 6")
+                  if (loc.display_text) {
+                    if (!locs.includes(loc.display_text)) {
+                      locs.push(loc.display_text);
                     }
-                  } else if (locationName) {
-                    if (!locs.includes(locationName)) {
-                      locs.push(locationName);
-                    }
-                  } else if (area) {
-                    if (!locs.includes(area)) {
-                      locs.push(area);
+                  } else {
+                    // Fallback to city_name + area or individual fields
+                    const cityName = loc.city_name || loc.city || '';
+                    const area = loc.area || loc.area_name || '';
+                    const locationName = loc.name || loc.location_name || '';
+
+                    if (cityName && area) {
+                      const formatted = `${cityName}, ${area}`;
+                      if (!locs.includes(formatted)) {
+                        locs.push(formatted);
+                      }
+                    } else if (area) {
+                      if (!locs.includes(area)) {
+                        locs.push(area);
+                      }
+                    } else if (cityName) {
+                      if (!locs.includes(cityName)) {
+                        locs.push(cityName);
+                      }
+                    } else if (locationName) {
+                      if (!locs.includes(locationName)) {
+                        locs.push(locationName);
+                      }
                     }
                   }
                 });
               }
 
-              // Add from listing.locations array if it exists
-              if (listing.locations && Array.isArray(listing.locations)) {
+              // Fallback: Add from listing.locations array if it exists
+              if (locs.length === 0 && listing.locations && Array.isArray(listing.locations)) {
                 listing.locations.forEach((loc: any) => {
                   if (typeof loc === 'string') {
                     if (!locs.includes(loc)) {
@@ -174,15 +327,25 @@ export default function ProfileViewScreen() {
                 });
               }
 
-              // Add individual location fields as fallback
+              // Fallback: Add individual location fields
               if (locs.length === 0) {
-                if (listing.area) locs.push(listing.area);
-                if (listing.location?.name) locs.push(listing.location.name);
-                if (listing.location_name) locs.push(listing.location_name);
+                if (listing.area && listing.city) {
+                  locs.push(`${listing.city}, ${listing.area}`);
+                } else if (listing.area) {
+                  locs.push(listing.area);
+                } else if (listing.city) {
+                  locs.push(listing.city);
+                } else if (listing.location?.name) {
+                  locs.push(listing.location.name);
+                } else if (listing.location_name) {
+                  locs.push(listing.location_name);
+                }
               }
 
               // Remove duplicates and filter out empty values
-              return [...new Set(locs.filter(Boolean))];
+              const uniqueLocs = [...new Set(locs.filter(Boolean))];
+              console.log('📍 Locations from listing.location_details:', uniqueLocs);
+              return uniqueLocs;
             })(),
             profile_image: user.profile_image || user.avatar,
             // Store the full listing and user data for reference
@@ -279,548 +442,702 @@ export default function ProfileViewScreen() {
   // Use fetched profile or fallback to MOCK_PROFILE if dev/test
   const displayProfile = profile || MOCK_PROFILE;
 
+  // Helper function to format phone number for WhatsApp
+  const formatPhoneForWhatsApp = (phone: string): string => {
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    if (!cleaned.startsWith('+')) {
+      if (cleaned.startsWith('92')) {
+        cleaned = '+' + cleaned;
+      } else if (cleaned.startsWith('0')) {
+        cleaned = '+92' + cleaned.substring(1);
+      } else {
+        cleaned = '+92' + cleaned;
+      }
+    }
+    return cleaned;
+  };
+
+  // Handle phone call
+  const handleCall = (phoneNumber: string | null) => {
+    if (!phoneNumber) {
+      Alert.alert('Phone Number', 'Phone number not available');
+      return;
+    }
+    const url = `tel:${phoneNumber}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'Phone dialer is not available');
+        }
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Unable to open phone dialer');
+      });
+  };
+
+  // Handle WhatsApp
+  const handleWhatsApp = (phoneNumber: string | null) => {
+    if (!phoneNumber) {
+      Alert.alert('Phone Number', 'Phone number not available');
+      return;
+    }
+    const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
+    const url = `https://wa.me/${formattedPhone.replace(/\+/g, '')}`;
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'WhatsApp is not available');
+        }
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Unable to open WhatsApp');
+      });
+  };
+
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>
-            {displayProfile.name}
-          </ThemedText>
-          <TouchableOpacity onPress={() => router.push(`/chat/${displayProfile.id}`)}>
-            <IconSymbol name="message.fill" size={24} color="#6366F1" />
-          </TouchableOpacity>
+        {/* Header Background */}
+        <View style={styles.headerBackground}>
+          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <ThemedText style={styles.headerTitle}>Profile</ThemedText>
+            <View style={{ width: 40 }} />
+          </View>
         </View>
 
-        {/* Service Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{displayProfile.name.charAt(0).toUpperCase()}</Text>
-          </View>
-
-          <ThemedText type="title" style={styles.providerName}>
-            {displayProfile.name}
-          </ThemedText>
-
-          {/* Service Badge - Show first service or count if multiple */}
-          <View style={styles.serviceBadge}>
-            <Text style={styles.serviceBadgeText}>
-              {displayProfile.services && displayProfile.services.length > 0
-                ? displayProfile.services.length === 1
-                  ? displayProfile.services[0]
-                  : `${displayProfile.services.length} Services`
-                : displayProfile.service}
-            </Text>
-          </View>
-
-          {/* Rating */}
-          {displayProfile.rating > 0 && (
-            <View style={styles.ratingContainer}>
-              <IconSymbol name="star.fill" size={18} color="#FFC107" />
-              <ThemedText style={styles.rating}>
-                {typeof displayProfile.rating === 'number' ? displayProfile.rating.toFixed(1) : displayProfile.rating}
-              </ThemedText>
-              {displayProfile.reviews > 0 && (
-                <ThemedText style={styles.reviews}>({displayProfile.reviews} reviews)</ThemedText>
+        {/* Profile Content */}
+        <View style={styles.profileContentContainer}>
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              {displayProfile.profileImage ? (
+                <Image source={{ uri: displayProfile.profileImage }} style={styles.avatarImage} />
+              ) : (
+                <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarText}>{displayProfile.name.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+              {displayProfile.verified && (
+                <View style={styles.verifiedBadge}>
+                  <IconSymbol name="checkmark.seal.fill" size={16} color="#FFFFFF" />
+                </View>
               )}
             </View>
-          )}
-        </View>
 
-        {/* Price Card */}
-        {displayProfile.price > 0 && (
-          <View style={styles.priceCard}>
-            <ThemedText style={styles.priceLabel}>Monthly Rate</ThemedText>
-            <ThemedText style={styles.priceValue}>₨{displayProfile.price.toLocaleString()}</ThemedText>
-            <ThemedText style={styles.priceSubtext}>per month</ThemedText>
-          </View>
-        )}
+            <ThemedText type="title" style={styles.name}>{displayProfile.name}</ThemedText>
+            <Text style={styles.serviceType}>{displayProfile.service}</Text>
 
-        {/* Key Details */}
-        <View style={styles.detailsGrid}>
-          {/* Location */}
-          <View style={styles.detailCard}>
-            <View style={styles.detailIconContainer}>
-              <IconSymbol name="location.fill" size={20} color="#6366F1" />
-            </View>
-            <ThemedText style={styles.detailLabel}>
-              {displayProfile.locations && displayProfile.locations.length > 1 ? 'Locations' : 'Location'}
-            </ThemedText>
-            <ThemedText style={styles.detailValue} numberOfLines={2}>
-              {displayProfile.locations && displayProfile.locations.length > 0
-                ? displayProfile.locations.length === 1
-                  ? displayProfile.locations[0]
-                  : `${displayProfile.locations.length} Areas`
-                : displayProfile.location}
-            </ThemedText>
-          </View>
-
-          {/* Experience */}
-          {displayProfile.experience !== 'N/A' && (
-            <View style={styles.detailCard}>
-              <View style={styles.detailIconContainer}>
-                <IconSymbol name="clock.fill" size={20} color="#6366F1" />
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <IconSymbol name="star.fill" size={16} color="#FFC107" />
+                <Text style={styles.statValue}>
+                  {typeof displayProfile.rating === 'number' ? displayProfile.rating.toFixed(1) : displayProfile.rating}
+                </Text>
+                <Text style={styles.statLabel}>Rating</Text>
               </View>
-              <ThemedText style={styles.detailLabel}>Experience</ThemedText>
-              <ThemedText style={styles.detailValue}>{displayProfile.experience}</ThemedText>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <IconSymbol name="clock.fill" size={16} color={Colors.light.primary} />
+                <Text style={styles.statValue}>{displayProfile.experience}</Text>
+                <Text style={styles.statLabel}>Experience</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <IconSymbol name="location.fill" size={16} color="#EF4444" />
+                <Text style={styles.statValue} numberOfLines={1}>
+                  {displayProfile.location.split(',')[0]}
+                </Text>
+                <Text style={styles.statLabel}>Location</Text>
+              </View>
+            </View>
+
+            {/* Contact Actions */}
+
+          </View>
+
+          {/* About Section */}
+          {displayProfile.bio && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>About</Text>
+              <Text style={styles.bioText}>{displayProfile.bio}</Text>
             </View>
           )}
-        </View>
 
-        {/* Description */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            About This Service
-          </ThemedText>
-          <View style={styles.descriptionCard}>
-            <ThemedText style={styles.bio}>{displayProfile.bio}</ThemedText>
-          </View>
-        </View>
-
-        {/* Services Offered - Always show if services array exists */}
-        {displayProfile.services && displayProfile.services.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              {displayProfile.services.length === 1 ? 'Service Offered' : 'Services Offered'}
-            </ThemedText>
-            <View style={styles.servicesTagsContainer}>
-              {displayProfile.services.map((service: string, index: number) => (
-                <View key={index} style={styles.serviceTagChip}>
-                  <Text style={styles.serviceTagChipText}>{service}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Service Locations */}
-        {displayProfile.locations && displayProfile.locations.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Service Areas
-            </ThemedText>
-            <View style={styles.locationsContainer}>
-              {displayProfile.locations.map((location: string, index: number) => (
-                <View key={index} style={styles.locationChip}>
-                  <IconSymbol name="location.fill" size={14} color="#6366F1" />
-                  <Text style={styles.locationChipText}>{location}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Other Services from Same Provider */}
-        {otherServices.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Other Services by {displayProfile.name}
-            </ThemedText>
-            {isLoadingOtherServices ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#6366F1" />
+          {/* Services Offered Section - from listing.service_types */}
+          {displayProfile.services && displayProfile.services.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Services Offered</Text>
+              <View style={styles.tagsContainer}>
+                {displayProfile.services.map((service: string, index: number) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{service}</Text>
+                  </View>
+                ))}
               </View>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.otherServicesScroll}
-              >
+            </View>
+          )}
+
+          {/* Service Areas Section - from listing.location_details */}
+          {displayProfile.locations && displayProfile.locations.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Service Areas</Text>
+              <View style={styles.tagsContainer}>
+                <IconSymbol name="mappin.circle.fill" size={16} color="#8B5CF6" />
+                {displayProfile.locations.map((loc: string, index: number) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{loc}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Service Listings Section */}
+          {displayProfile.service_listings && displayProfile.service_listings.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Services</Text>
+              {displayProfile.service_listings.map((service: any, index: number) => {
+                // Get service types from service.service_types array
+                const serviceTypes = service.service_types && Array.isArray(service.service_types) && service.service_types.length > 0
+                  ? service.service_types
+                  : service.service_type
+                  ? [service.service_type]
+                  : ['Service'];
+
+                const formatServiceType = (type: string) => {
+                  return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+                };
+
+                // Extract locations from service.location_details array
+                const serviceLocations: string[] = [];
+                if (service.location_details && Array.isArray(service.location_details)) {
+                  service.location_details.forEach((loc: any) => {
+                    // Prefer display_text if available
+                    if (loc.display_text) {
+                      if (!serviceLocations.includes(loc.display_text)) {
+                        serviceLocations.push(loc.display_text);
+                      }
+                    } else {
+                      const cityName = loc.city_name || loc.city || '';
+                      const area = loc.area || loc.area_name || '';
+                      if (cityName && area) {
+                        const formatted = `${cityName}, ${area}`;
+                        if (!serviceLocations.includes(formatted)) {
+                          serviceLocations.push(formatted);
+                        }
+                      } else if (area) {
+                        if (!serviceLocations.includes(area)) {
+                          serviceLocations.push(area);
+                        }
+                      } else if (cityName) {
+                        if (!serviceLocations.includes(cityName)) {
+                          serviceLocations.push(cityName);
+                        }
+                      }
+                    }
+                  });
+                } else if (service.area && service.city) {
+                  serviceLocations.push(`${service.city}, ${service.area}`);
+                } else if (service.area) {
+                  serviceLocations.push(service.area);
+                } else if (service.city) {
+                  serviceLocations.push(service.city);
+                }
+
+                const monthlyRate = parseFloat(service.monthly_rate || '0');
+
+                return (
+                  <View key={index} style={styles.serviceCard}>
+                    <View style={styles.serviceCardHeader}>
+                      <View style={styles.serviceTitleRow}>
+                        <View style={styles.serviceIconSmall}>
+                          <IconSymbol name="wrench.fill" size={14} color={Colors.light.primary} />
+                        </View>
+                        <Text style={styles.serviceCardTitle}>
+                          {serviceTypes.length === 1
+                            ? formatServiceType(serviceTypes[0])
+                            : `${formatServiceType(serviceTypes[0])} +${serviceTypes.length - 1} more`}
+                        </Text>
+                      </View>
+                      {monthlyRate > 0 && (
+                        <Text style={styles.serviceCardPrice}>
+                          ₨{Math.floor(monthlyRate).toLocaleString()}/mo
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Service Types Tags */}
+                    {serviceTypes.length > 1 && (
+                      <View style={styles.serviceTypesContainer}>
+                        {serviceTypes.slice(0, 3).map((serviceType: string, idx: number) => (
+                          <View key={idx} style={styles.serviceTypeTag}>
+                            <Text style={styles.serviceTypeTagText}>{formatServiceType(serviceType)}</Text>
+                          </View>
+                        ))}
+                        {serviceTypes.length > 3 && (
+                          <View style={styles.serviceTypeTag}>
+                            <Text style={styles.serviceTypeTagText}>+{serviceTypes.length - 3} more</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {service.description && (
+                      <Text style={styles.serviceCardDescription} numberOfLines={3}>
+                        {service.description}
+                      </Text>
+                    )}
+
+                    <View style={styles.serviceCardMeta}>
+                      {service.work_type && (
+                        <View style={styles.metaItem}>
+                          <IconSymbol name="clock.fill" size={12} color="#6B7280" />
+                          <Text style={styles.metaText}>
+                            {service.work_type.charAt(0).toUpperCase() + service.work_type.slice(1).replace('_', ' ')}
+                          </Text>
+                        </View>
+                      )}
+
+                      {serviceLocations.length > 0 && (
+                        <View style={styles.metaItem}>
+                          <IconSymbol name="location.fill" size={12} color="#6B7280" />
+                          <Text style={styles.metaText}>
+                            {serviceLocations.slice(0, 2).join(', ')}
+                            {serviceLocations.length > 2 && ` +${serviceLocations.length - 2} more`}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.viewDetailBtn}
+                      onPress={() => {
+                        router.push(`/service/${service.id}`);
+                      }}
+                    >
+                      <Text style={styles.viewDetailBtnText}>View Details</Text>
+                      <IconSymbol name="chevron.right" size={16} color={Colors.light.primary} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+
+          {/* Other Services Section */}
+          {otherServices.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>More from {displayProfile.name}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
                 {otherServices.map((service: any, index: number) => (
                   <TouchableOpacity
                     key={index}
                     style={styles.otherServiceCard}
                     onPress={() => router.push(`/profile/helper/${service.id}` as any)}
                   >
-                    <View style={styles.otherServiceHeader}>
-                      <View style={styles.otherServiceBadge}>
-                        <Text style={styles.otherServiceBadgeText}>
-                          {service.service_type
-                            ? service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ')
-                            : 'Service'}
-                        </Text>
-                      </View>
+                    <View style={styles.otherServiceIcon}>
+                      <IconSymbol name="briefcase.fill" size={24} color="#FFFFFF" />
                     </View>
-                    <ThemedText style={styles.otherServiceDescription} numberOfLines={2}>
-                      {service.description || 'No description'}
-                    </ThemedText>
-                    <View style={styles.otherServiceFooter}>
-                      <View style={styles.otherServiceLocation}>
-                        <IconSymbol name="location.fill" size={12} color="#999" />
-                        <Text style={styles.otherServiceLocationText}>
-                          {service.area || service.location?.name || 'N/A'}
-                        </Text>
-                      </View>
-                      {service.monthly_rate > 0 && (
-                        <Text style={styles.otherServicePrice}>
-                          ₨{service.monthly_rate.toLocaleString()}
-                        </Text>
-                      )}
-                    </View>
+                    <Text style={styles.otherServiceName} numberOfLines={1}>
+                      {service.service_type
+                        ? service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ')
+                        : 'Service'}
+                    </Text>
+                    <Text style={styles.otherServicePrice}>₨{service.monthly_rate?.toLocaleString()}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            )}
-          </View>
-        )}
+            </View>
+          )}
 
-        {/* Action Buttons */}
-        <View style={styles.actions}>
+          <View style={{ height: 100 }} />
+        </View>
+      </ScrollView>
+
+      {/* Bottom Action Bar */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.bottomActions}>
           <TouchableOpacity
-            style={styles.contactButton}
+            style={[styles.actionBtn, styles.callBtn]}
+            onPress={() => handleCall(displayProfile.phone_number)}
+          >
+            <IconSymbol name="phone.fill" size={24} color="#1F2937" />
+            <Text style={[styles.actionBtnText, { color: '#1F2937' }]}>Call</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.whatsappBtn]}
+            onPress={() => handleWhatsApp(displayProfile.phone_number)}
+          >
+            <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
+            <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>WhatsApp</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.messageBtn]}
             onPress={() => router.push(`/chat/${displayProfile.id}`)}
           >
-            <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
-            <Text style={styles.contactButtonText}>Contact Provider</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.bookButton}>
-            <IconSymbol name="calendar" size={20} color="#FFFFFF" />
-            <Text style={styles.bookButtonText}>Book Service</Text>
+            <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
+            <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Message</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Bottom Spacing */}
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </ThemedView>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F3F4F6',
   },
   scrollView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+  headerBackground: {
+    backgroundColor: Colors.light.primary,
+    height: 220,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  backButton: {
-    padding: 4,
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
   },
-  heroSection: {
-    alignItems: 'center',
-    padding: 30,
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  profileContentContainer: {
+    paddingHorizontal: 20,
+    marginTop: -100,
+  },
+  profileCard: {
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    marginBottom: 24,
   },
-  avatar: {
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatarImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#EEF2FF',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
+  avatarPlaceholder: {
+    backgroundColor: Colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    borderWidth: 3,
-    borderColor: '#6366F1',
   },
   avatarText: {
     fontSize: 40,
     fontWeight: 'bold',
-    color: '#6366F1',
+    color: Colors.light.primary,
   },
-  providerName: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  serviceBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 12,
-  },
-  serviceBadgeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  rating: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  reviews: {
-    fontSize: 14,
-    color: '#666',
-  },
-  priceCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 24,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#6366F1',
-    alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  priceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  priceLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  priceValue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#6366F1',
-    marginBottom: 4,
-  },
-  priceSubtext: {
-    fontSize: 14,
-    color: '#999',
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  detailCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#10B981',
     borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  detailIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#EEF2FF',
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  detailLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
     textAlign: 'center',
+    marginBottom: 4,
+  },
+  serviceType: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 24,
+    fontWeight: '500',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#F3F4F6',
+    marginBottom: 20,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: '#F3F4F6',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  contactActions: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
+  },
+  contactActionBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
     marginBottom: 16,
   },
-  descriptionCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  bio: {
+  bioText: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#666',
+    color: '#4B5563',
   },
-  servicesTagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  serviceTagChip: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-  },
-  serviceTagChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  locationsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  locationChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  serviceCard: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  locationChipText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  otherServicesScroll: {
-    paddingRight: 20,
-    gap: 12,
-  },
-  otherServiceCard: {
-    width: 240,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
-  otherServiceHeader: {
+  serviceCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
-  otherServiceBadge: {
+  serviceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  serviceIconSmall: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  serviceCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    flex: 1,
+  },
+  serviceCardPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.primary,
+  },
+  serviceCardDescription: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#4B5563',
+    marginBottom: 16,
+  },
+  serviceCardMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    alignItems: 'center',
+  },
+  tag: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  serviceTypesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  serviceTypeTag: {
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
   },
-  otherServiceBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  otherServiceDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#666',
-    marginBottom: 12,
-    minHeight: 40,
-  },
-  otherServiceFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  otherServiceLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flex: 1,
-  },
-  otherServiceLocationText: {
+  serviceTypeTagText: {
     fontSize: 12,
-    color: '#999',
+    color: Colors.light.primary,
+    fontWeight: '600',
+  },
+  otherServiceCard: {
+    backgroundColor: Colors.light.primary,
+    padding: 16,
+    borderRadius: 20,
+    width: 160,
+    marginRight: 12,
+  },
+  otherServiceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  otherServiceName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   otherServicePrice: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#6366F1',
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
   },
-  actions: {
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  bottomActions: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 20,
-    marginTop: 32,
   },
-  contactButton: {
+  actionBtn: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 4,
+    height: 72,
   },
-  contactButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+  callBtn: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  bookButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#34C759',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#34C759',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+  whatsappBtn: {
+    backgroundColor: '#25D366',
   },
-  bookButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+  messageBtn: {
+    backgroundColor: Colors.light.primary,
+  },
+  actionBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    backgroundColor: '#F3F4F6',
   },
-  loadingText: {
+  viewDetailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    paddingVertical: 10,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    gap: 6,
+  },
+  viewDetailBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.primary,
   },
 });

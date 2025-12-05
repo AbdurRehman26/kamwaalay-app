@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 interface SplashScreenProps {
   onFinish: () => void;

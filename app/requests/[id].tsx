@@ -6,12 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function JobViewScreen() {

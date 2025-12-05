@@ -720,10 +720,57 @@ export default function ExploreScreen() {
           })()}
 
           <View style={styles.serviceListingFooter}>
-            <View style={styles.viewDetailsButton}>
+            <View style={styles.contactOptionsContainer}>
+              <View style={styles.contactButtonsRow}>
+                <TouchableOpacity
+                  style={styles.contactOptionIconButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleCall(phoneNumber, e);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol name="phone.fill" size={16} color="#10B981" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.contactOptionIconButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleWhatsApp(phoneNumber, e);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <FontAwesome name="whatsapp" size={16} color="#25D366" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.contactOptionIconButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleInAppMessage(providerId, providerName, e);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="message" size={16} color="#6366F1" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.viewDetailsButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                const serviceId = getPrimaryServiceId(item);
+                if (serviceId) {
+                  router.push(`/service/${serviceId}`);
+                } else {
+                  const profileType = apiRole === 'business' ? 'business' : 'helper';
+                  router.push(`/profile/${profileType}/${providerId}` as any);
+                }
+              }}
+              activeOpacity={0.7}
+            >
               <Text style={styles.viewDetailsText}>View Details</Text>
               <IconSymbol name="chevron.right" size={16} color={Colors.light.primary} />
-            </View>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       );
@@ -1861,11 +1908,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: Colors.light.primaryLight,
+    // Enhanced shadow for depth
     shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
     overflow: 'hidden',
   },
   cardHeaderWrapper: {
@@ -1875,6 +1923,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E7FF',
+    // Embossment effect - subtle inner highlight
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1893,11 +1949,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    // Enhanced shadow for embossment
+    shadowColor: Colors.light.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   avatarImage: {
     width: 64,
@@ -2169,6 +2226,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primaryLight,
     borderTopWidth: 1,
     borderTopColor: '#E0E7FF',
+    // Embossment effect - subtle inner shadow
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   priceContainer: {
     flex: 1,
@@ -2422,7 +2487,11 @@ const styles = StyleSheet.create({
   },
   serviceListingFooter: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   viewDetailsButton: {
     flexDirection: 'row',

@@ -78,23 +78,6 @@ export default function HelpScreen() {
       });
   };
 
-  const handleCallSupport = () => {
-    const phoneNumber = '+92-300-1234567';
-    const url = `tel:${phoneNumber}`;
-
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert('Error', 'Phone dialer is not available on this device');
-        }
-      })
-      .catch(() => {
-        Alert.alert('Error', 'Unable to open phone dialer');
-      });
-  };
-
   const toggleFAQ = (id: string) => {
     setExpandedFAQ(expandedFAQ === id ? null : id);
   };
@@ -111,27 +94,6 @@ export default function HelpScreen() {
             Help & Support
           </ThemedText>
           <View style={{ width: 24 }} />
-        </View>
-
-        {/* Contact Support Section */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Contact Support
-          </ThemedText>
-          <View style={styles.contactCards}>
-            <TouchableOpacity style={styles.contactCard} onPress={handleCallSupport}>
-              <IconSymbol name="phone.fill" size={32} color="#6366F1" />
-              <ThemedText style={styles.contactLabel}>Call Us</ThemedText>
-              <ThemedText style={styles.contactValue}>+92-300-1234567</ThemedText>
-              <ThemedText style={styles.contactHours}>Mon-Fri, 9 AM - 6 PM</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.contactCard} onPress={handleEmailSupport}>
-              <IconSymbol name="envelope.fill" size={32} color="#6366F1" />
-              <ThemedText style={styles.contactLabel}>Email Us</ThemedText>
-              <ThemedText style={styles.contactValue}>support@kamwaalay.com</ThemedText>
-              <ThemedText style={styles.contactHours}>24/7 Support</ThemedText>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Send Message Section */}
@@ -270,38 +232,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
     color: '#1A1A1A',
-  },
-  contactCards: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  contactCard: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  contactLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 4,
-    color: '#666',
-  },
-  contactValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  contactHours: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
   },
   inputGroup: {
     marginBottom: 16,

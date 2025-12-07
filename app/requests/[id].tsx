@@ -1,18 +1,20 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function JobViewScreen() {
   const router = useRouter();
@@ -25,35 +27,26 @@ export default function JobViewScreen() {
 
   if (!request) {
     return (
-      <ThemedView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Job
-          </ThemedText>
-          <View style={styles.placeholder} />
-        </View>
-        <View style={styles.emptyState}>
-          <IconSymbol name="exclamationmark.triangle" size={48} color="#CCCCCC" />
-          <ThemedText type="subtitle" style={styles.emptyTitle}>
-            Request Not Found
-          </ThemedText>
-          <ThemedText style={styles.emptyText}>
-            The job you're looking for doesn't exist or has been removed.
-          </ThemedText>
-          <TouchableOpacity
-            style={styles.backToRequestsButton}
-            onPress={() => router.push('/(tabs)/requests')}
-          >
-            <Text style={styles.backToRequestsButtonText}>Back to Requests</Text>
-          </TouchableOpacity>
-        </View>
-      </ThemedView>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#9CA3AF" />
+            </View>
+            <Text style={styles.emptyTitle}>Request Not Found</Text>
+            <Text style={styles.emptyText}>
+              The job you're looking for doesn't exist or has been removed.
+            </Text>
+            <TouchableOpacity
+              style={styles.backToRequestsButton}
+              onPress={() => router.push('/(tabs)/requests')}
+            >
+              <Text style={styles.backToRequestsButtonText}>Back to Requests</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
@@ -73,7 +66,6 @@ export default function JobViewScreen() {
       return;
     }
 
-    // Show confirmation dialog
     Alert.alert(
       'Confirm Application',
       `Are you sure you want to apply for "${request.serviceName}"?`,
@@ -99,11 +91,11 @@ export default function JobViewScreen() {
   };
 
   const handleContact = () => {
-    router.push(`/chat/${request.userId}`);
+    const userName = request.userName || 'User';
+    router.push(`/chat/${request.userId}?name=${encodeURIComponent(userName)}`);
   };
 
   const handleEdit = () => {
-    // Navigate to edit screen (we'll need to create this or reuse create screen)
     router.push(`/requests/edit/${request.id}`);
   };
 
@@ -122,7 +114,6 @@ export default function JobViewScreen() {
           onPress: async () => {
             try {
               // TODO: Call API to delete the request
-              // For now, just navigate back
               Alert.alert('Success', 'Request deleted successfully', [
                 {
                   text: 'OK',
@@ -140,8 +131,6 @@ export default function JobViewScreen() {
 
   const handleContactApplicants = () => {
     if (request.applicants && request.applicants.length > 0) {
-      // For now, navigate to chat with the first applicant
-      // In the future, this could show a list of applicants to choose from
       router.push(`/chat/${request.applicants[0]}`);
     } else {
       Alert.alert('No Applicants', 'There are no applicants to contact yet.');
@@ -150,7 +139,7 @@ export default function JobViewScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return '#E8F5E9';
+      case 'open': return '#E0F2F1';
       case 'in_progress': return '#EEF2FF';
       case 'completed': return '#F5F5F5';
       case 'cancelled': return '#FFEBEE';
@@ -160,11 +149,11 @@ export default function JobViewScreen() {
 
   const getStatusTextColor = (status: string) => {
     switch (status) {
-      case 'open': return '#2E7D32';
-      case 'in_progress': return '#1976D2';
-      case 'completed': return '#666';
+      case 'open': return '#00695C';
+      case 'in_progress': return '#4338CA';
+      case 'completed': return '#616161';
       case 'cancelled': return '#C62828';
-      default: return '#666';
+      default: return '#616161';
     }
   };
 
@@ -182,227 +171,213 @@ export default function JobViewScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol name="chevron.left" size={24} color="#6366F1" />
-        </TouchableOpacity>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Job
-        </ThemedText>
-        <View style={styles.placeholder} />
-      </View>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          {/* Status Badge */}
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-            <Text style={[styles.statusText, { color: getStatusTextColor(request.status) }]}>
-              {request.status.toUpperCase()}
+      <SafeAreaView style={styles.safeArea}>
+
+
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            {/* Status Badge */}
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
+              <Text style={[styles.statusText, { color: getStatusTextColor(request.status) }]}>
+                {request.status.toUpperCase()}
+              </Text>
+            </View>
+
+            {/* Service Name */}
+            <Text style={styles.serviceName}>
+              {request.serviceName}
             </Text>
-          </View>
 
-          {/* Service Name */}
-          <ThemedText type="title" style={styles.serviceName}>
-            {request.serviceName}
-          </ThemedText>
-
-          {/* User Info (for helpers/businesses) */}
-          {isHelperOrBusiness && (
-            <View style={styles.userInfoSection}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {(request.userName || 'U').charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.userInfoText}>
-                <ThemedText style={styles.userLabel}>Requested by</ThemedText>
-                <ThemedText style={styles.userName}>{request.userName || 'Unknown'}</ThemedText>
-              </View>
-            </View>
-          )}
-
-          {/* Description */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Description</ThemedText>
-            <ThemedText style={styles.description}>
-              {request.description}
-            </ThemedText>
-          </View>
-
-          {/* Details */}
-          <View style={styles.detailsSection}>
-            <View style={styles.detailItem}>
-              <View style={styles.detailIcon}>
-                <IconSymbol name="location.fill" size={20} color="#6366F1" />
-              </View>
-              <View style={styles.detailContent}>
-                <ThemedText style={styles.detailLabel}>Location</ThemedText>
-                <ThemedText style={styles.detailValue}>{request.location}</ThemedText>
-              </View>
-            </View>
-
-            {request.budget && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailIcon}>
-                  <IconSymbol name="dollarsign.circle.fill" size={20} color="#6366F1" />
-                </View>
-                <View style={styles.detailContent}>
-                  <ThemedText style={styles.detailLabel}>Budget</ThemedText>
-                  <ThemedText style={styles.detailValue}>₨{request.budget.toLocaleString()}</ThemedText>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.detailItem}>
-              <View style={styles.detailIcon}>
-                <IconSymbol name="calendar" size={20} color="#6366F1" />
-              </View>
-              <View style={styles.detailContent}>
-                <ThemedText style={styles.detailLabel}>Created</ThemedText>
-                <ThemedText style={styles.detailValue}>{formatDate(request.createdAt)}</ThemedText>
-              </View>
-            </View>
-
-            {request.applicants && request.applicants.length > 0 && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailIcon}>
-                  <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
-                </View>
-                <View style={styles.detailContent}>
-                  <ThemedText style={styles.detailLabel}>Applicants</ThemedText>
-                  <ThemedText style={styles.detailValue}>
-                    {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
-                  </ThemedText>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* Actions for users (who own the request) */}
-          {isOwner && user?.userType === 'user' && (
-            <View style={styles.actionsSection}>
-              {/* Edit and Delete buttons */}
-              <View style={styles.ownerActions}>
-                <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={handleEdit}
-                >
-                  <IconSymbol name="pencil" size={20} color="#6366F1" />
-                  <Text style={styles.editButtonText}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={handleDelete}
-                >
-                  <IconSymbol name="trash" size={20} color="#FF3B30" />
-                  <Text style={styles.deleteButtonText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Contact applicants */}
-              {request.applicants && request.applicants.length > 0 ? (
-                <TouchableOpacity
-                  style={styles.contactButton}
-                  onPress={handleContactApplicants}
-                >
-                  <IconSymbol name="message.fill" size={20} color="#6366F1" />
-                  <Text style={styles.contactButtonText}>
-                    Contact Applicant{request.applicants.length > 1 ? 's' : ''} ({request.applicants.length})
+            {/* User Info (for helpers/businesses) */}
+            {isHelperOrBusiness && (
+              <View style={styles.userInfoSection}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {(request.userName || 'U').charAt(0).toUpperCase()}
                   </Text>
+                </View>
+                <View style={styles.userInfoText}>
+                  <Text style={styles.userLabel}>Requested by</Text>
+                  <Text style={styles.userName}>{request.userName || 'Unknown'}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.messageButton}
+                  onPress={handleContact}
+                >
+                  <IconSymbol name="bubble.left.fill" size={20} color="#6366F1" />
                 </TouchableOpacity>
-              ) : (
-                <View style={styles.noApplicantsBadge}>
-                  <IconSymbol name="person.fill" size={20} color="#999" />
-                  <Text style={styles.noApplicantsText}>No applicants yet</Text>
+              </View>
+            )}
+
+            {/* Description */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={styles.description}>
+                {request.description}
+              </Text>
+            </View>
+
+            {/* Details */}
+            <View style={styles.detailsSection}>
+              <View style={styles.detailItem}>
+                <View style={styles.detailIcon}>
+                  <IconSymbol name="location.fill" size={20} color="#6366F1" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Location</Text>
+                  <Text style={styles.detailValue}>{request.location}</Text>
+                </View>
+              </View>
+
+              {request.budget && (
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIcon}>
+                    <IconSymbol name="dollarsign.circle.fill" size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Budget</Text>
+                    <Text style={styles.detailValue}>₨{request.budget.toLocaleString()}</Text>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.detailItem}>
+                <View style={styles.detailIcon}>
+                  <IconSymbol name="calendar" size={20} color="#6366F1" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Created</Text>
+                  <Text style={styles.detailValue}>{formatDate(request.createdAt)}</Text>
+                </View>
+              </View>
+
+              {request.applicants && request.applicants.length > 0 && (
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIcon}>
+                    <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Applicants</Text>
+                    <Text style={styles.detailValue}>
+                      {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
+                    </Text>
+                  </View>
                 </View>
               )}
             </View>
-          )}
 
-          {/* Actions for helpers/businesses */}
-          {isHelperOrBusiness && !isOwner && (
-            <View style={styles.actionsSection}>
-              {isOpen && !hasApplied && (
-                <>
+            {/* Actions for users (who own the request) */}
+            {isOwner && user?.userType === 'user' && (
+              <View style={styles.actionsSection}>
+                {/* Edit and Delete buttons */}
+                <View style={styles.ownerActions}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={handleEdit}
+                  >
+                    <IconSymbol name="pencil" size={20} color="#6366F1" />
+                    <Text style={styles.editButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={handleDelete}
+                  >
+                    <IconSymbol name="trash" size={20} color="#EF4444" />
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Contact applicants */}
+                {request.applicants && request.applicants.length > 0 ? (
                   <TouchableOpacity
                     style={styles.contactButton}
-                    onPress={handleContact}
+                    onPress={handleContactApplicants}
                   >
-                    <IconSymbol name="message.fill" size={20} color="#6366F1" />
-                    <Text style={styles.contactButtonText}>Contact</Text>
+                    <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
+                    <Text style={styles.contactButtonText}>
+                      Contact Applicant{request.applicants.length > 1 ? 's' : ''}
+                    </Text>
                   </TouchableOpacity>
+                ) : (
+                  <View style={styles.noApplicantsBadge}>
+                    <IconSymbol name="person.fill" size={20} color="#9CA3AF" />
+                    <Text style={styles.noApplicantsText}>No applicants yet</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Actions for helpers/businesses */}
+            {isHelperOrBusiness && !isOwner && (
+              <View style={styles.actionsSection}>
+                {isOpen && !hasApplied && (
                   <TouchableOpacity
                     style={styles.applyButton}
                     onPress={handleApply}
                   >
                     <Text style={styles.applyButtonText}>Apply Now</Text>
+                    <IconSymbol name="arrow.right" size={20} color="#FFFFFF" />
                   </TouchableOpacity>
-                </>
-              )}
-              {hasApplied && (
-                <>
-                  <TouchableOpacity
-                    style={styles.contactButton}
-                    onPress={handleContact}
-                  >
-                    <IconSymbol name="message.fill" size={20} color="#6366F1" />
-                    <Text style={styles.contactButtonText}>Contact</Text>
-                  </TouchableOpacity>
+                )}
+                {hasApplied && (
                   <View style={styles.appliedBadge}>
-                    <IconSymbol name="checkmark.circle.fill" size={20} color="#34C759" />
-                    <Text style={styles.appliedText}>Applied</Text>
+                    <IconSymbol name="checkmark.circle.fill" size={24} color="#16A34A" />
+                    <Text style={styles.appliedText}>Application Sent</Text>
                   </View>
-                </>
-              )}
-              {!isOpen && !hasApplied && (
-                <View style={styles.closedBadge}>
-                  <Text style={styles.closedText}>This request is closed</Text>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-      </ScrollView>
-    </ThemedView>
+                )}
+                {!isOpen && !hasApplied && (
+                  <View style={styles.closedBadge}>
+                    <Text style={styles.closedText}>This request is closed</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
   },
-  backButton: {
-    padding: 4,
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.6,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.6,
   },
-  placeholder: {
-    width: 32,
+  safeArea: {
+    flex: 1,
   },
+
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: 24,
   },
   statusBadge: {
     alignSelf: 'flex-start',
@@ -412,26 +387,32 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   serviceName: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#1A1A1A',
-    marginBottom: 16,
+    marginBottom: 24,
+    lineHeight: 40,
   },
   userInfoSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
     padding: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   avatar: {
     width: 48,
@@ -440,11 +421,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   avatarText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#6366F1',
   },
   userInfoText: {
@@ -452,64 +433,70 @@ const styles = StyleSheet.create({
   },
   userLabel: {
     fontSize: 12,
-    opacity: 0.6,
-    color: '#666',
+    color: '#6B7280',
     marginBottom: 4,
+    fontWeight: '500',
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
     fontWeight: '700',
     color: '#1A1A1A',
-    marginBottom: 12,
   },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#666',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  detailsSection: {
-    marginBottom: 24,
-    gap: 12,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  detailIcon: {
+  messageButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: '#4B5563',
+  },
+  detailsSection: {
+    marginBottom: 32,
+    gap: 16,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 16,
+  },
+  detailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   detailContent: {
     flex: 1,
   },
   detailLabel: {
     fontSize: 12,
-    opacity: 0.6,
-    color: '#666',
+    color: '#6B7280',
     marginBottom: 4,
+    fontWeight: '500',
   },
   detailValue: {
     fontSize: 16,
@@ -518,30 +505,36 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     marginTop: 8,
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 40,
+    gap: 16,
   },
   contactButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#6366F1',
     padding: 16,
-    borderRadius: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#BBDEFB',
+    borderRadius: 16,
+    gap: 12,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   contactButtonText: {
-    color: '#1976D2',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
   },
   applyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#6366F1',
     padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+    borderRadius: 16,
+    gap: 12,
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -557,84 +550,97 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F5E9',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
+    backgroundColor: '#F0FDF4',
+    padding: 20,
+    borderRadius: 16,
+    gap: 12,
     borderWidth: 1,
-    borderColor: '#4CAF50',
+    borderColor: '#DCFCE7',
   },
   appliedText: {
-    color: '#2E7D32',
+    color: '#16A34A',
     fontSize: 16,
     fontWeight: '700',
   },
   closedBadge: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    padding: 20,
+    borderRadius: 16,
   },
   closedText: {
-    color: '#999',
+    color: '#6B7280',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   noApplicantsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
+    backgroundColor: '#F9FAFB',
+    padding: 20,
+    borderRadius: 16,
+    gap: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#F3F4F6',
+    borderStyle: 'dashed',
   },
   noApplicantsText: {
-    color: '#999',
+    color: '#9CA3AF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 80,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 12,
     color: '#1A1A1A',
   },
   emptyText: {
-    fontSize: 15,
-    opacity: 0.6,
+    fontSize: 16,
+    color: '#6B7280',
     textAlign: 'center',
-    color: '#666',
-    lineHeight: 22,
-    marginBottom: 24,
+    lineHeight: 24,
+    marginBottom: 32,
   },
   backToRequestsButton: {
     backgroundColor: '#6366F1',
-    padding: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
     alignItems: 'center',
-    paddingHorizontal: 24,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   backToRequestsButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
   ownerActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    gap: 16,
+    marginBottom: 8,
   },
   editButton: {
     flex: 1,
@@ -643,10 +649,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#EEF2FF',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#6366F1',
   },
   editButtonText: {
     color: '#6366F1',
@@ -658,17 +662,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF5F5',
+    backgroundColor: '#FEF2F2',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#FF3B30',
   },
   deleteButtonText: {
-    color: '#FF3B30',
+    color: '#EF4444',
     fontSize: 16,
     fontWeight: '700',
   },
 });
-

@@ -1,10 +1,12 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BusinessProfile, useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,13 +14,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function BusinessProfileScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, completeOnboarding } = useAuth();
   const [businessName, setBusinessName] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
   const [businessDescription, setBusinessDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleContinue = async () => {
     if (!businessName.trim()) {
@@ -31,135 +38,174 @@ export default function BusinessProfileScreen() {
       return;
     }
 
-    const profileData: BusinessProfile = {
-      businessName,
-      ownerName: user.name,
-      bio: businessDescription,
-      businessAddress,
-      serviceOfferings: [],
-      locations: [],
-    };
+    setIsLoading(true);
+    try {
+      const profileData: BusinessProfile = {
+        businessName,
+        ownerName: user.name,
+        bio: businessDescription,
+        businessAddress,
+        serviceOfferings: [],
+        locations: [],
+      };
 
-    await completeOnboarding(profileData);
-    // Navigate to add workers step
-    router.push('/onboarding/add-workers');
+      await completeOnboarding(profileData);
+      // Navigate to add workers step
+      router.push('/onboarding/add-workers');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save business profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Business Information
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Tell us about your business
-          </ThemedText>
-        </View>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
 
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Business Name *</ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your business name"
-              placeholderTextColor="#999"
-              value={businessName}
-              onChangeText={setBusinessName}
-              autoComplete="organization"
-              textContentType="organizationName"
-              autoCorrect={false}
-              spellCheck={false}
-              importantForAutofill="yes"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Business Address (Optional)</ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your business address"
-              placeholderTextColor="#999"
-              value={businessAddress}
-              onChangeText={setBusinessAddress}
-              autoComplete="street-address"
-              textContentType="fullStreetAddress"
-              autoCorrect={false}
-              spellCheck={false}
-              importantForAutofill="yes"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Business Description (Optional)</ThemedText>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe your business and services"
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={4}
-              value={businessDescription}
-              onChangeText={setBusinessDescription}
-              autoComplete="off"
-              textContentType="none"
-              autoCorrect={false}
-              spellCheck={false}
-              importantForAutofill="no"
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.button, !businessName.trim() && styles.buttonDisabled]}
-          onPress={handleContinue}
-          disabled={!businessName.trim()}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.buttonText}>Continue</Text>
-        </TouchableOpacity>
+          <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
+            <Text style={styles.title}>Business Profile</Text>
+            <Text style={styles.subtitle}>
+              Tell us about your business to get started
+            </Text>
+          </View>
 
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={async () => {
-            // Allow skipping without business name
-            const profileData: BusinessProfile = {
-              businessName: businessName.trim() || 'My Business',
-              ownerName: user?.name || '',
-              businessAddress,
-              bio: businessDescription,
-              serviceOfferings: [],
-              locations: [],
-            };
-            await completeOnboarding(profileData);
-            router.replace('/(tabs)');
-          }}
-        >
-          <Text style={styles.skipButtonText}>Skip for now</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </ThemedView>
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Business Name</Text>
+              <View style={styles.inputWrapper}>
+                <IconSymbol name="building.2.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your business name"
+                  placeholderTextColor="#A0A0A0"
+                  value={businessName}
+                  onChangeText={setBusinessName}
+                  autoComplete="organization"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Business Address (Optional)</Text>
+              <View style={styles.inputWrapper}>
+                <IconSymbol name="mappin.and.ellipse" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your business address"
+                  placeholderTextColor="#A0A0A0"
+                  value={businessAddress}
+                  onChangeText={setBusinessAddress}
+                  autoComplete="street-address"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Description (Optional)</Text>
+              <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Describe your business and services..."
+                  placeholderTextColor="#A0A0A0"
+                  multiline
+                  numberOfLines={4}
+                  value={businessDescription}
+                  onChangeText={setBusinessDescription}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, (!businessName.trim() || isLoading) && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={!businessName.trim() || isLoading}
+          >
+            <Text style={styles.buttonText}>{isLoading ? 'Saving...' : 'Continue'}</Text>
+            {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={async () => {
+              const profileData: BusinessProfile = {
+                businessName: businessName.trim() || 'My Business',
+                ownerName: user?.name || '',
+                businessAddress,
+                bio: businessDescription,
+                serviceOfferings: [],
+                locations: [],
+              };
+              await completeOnboarding(profileData);
+              router.replace('/(tabs)');
+            }}
+          >
+            <Text style={styles.skipButtonText}>Skip for now</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardView: {
+    flex: 1,
   },
   content: {
     flexGrow: 1,
-    padding: 24,
+    paddingHorizontal: 24,
   },
-  header: {
-    marginTop: 40,
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.7,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.7,
+  },
+  headerSection: {
     marginBottom: 32,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1A1A1A',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
-    opacity: 0.7,
+    color: '#666666',
+    lineHeight: 24,
   },
   form: {
     marginBottom: 32,
@@ -170,42 +216,75 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#374151',
     marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 56,
+    overflow: 'hidden',
+  },
+  textAreaWrapper: {
+    height: 'auto',
+    minHeight: 120,
+    alignItems: 'flex-start',
+    paddingTop: 12,
+  },
+  inputIcon: {
+    marginLeft: 16,
+    marginRight: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    padding: 16,
+    flex: 1,
+    height: '100%',
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
+    color: '#1A1A1A',
+    fontWeight: '500',
   },
   textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+    height: '100%',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   button: {
     backgroundColor: '#6366F1',
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    height: 56,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
     marginBottom: 16,
   },
   buttonDisabled: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: '#E5E7EB',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   skipButton: {
-    padding: 16,
     alignItems: 'center',
+    padding: 16,
+    marginBottom: 24,
   },
   skipButtonText: {
-    color: '#6366F1',
+    color: '#6B7280',
     fontSize: 16,
+    fontWeight: '600',
   },
 });
-

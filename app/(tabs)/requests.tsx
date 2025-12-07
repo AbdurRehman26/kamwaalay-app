@@ -1,5 +1,3 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
@@ -8,17 +6,21 @@ import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 interface Location {
   id: number | string;
@@ -36,7 +38,7 @@ interface FilterState {
 export default function RequestsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { getJobs, applyToJob } = useApp();
+  const { getJobs, applyToJob, refreshJobs } = useApp();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'my' | 'all' | 'open' | 'applied'>(
@@ -46,8 +48,9 @@ export default function RequestsScreen() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const jobs = getJobs();
-  
+
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
     services: [],
@@ -58,11 +61,11 @@ export default function RequestsScreen() {
 
   // For users: show their own requests
   const myRequests = jobs.filter((r) => r.userId === user?.id);
-  
+
   // For helpers/businesses: filter requests
   const allRequests = jobs;
   const openRequests = allRequests.filter((r) => r.status === 'open');
-  const appliedRequests = allRequests.filter((r) => 
+  const appliedRequests = allRequests.filter((r) =>
     r.applicants && r.applicants.includes(user?.id || '')
   );
 
@@ -94,7 +97,7 @@ export default function RequestsScreen() {
       setLocations([]);
       return;
     }
-    
+
     try {
       setIsLoadingLocations(true);
       const response = await apiService.get(
@@ -106,7 +109,7 @@ export default function RequestsScreen() {
 
       if (response.success && response.data) {
         let locationsData: Location[] = [];
-        
+
         if (response.data.locations) {
           locationsData = Array.isArray(response.data.locations.data)
             ? response.data.locations.data
@@ -201,9 +204,9 @@ export default function RequestsScreen() {
         return filters.locations.some((location) => {
           const filterLocation = (location || '').toLowerCase().trim();
           // Match if request location contains filter location or vice versa
-          return requestLocation.includes(filterLocation) || 
-                 filterLocation.includes(requestLocation) ||
-                 requestLocation === filterLocation;
+          return requestLocation.includes(filterLocation) ||
+            filterLocation.includes(requestLocation) ||
+            requestLocation === filterLocation;
         });
       });
     }
@@ -286,19 +289,19 @@ export default function RequestsScreen() {
         >
           <View style={styles.cardHeader}>
             <View style={styles.cardInfo}>
-              <ThemedText type="subtitle" style={styles.cardTitle}>
+              <Text style={styles.cardTitle} numberOfLines={1}>
                 {request.serviceName}
-              </ThemedText>
+              </Text>
               {isHelperOrBusiness && (
                 <View style={styles.userInfo}>
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
                   </View>
-                  <ThemedText style={styles.cardUser}>{request.userName || 'Unknown'}</ThemedText>
+                  <Text style={styles.cardUser}>{request.userName || 'Unknown'}</Text>
                 </View>
               )}
               {user?.userType === 'user' && (
-                <ThemedText style={styles.cardUser}>by {request.userName || 'Unknown'}</ThemedText>
+                <Text style={styles.cardUser}>by {request.userName || 'Unknown'}</Text>
               )}
             </View>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
@@ -306,20 +309,20 @@ export default function RequestsScreen() {
             </View>
           </View>
 
-          <ThemedText style={styles.cardDescription} numberOfLines={3}>
+          <Text style={styles.cardDescription} numberOfLines={3}>
             {request.description}
-          </ThemedText>
+          </Text>
 
           {isHelperOrBusiness && (
             <View style={styles.cardDetails}>
               <View style={styles.detailRow}>
                 <IconSymbol name="location.fill" size={16} color="#6366F1" />
-                <ThemedText style={styles.detailText}>{request.location}</ThemedText>
+                <Text style={styles.detailText}>{request.location}</Text>
               </View>
               {request.budget && (
                 <View style={styles.detailRow}>
                   <IconSymbol name="dollarsign.circle.fill" size={16} color="#6366F1" />
-                  <ThemedText style={styles.detailText}>₨{request.budget}</ThemedText>
+                  <Text style={styles.detailText}>₨{request.budget}</Text>
                 </View>
               )}
             </View>
@@ -328,19 +331,22 @@ export default function RequestsScreen() {
           {!isHelperOrBusiness && (
             <View style={styles.cardFooter}>
               <View style={styles.locationContainer}>
-                <IconSymbol name="location.fill" size={14} color="#999" />
-                <ThemedText style={styles.location}>{request.location}</ThemedText>
+                <IconSymbol name="location.fill" size={14} color="#9CA3AF" />
+                <Text style={styles.location}>{request.location}</Text>
               </View>
               {request.budget && (
-                <ThemedText style={styles.budget}>₨{request.budget}</ThemedText>
+                <Text style={styles.budget}>₨{request.budget}</Text>
               )}
             </View>
           )}
 
           {request.applicants && request.applicants.length > 0 && (
-            <ThemedText style={styles.applicants}>
-              {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
-            </ThemedText>
+            <View style={styles.applicantsContainer}>
+              <IconSymbol name="person.2.fill" size={14} color="#6366F1" />
+              <Text style={styles.applicants}>
+                {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
 
@@ -393,7 +399,7 @@ export default function RequestsScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return '#E8F5E9';
+      case 'open': return '#E0F2F1';
       case 'in_progress': return '#EEF2FF';
       case 'completed': return '#F5F5F5';
       default: return '#FFEBEE';
@@ -401,345 +407,390 @@ export default function RequestsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ThemedView style={styles.container}>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
+
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          {user?.userType === 'user' ? 'My Jobs' : 'Jobs'}
-        </ThemedText>
-        {user?.userType === 'user' && (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => router.push('/requests/create')}
-          >
-            <IconSymbol name="plus.circle.fill" size={28} color="#6366F1" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Search Bar - Only for helpers/businesses */}
-      {(user?.userType === 'helper' || user?.userType === 'business') && (
-        <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={20} color="#999" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search jobs..."
-            placeholderTextColor="#999"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <TouchableOpacity
-            style={styles.filterIconButton}
-            onPress={() => setShowFilterModal(true)}
-          >
-            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#6366F1" : "#999"} />
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <Text style={styles.title}>
+            {user?.userType === 'user' ? 'My Jobs' : 'Find Jobs'}
+          </Text>
+          {user?.userType === 'user' && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push('/requests/create')}
+            >
+              <IconSymbol name="plus.circle.fill" size={32} color="#6366F1" />
+            </TouchableOpacity>
+          )}
         </View>
-      )}
 
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        {user?.userType === 'user' ? (
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === 'my' && styles.tabActive]}
-            onPress={() => setSelectedTab('my')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'my' && styles.tabTextActive]}>
-              My Requests ({myRequests.length})
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <>
+        {/* Search Bar - Only for helpers/businesses */}
+        {(user?.userType === 'helper' || user?.userType === 'business') && (
+          <View style={styles.searchContainer}>
+            <IconSymbol name="magnifyingglass" size={20} color="#9CA3AF" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search jobs..."
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
             <TouchableOpacity
-              style={[styles.tab, selectedTab === 'all' && styles.tabActive]}
-              onPress={() => setSelectedTab('all')}
+              style={styles.filterIconButton}
+              onPress={() => setShowFilterModal(true)}
             >
-              <Text style={[styles.tabText, selectedTab === 'all' && styles.tabTextActive]}>
-                All ({allRequests.length})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, selectedTab === 'open' && styles.tabActive]}
-              onPress={() => setSelectedTab('open')}
-            >
-              <Text style={[styles.tabText, selectedTab === 'open' && styles.tabTextActive]}>
-                Open ({openRequests.length})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, selectedTab === 'applied' && styles.tabActive]}
-              onPress={() => setSelectedTab('applied')}
-            >
-              <Text style={[styles.tabText, selectedTab === 'applied' && styles.tabTextActive]}>
-                Applied ({appliedRequests.length})
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {/* Content */}
-      <ScrollView 
-        style={styles.scrollView} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
-      >
-        {filteredRequests.length > 0 ? (
-          <View style={styles.content}>
-            {filteredRequests.map((request) => renderRequestCard(request))}
-          </View>
-        ) : (
-          <View style={styles.emptyState}>
-            <IconSymbol name="list.bullet" size={48} color="#CCCCCC" />
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              {user?.userType === 'user' ? 'No Jobs Yet' : 'No Jobs Found'}
-            </ThemedText>
-            <ThemedText style={styles.emptyText}>
-              {user?.userType === 'user' ? (
-                'Create your first job to get started'
-              ) : activeFiltersCount > 0 ? (
-                'No requests match your filters. Try adjusting your filters.'
-              ) : searchQuery.trim() ? (
-                'Try adjusting your search'
-              ) : selectedTab === 'applied' ? (
-                "You haven't applied to any requests yet"
-              ) : (
-                'No jobs available at the moment'
+              <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#6366F1" : "#9CA3AF"} />
+              {activeFiltersCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+                </View>
               )}
-            </ThemedText>
-            {user?.userType === 'user' && (
-              <TouchableOpacity
-                style={styles.createButton}
-                onPress={() => router.push('/requests/create')}
-              >
-                <Text style={styles.createButtonText}>Create Your First Job</Text>
-              </TouchableOpacity>
-            )}
+            </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
 
-      {/* Filter Modal - Only for helpers/businesses */}
-      {(user?.userType === 'helper' || user?.userType === 'business') && (
-        <Modal
-          visible={showFilterModal}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowFilterModal(false)}
+        {/* Tabs */}
+        <View style={styles.tabs}>
+          {user?.userType === 'user' ? (
+            <TouchableOpacity
+              style={[styles.tab, selectedTab === 'my' && styles.tabActive]}
+              onPress={() => setSelectedTab('my')}
+            >
+              <Text style={[styles.tabText, selectedTab === 'my' && styles.tabTextActive]}>
+                My Requests ({myRequests.length})
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.tab, selectedTab === 'all' && styles.tabActive]}
+                onPress={() => setSelectedTab('all')}
+              >
+                <Text style={[styles.tabText, selectedTab === 'all' && styles.tabTextActive]}>
+                  All ({allRequests.length})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, selectedTab === 'open' && styles.tabActive]}
+                onPress={() => setSelectedTab('open')}
+              >
+                <Text style={[styles.tabText, selectedTab === 'open' && styles.tabTextActive]}>
+                  Open ({openRequests.length})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, selectedTab === 'applied' && styles.tabActive]}
+                onPress={() => setSelectedTab('applied')}
+              >
+                <Text style={[styles.tabText, selectedTab === 'applied' && styles.tabTextActive]}>
+                  Applied ({appliedRequests.length})
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {/* Content */}
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={async () => {
+                setIsRefreshing(true);
+                try {
+                  await refreshJobs();
+                } catch (error) {
+                  console.error('Error refreshing jobs:', error);
+                } finally {
+                  setIsRefreshing(false);
+                }
+              }}
+              tintColor="#6366F1"
+              colors={['#6366F1']}
+            />
+          }
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <ThemedText type="title" style={styles.modalTitle}>Filters</ThemedText>
-                <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                  <IconSymbol name="xmark" size={24} color="#000" />
-                </TouchableOpacity>
+          {isRefreshing && jobs.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#6366F1" />
+              <Text style={styles.loadingText}>Loading jobs...</Text>
+            </View>
+          ) : filteredRequests.length > 0 ? (
+            <View style={styles.content}>
+              {filteredRequests.map((request) => renderRequestCard(request))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <IconSymbol name="doc.text.fill" size={48} color="#9CA3AF" />
               </View>
+              <Text style={styles.emptyTitle}>
+                {user?.userType === 'user' ? 'No Jobs Yet' : 'No Jobs Found'}
+              </Text>
+              <Text style={styles.emptyText}>
+                {user?.userType === 'user' ? (
+                  'Create your first job to get started'
+                ) : activeFiltersCount > 0 ? (
+                  'No requests match your filters. Try adjusting your filters.'
+                ) : searchQuery.trim() ? (
+                  'Try adjusting your search'
+                ) : selectedTab === 'applied' ? (
+                  "You haven't applied to any requests yet"
+                ) : (
+                  'No jobs available at the moment'
+                )}
+              </Text>
+              {user?.userType === 'user' && (
+                <TouchableOpacity
+                  style={styles.createButton}
+                  onPress={() => router.push('/requests/create')}
+                >
+                  <Text style={styles.createButtonText}>Create Your First Job</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </ScrollView>
 
-              <ScrollView style={styles.modalScrollView}>
-                {/* Services Filter */}
-                <View style={styles.filterSection}>
-                  <ThemedText type="subtitle" style={styles.filterSectionTitle}>
-                    Service Types
-                  </ThemedText>
-                  <View style={styles.chipContainer}>
-                    {availableServices.map((service) => {
-                      const isSelected = filters.services.includes(service);
-                      return (
-                        <TouchableOpacity
-                          key={service}
-                          style={[styles.chip, isSelected && styles.chipActive]}
-                          onPress={() => {
-                            if (isSelected) {
-                              setFilters({
-                                ...filters,
-                                services: filters.services.filter((s) => s !== service),
-                              });
-                            } else {
-                              setFilters({
-                                ...filters,
-                                services: [...filters.services, service],
-                              });
-                            }
-                          }}
-                        >
-                          <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                            {service}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+        {/* Filter Modal - Only for helpers/businesses */}
+        {(user?.userType === 'helper' || user?.userType === 'business') && (
+          <Modal
+            visible={showFilterModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowFilterModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Filters</Text>
+                  <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                    <IconSymbol name="xmark" size={24} color="#1A1A1A" />
+                  </TouchableOpacity>
                 </View>
 
-                {/* Locations Filter */}
-                <View style={styles.filterSection}>
-                  <ThemedText type="subtitle" style={styles.filterSectionTitle}>
-                    Locations
-                  </ThemedText>
-                  <TextInput
-                    style={styles.locationSearchInput}
-                    placeholder="Search locations..."
-                    placeholderTextColor="#999"
-                    value={locationSearch}
-                    onChangeText={setLocationSearch}
-                  />
-                  {isLoadingLocations && (
-                    <ActivityIndicator size="small" color="#6366F1" style={styles.loadingIndicator} />
-                  )}
-                  <View style={styles.chipContainer}>
-                    {/* Show locations from requests first */}
-                    {availableLocationsFromRequests.map((location) => {
-                      const isSelected = filters.locations.includes(location);
-                      return (
-                        <TouchableOpacity
-                          key={location}
-                          style={[styles.chip, isSelected && styles.chipActive]}
-                          onPress={() => {
-                            if (isSelected) {
-                              setFilters({
-                                ...filters,
-                                locations: filters.locations.filter((l) => l !== location),
-                              });
-                            } else {
-                              setFilters({
-                                ...filters,
-                                locations: [...filters.locations, location],
-                              });
-                            }
-                          }}
-                        >
-                          <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                            {location}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                    {/* Show API search results */}
-                    {locations.map((location) => {
-                      const locationName = location.area || location.name;
-                      const isSelected = filters.locations.includes(locationName);
-                      return (
-                        <TouchableOpacity
-                          key={location.id}
-                          style={[styles.chip, isSelected && styles.chipActive]}
-                          onPress={() => {
-                            if (isSelected) {
-                              setFilters({
-                                ...filters,
-                                locations: filters.locations.filter((l) => l !== locationName),
-                              });
-                            } else {
-                              setFilters({
-                                ...filters,
-                                locations: [...filters.locations, locationName],
-                              });
-                            }
-                          }}
-                        >
-                          <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                            {locationName}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Budget Filter */}
-                <View style={styles.filterSection}>
-                  <ThemedText type="subtitle" style={styles.filterSectionTitle}>
-                    Budget Range
-                  </ThemedText>
-                  <View style={styles.budgetContainer}>
-                    <View style={styles.budgetInputContainer}>
-                      <Text style={styles.budgetLabel}>Min (₨)</Text>
-                      <TextInput
-                        style={styles.budgetInput}
-                        placeholder="0"
-                        keyboardType="numeric"
-                        value={filters.minBudget !== null ? filters.minBudget.toString() : ''}
-                        onChangeText={(text) => {
-                          const value = text.trim() === '' ? null : parseInt(text, 10);
-                          setFilters({
-                            ...filters,
-                            minBudget: isNaN(value as number) ? null : value,
-                          });
-                        }}
-                      />
-                    </View>
-                    <View style={styles.budgetInputContainer}>
-                      <Text style={styles.budgetLabel}>Max (₨)</Text>
-                      <TextInput
-                        style={styles.budgetInput}
-                        placeholder="No limit"
-                        keyboardType="numeric"
-                        value={filters.maxBudget !== null ? filters.maxBudget.toString() : ''}
-                        onChangeText={(text) => {
-                          const value = text.trim() === '' ? null : parseInt(text, 10);
-                          setFilters({
-                            ...filters,
-                            maxBudget: isNaN(value as number) ? null : value,
-                          });
-                        }}
-                      />
+                <ScrollView style={styles.modalScrollView}>
+                  {/* Services Filter */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterSectionTitle}>
+                      Service Types
+                    </Text>
+                    <View style={styles.chipContainer}>
+                      {availableServices.map((service) => {
+                        const isSelected = filters.services.includes(service);
+                        return (
+                          <TouchableOpacity
+                            key={service}
+                            style={[styles.chip, isSelected && styles.chipActive]}
+                            onPress={() => {
+                              if (isSelected) {
+                                setFilters({
+                                  ...filters,
+                                  services: filters.services.filter((s) => s !== service),
+                                });
+                              } else {
+                                setFilters({
+                                  ...filters,
+                                  services: [...filters.services, service],
+                                });
+                              }
+                            }}
+                          >
+                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                              {service}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
-                </View>
-              </ScrollView>
 
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={styles.clearFiltersButton}
-                  onPress={clearFilters}
-                >
-                  <Text style={styles.clearFiltersText}>Clear All</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.applyFiltersButton}
-                  onPress={() => setShowFilterModal(false)}
-                >
-                  <Text style={styles.applyFiltersText}>Apply Filters</Text>
-                </TouchableOpacity>
+                  {/* Locations Filter */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterSectionTitle}>
+                      Locations
+                    </Text>
+                    <TextInput
+                      style={styles.locationSearchInput}
+                      placeholder="Search locations..."
+                      placeholderTextColor="#9CA3AF"
+                      value={locationSearch}
+                      onChangeText={setLocationSearch}
+                    />
+                    {isLoadingLocations && (
+                      <ActivityIndicator size="small" color="#6366F1" style={styles.loadingIndicator} />
+                    )}
+                    <View style={styles.chipContainer}>
+                      {/* Show locations from requests first */}
+                      {availableLocationsFromRequests.map((location) => {
+                        const isSelected = filters.locations.includes(location);
+                        return (
+                          <TouchableOpacity
+                            key={location}
+                            style={[styles.chip, isSelected && styles.chipActive]}
+                            onPress={() => {
+                              if (isSelected) {
+                                setFilters({
+                                  ...filters,
+                                  locations: filters.locations.filter((l) => l !== location),
+                                });
+                              } else {
+                                setFilters({
+                                  ...filters,
+                                  locations: [...filters.locations, location],
+                                });
+                              }
+                            }}
+                          >
+                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                              {location}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {/* Show API search results */}
+                      {locations.map((location) => {
+                        const locationName = location.area || location.name;
+                        const isSelected = filters.locations.includes(locationName);
+                        return (
+                          <TouchableOpacity
+                            key={location.id}
+                            style={[styles.chip, isSelected && styles.chipActive]}
+                            onPress={() => {
+                              if (isSelected) {
+                                setFilters({
+                                  ...filters,
+                                  locations: filters.locations.filter((l) => l !== locationName),
+                                });
+                              } else {
+                                setFilters({
+                                  ...filters,
+                                  locations: [...filters.locations, locationName],
+                                });
+                              }
+                            }}
+                          >
+                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                              {locationName}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  {/* Budget Filter */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterSectionTitle}>
+                      Budget Range
+                    </Text>
+                    <View style={styles.budgetContainer}>
+                      <View style={styles.budgetInputContainer}>
+                        <Text style={styles.budgetLabel}>Min (₨)</Text>
+                        <TextInput
+                          style={styles.budgetInput}
+                          placeholder="0"
+                          keyboardType="numeric"
+                          value={filters.minBudget !== null ? filters.minBudget.toString() : ''}
+                          onChangeText={(text) => {
+                            const value = text.trim() === '' ? null : parseInt(text, 10);
+                            setFilters({
+                              ...filters,
+                              minBudget: isNaN(value as number) ? null : value,
+                            });
+                          }}
+                        />
+                      </View>
+                      <View style={styles.budgetInputContainer}>
+                        <Text style={styles.budgetLabel}>Max (₨)</Text>
+                        <TextInput
+                          style={styles.budgetInput}
+                          placeholder="No limit"
+                          keyboardType="numeric"
+                          value={filters.maxBudget !== null ? filters.maxBudget.toString() : ''}
+                          onChangeText={(text) => {
+                            const value = text.trim() === '' ? null : parseInt(text, 10);
+                            setFilters({
+                              ...filters,
+                              maxBudget: isNaN(value as number) ? null : value,
+                            });
+                          }}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <TouchableOpacity
+                    style={styles.clearFiltersButton}
+                    onPress={clearFilters}
+                  >
+                    <Text style={styles.clearFiltersText}>Clear All</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.applyFiltersButton}
+                    onPress={() => setShowFilterModal(false)}
+                  >
+                    <Text style={styles.applyFiltersText}>Apply Filters</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
-      )}
-      </ThemedView>
-    </SafeAreaView>
+          </Modal>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
+  },
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.6,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.6,
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#1A1A1A',
+    letterSpacing: -0.5,
   },
   addButton: {
     padding: 4,
@@ -751,16 +802,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 16,
+    marginHorizontal: 24,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: '#F3F4F6',
     gap: 12,
   },
   searchInput: {
@@ -769,27 +819,47 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1A1A1A',
   },
+  filterIconButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  filterBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   tabs: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 24,
     paddingBottom: 16,
     gap: 12,
-    backgroundColor: '#FFFFFF',
   },
   tab: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: '#F3F4F6',
   },
   tabActive: {
     backgroundColor: '#6366F1',
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#6B7280',
   },
   tabTextActive: {
     color: '#FFFFFF',
@@ -798,22 +868,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
   },
   cardWrapper: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: '#F3F4F6',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
     elevation: 3,
   },
   cardHeader: {
@@ -824,13 +893,13 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
-    marginRight: 10,
+    marginRight: 12,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 4,
     color: '#1A1A1A',
+    marginBottom: 4,
   },
   userInfo: {
     flexDirection: 'row',
@@ -839,64 +908,62 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 10,
+    fontWeight: '700',
     color: '#6366F1',
   },
   cardUser: {
-    fontSize: 14,
-    opacity: 0.7,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
     fontWeight: '500',
   },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    color: '#1A1A1A',
   },
   cardDescription: {
     fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 14,
+    color: '#6B7280',
     lineHeight: 20,
-    color: '#666',
+    marginBottom: 16,
   },
   cardDetails: {
-    gap: 10,
-    marginBottom: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   detailText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
     fontWeight: '500',
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F9FAFB',
     marginBottom: 12,
   },
   locationContainer: {
@@ -906,8 +973,7 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 13,
-    opacity: 0.6,
-    color: '#666',
+    color: '#6B7280',
     fontWeight: '500',
   },
   budget: {
@@ -915,18 +981,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#6366F1',
   },
+  applicantsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
   applicants: {
-    fontSize: 12,
-    opacity: 0.6,
-    marginTop: 8,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#6366F1',
+    fontWeight: '600',
   },
   cardActions: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-    paddingHorizontal: 0,
+    gap: 12,
+    marginTop: 12,
   },
   contactButton: {
     flex: 1,
@@ -934,171 +1003,164 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EEF2FF',
-    padding: 14,
+    padding: 12,
     borderRadius: 12,
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#BBDEFB',
   },
   contactButtonText: {
-    color: '#1976D2',
-    fontSize: 15,
-    fontWeight: '700',
+    color: '#6366F1',
+    fontSize: 14,
+    fontWeight: '600',
   },
   viewDetailsButton: {
     flex: 1,
-    backgroundColor: '#6366F1',
-    padding: 14,
-    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    padding: 12,
+    borderRadius: 12,
+  },
+  viewDetailsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  appliedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0FDF4',
+    padding: 12,
+    borderRadius: 12,
+    gap: 8,
+    flex: 1,
+  },
+  appliedText: {
+    color: '#16A34A',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  closedBadge: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 12,
+  },
+  closedText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  noApplicantsBadge: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderStyle: 'dashed',
+  },
+  noApplicantsText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  createButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
-  viewDetailsButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  appliedBadge: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E8F5E9',
-    padding: 14,
-    borderRadius: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-  },
-  appliedText: {
-    color: '#2E7D32',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  closedBadge: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
-    padding: 14,
-    borderRadius: 12,
-  },
-  closedText: {
-    color: '#999',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  noApplicantsBadge: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  noApplicantsText: {
-    color: '#999',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 20,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 8,
-    color: '#1A1A1A',
-  },
-  emptyText: {
-    fontSize: 15,
-    opacity: 0.6,
-    textAlign: 'center',
-    color: '#666',
-    lineHeight: 22,
-  },
-  createButton: {
-    backgroundColor: '#6366F1',
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 24,
-    paddingHorizontal: 24,
-  },
   createButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  filterIconButton: {
-    padding: 4,
-    position: 'relative',
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#FF3B30',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  filterBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-    paddingBottom: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '80%',
+    paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#F3F4F6',
   },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
   },
   modalScrollView: {
-    maxHeight: '70%',
+    flex: 1,
   },
   filterSection: {
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#F3F4F6',
   },
   filterSectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 16,
   },
   chipContainer: {
     flexDirection: 'row',
@@ -1109,84 +1171,96 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F3F4F6',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB',
   },
   chipActive: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
     borderColor: '#6366F1',
   },
   chipText: {
     fontSize: 14,
-    color: '#666',
+    color: '#4B5563',
     fontWeight: '500',
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: '#6366F1',
+    fontWeight: '600',
   },
   locationSearchInput: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: 14,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     marginBottom: 12,
   },
   loadingIndicator: {
-    marginVertical: 8,
+    marginBottom: 12,
   },
   budgetContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   budgetInputContainer: {
     flex: 1,
   },
   budgetLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#6B7280',
     marginBottom: 8,
-    color: '#666',
+    fontWeight: '500',
   },
   budgetInput: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: 14,
+    color: '#1A1A1A',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB',
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 12,
+    padding: 24,
+    gap: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: '#F3F4F6',
   },
   clearFiltersButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
   },
   clearFiltersText: {
+    color: '#4B5563',
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
   },
   applyFiltersButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
+    flex: 2,
+    paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#6366F1',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   applyFiltersText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
 });

@@ -4,20 +4,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DUMMY_PHONE = '9876543210';
+const { width } = Dimensions.get('window');
 
 export default function PhoneLoginScreen() {
+  const insets = useSafeAreaInsets();
   const [authMethod, setAuthMethod] = useState<'otp' | 'password'>('otp');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +30,7 @@ export default function PhoneLoginScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login, user } = useAuth();
+  const { login } = useAuth();
 
   // Clear unverified user data when component mounts to allow fresh login
   useEffect(() => {
@@ -60,7 +65,6 @@ export default function PhoneLoginScreen() {
     try {
       // Validate phone number
       if (phoneNumber.length < 10) {
-        console.log('[PhoneLogin] Validation failed: phone number too short');
         Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
         setIsLoading(false);
         return;
@@ -68,7 +72,6 @@ export default function PhoneLoginScreen() {
 
       // Validate password if using password auth
       if (authMethod === 'password' && !password.trim()) {
-        console.log('[PhoneLogin] Validation failed: password required');
         Alert.alert('Required', 'Please enter your password');
         setIsLoading(false);
         return;
@@ -88,76 +91,41 @@ export default function PhoneLoginScreen() {
         loginData.password = password;
       }
 
-      console.log('[PhoneLogin] Calling login function');
       const result = await login(loginData);
-      console.log('[PhoneLogin] Login result:', {
-        hasResult: !!result,
-        requiresOTP: result?.requiresOTP,
-      });
 
       // Only navigate if login was successful (no error thrown)
       // If OTP is required, navigate to OTP verify screen
       if (authMethod === 'otp' && result?.requiresOTP) {
-        console.log('[PhoneLogin] Navigating to OTP verify screen');
         router.push('/auth/otp-verify');
       } else if (!result || !result.requiresOTP) {
         // Login successful with token - user should be saved and verified
         // Wait a moment for state to update, then navigate
-        console.log('[PhoneLogin] Login successful - waiting for user state update');
-
-        // Use a small delay to allow state to update, then check user and navigate
         setTimeout(async () => {
-          // Re-fetch user from AsyncStorage to get the latest state
           try {
             const userData = await AsyncStorage.getItem('user');
             if (userData) {
               const parsedUser = JSON.parse(userData);
-              console.log('[PhoneLogin] User from storage after login:', {
-                hasUser: !!parsedUser,
-                isVerified: parsedUser.isVerified,
-                onboardingStatus: parsedUser.onboardingStatus,
-              });
-
               if (parsedUser && parsedUser.isVerified) {
                 if (parsedUser.onboardingStatus === 'completed') {
-                  console.log('[PhoneLogin] Navigating to tabs');
                   router.replace('/(tabs)');
                 } else {
-                  console.log('[PhoneLogin] Navigating to onboarding');
                   router.replace('/onboarding/start');
                 }
-              } else {
-                // Fallback: navigation will be handled by _layout.tsx
-                console.log('[PhoneLogin] User not verified yet - _layout.tsx will handle navigation');
               }
-            } else {
-              console.log('[PhoneLogin] No user in storage - _layout.tsx will handle navigation');
             }
           } catch (error) {
             console.error('[PhoneLogin] Error reading user from storage:', error);
-            // Fallback: navigation will be handled by _layout.tsx
           }
         }, 500);
       }
     } catch (error: any) {
       // Extract backend error message
       const errorMsg = error.message || error.error || 'Login failed. Please try again.';
-      console.error('[PhoneLogin] Error in handleContinue:', {
-        message: errorMsg,
-        error: error,
-        stack: error.stack,
-      });
-      
-      // Do NOT navigate on error - stay on login screen
       setErrorMessage(errorMsg);
       Alert.alert('Error', errorMsg);
-      
-      console.log('[PhoneLogin] Login failed - staying on login screen');
-      // Exit early to prevent any navigation - finally block will handle setIsLoading
       return;
     } finally {
       setIsLoading(false);
-      console.log('[PhoneLogin] handleContinue completed');
     }
   };
 
@@ -172,403 +140,371 @@ export default function PhoneLoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
-        <View style={styles.gradientBackground}>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.content}>
-            {/* Logo/Header */}
-            <View style={styles.logoContainer}>
-              <View style={styles.logoCircle}>
-                <Text style={styles.logoText}>K</Text>
-              </View>
-              <Text style={styles.title}>
-                Welcome to Kamwaalay
-              </Text>
-              <Text style={styles.subtitle}>
-                Pakistan's trusted platform for household services
-              </Text>
-            </View>
-
-            {/* Auth Method Selection */}
-            <View style={styles.methodSection}>
-              <Text style={styles.sectionTitle}>Authenticate with</Text>
-              <View style={styles.methodContainer}>
-                <TouchableOpacity
-                  style={[styles.methodButton, authMethod === 'otp' && styles.methodButtonActive]}
-                  onPress={() => setAuthMethod('otp')}
-                >
-                  <IconSymbol name="message.fill" size={24} color={authMethod === 'otp' ? '#6366F1' : '#666'} />
-                  <Text style={[styles.methodText, authMethod === 'otp' && styles.methodTextActive]}>
-                    OTP
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.methodButton, authMethod === 'password' && styles.methodButtonActive]}
-                  onPress={() => setAuthMethod('password')}
-                >
-                  <IconSymbol name="lock.fill" size={24} color={authMethod === 'password' ? '#6366F1' : '#666'} />
-                  <Text style={[styles.methodText, authMethod === 'password' && styles.methodTextActive]}>
-                    Password
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Input Section */}
-            <View style={styles.inputSection}>
-              <View style={styles.inputContainer}>
-                <View style={styles.phonePrefix}>
-                  <Text style={styles.flag}>🇵🇰</Text>
-                  <Text style={styles.prefixText}>+92</Text>
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your phone number"
-                  placeholderTextColor="#999"
-                  keyboardType="phone-pad"
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  maxLength={10}
-                  autoComplete="tel"
-                  textContentType="telephoneNumber"
-                  autoCorrect={false}
-                  spellCheck={false}
-                  importantForAutofill="yes"
+            {/* Header Section */}
+            <View style={[styles.headerSection, { marginTop: insets.top + 40 }]}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require('@/assets/images/icon.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
                 />
               </View>
+              <Text style={styles.welcomeText}>Welcome Back!</Text>
+              <Text style={styles.subtitleText}>
+                Login to access your personalized services
+              </Text>
+            </View>
 
-              {/* Password Input (if password auth method) */}
-              {authMethod === 'password' && (
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#999"
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                    autoComplete="password"
-                    textContentType="password"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    importantForAutofill="yes"
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <IconSymbol name={showPassword ? "eye.fill" : "eye.slash.fill"} size={20} color="#666" />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Error Message Display */}
-              {errorMessage && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{errorMessage}</Text>
-                </View>
-              )}
-
-              {/* Dummy Number Button (only for OTP) */}
-              {authMethod === 'otp' && (
-                <TouchableOpacity style={styles.dummyButton} onPress={handleUseDummy}>
-                  <Text style={styles.dummyButtonText}>
-                    🔓 Use Demo Number: {DUMMY_PHONE}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
+            {/* Auth Method Tabs */}
+            <View style={styles.tabContainer}>
               <TouchableOpacity
-                style={[styles.button, (!isFormValid() || isLoading) && styles.buttonDisabled]}
-                onPress={handleContinue}
-                disabled={!isFormValid() || isLoading}
+                style={[styles.tab, authMethod === 'otp' && styles.activeTab]}
+                onPress={() => setAuthMethod('otp')}
               >
-                <Text style={styles.buttonText}>
-                  {isLoading ? 'Please wait...' : authMethod === 'otp' ? 'Send OTP' : 'Login'}
+                <Text style={[styles.tabText, authMethod === 'otp' && styles.activeTabText]}>
+                  OTP Login
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, authMethod === 'password' && styles.activeTab]}
+                onPress={() => setAuthMethod('password')}
+              >
+                <Text style={[styles.tabText, authMethod === 'password' && styles.activeTabText]}>
+                  Password
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Sign Up Link */}
-            <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-                <Text style={styles.signUpLink}>Sign Up</Text>
+            {/* Form Section */}
+            <View style={styles.formSection}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Phone Number</Text>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.prefixContainer}>
+                    <Text style={styles.flag}>🇵🇰</Text>
+                    <Text style={styles.prefix}>+92</Text>
+                  </View>
+                  <View style={styles.divider} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="300 1234567"
+                    placeholderTextColor="#A0A0A0"
+                    keyboardType="phone-pad"
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    maxLength={10}
+                    autoComplete="tel"
+                  />
+                </View>
+              </View>
+
+              {authMethod === 'password' && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Password</Text>
+                  <View style={styles.inputWrapper}>
+                    <IconSymbol name="lock.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#A0A0A0"
+                      secureTextEntry={!showPassword}
+                      value={password}
+                      onChangeText={setPassword}
+                      autoComplete="password"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeButton}
+                    >
+                      <IconSymbol
+                        name={showPassword ? "eye.fill" : "eye.slash.fill"}
+                        size={20}
+                        color="#A0A0A0"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {errorMessage && (
+                <View style={styles.errorCard}>
+                  <IconSymbol name="exclamationmark.circle.fill" size={16} color="#D32F2F" />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              )}
+
+              {authMethod === 'otp' && (
+                <TouchableOpacity style={styles.demoLink} onPress={handleUseDummy}>
+                  <Text style={styles.demoLinkText}>Use Demo Account</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  (!isFormValid() || isLoading) && styles.submitButtonDisabled
+                ]}
+                onPress={handleContinue}
+                disabled={!isFormValid() || isLoading}
+              >
+                {isLoading ? (
+                  <Text style={styles.submitButtonText}>Processing...</Text>
+                ) : (
+                  <Text style={styles.submitButtonText}>
+                    {authMethod === 'otp' ? 'Send Verification Code' : 'Login'}
+                  </Text>
+                )}
+                {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.termsText}>
-              By continuing, you agree to our{' '}
-              <Text style={styles.linkText}>Terms of Service</Text> and{' '}
-              <Text style={styles.linkText}>Privacy Policy</Text>
-            </Text>
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account?</Text>
+              <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+                <Text style={styles.footerLink}>Create Account</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
   },
-  gradientBackground: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF', // Very light indigo
+    opacity: 0.7,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF', // Very light purple
+    opacity: 0.7,
   },
   content: {
-    flex: 1,
-    padding: 24,
+    paddingHorizontal: 24,
+  },
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  methodSection: {
-    marginBottom: 20,
+  logoImage: {
+    width: 50,
+    height: 50,
   },
-  sectionTitle: {
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 32,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  activeTab: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#6B7280',
+  },
+  activeTabText: {
     color: '#1A1A1A',
-    marginBottom: 12,
   },
-  methodContainer: {
+  formSection: {
+    marginBottom: 32,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrapper: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 56,
+    overflow: 'hidden',
   },
-  methodButton: {
+  prefixContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 16,
+    gap: 8,
+  },
+  flag: {
+    fontSize: 20,
+  },
+  prefix: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  divider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 12,
+  },
+  inputIcon: {
+    marginLeft: 16,
+    marginRight: 12,
+  },
+  input: {
     flex: 1,
+    height: '100%',
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontWeight: '500',
+  },
+  eyeButton: {
     padding: 16,
+  },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    padding: 12,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+    marginBottom: 20,
+    gap: 8,
+  },
+  errorText: {
+    color: '#B91C1C',
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  demoLink: {
+    alignSelf: 'center',
+    marginBottom: 20,
+    padding: 8,
+  },
+  demoLinkText: {
+    color: '#6366F1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 16,
+    height: 56,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-  },
-  methodButtonActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
-  },
-  methodText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  methodTextActive: {
-    color: '#6366F1',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
-  logoText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-    color: '#1A1A1A',
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    opacity: 0.7,
-    color: '#666',
-  },
-  inputSection: {
-    marginBottom: 32,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E8E8E8',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  phonePrefix: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    borderRightWidth: 2,
-    borderRightColor: '#E8E8E8',
-    gap: 8,
-  },
-  flag: {
-    fontSize: 20,
-  },
-  prefixText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  input: {
-    flex: 1,
-    padding: 18,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  emailInputContainer: {
-    marginBottom: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E8E8E8',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  emailInput: {
-    padding: 18,
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E8E8E8',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 18,
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  eyeButton: {
-    padding: 18,
-    paddingLeft: 8,
-  },
-  errorContainer: {
-    backgroundColor: '#FFEBEE',
-    borderWidth: 1,
-    borderColor: '#F44336',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#C62828',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  dummyButton: {
-    backgroundColor: '#E8F5E9',
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-  },
-  dummyButtonText: {
-    color: '#2E7D32',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  button: {
-    backgroundColor: '#6366F1',
-    padding: 18,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonDisabled: {
-    backgroundColor: '#CCCCCC',
+  submitButtonDisabled: {
+    backgroundColor: '#E5E7EB',
     shadowOpacity: 0,
     elevation: 0,
   },
-  buttonText: {
+  submitButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
-  signUpContainer: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 16,
+    gap: 6,
   },
-  signUpText: {
+  footerText: {
+    color: '#6B7280',
     fontSize: 14,
-    color: '#666',
   },
-  signUpLink: {
+  footerLink: {
+    color: '#6366F1',
     fontSize: 14,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  termsText: {
-    fontSize: 12,
-    textAlign: 'center',
-    opacity: 0.6,
-    lineHeight: 18,
-    paddingHorizontal: 20,
-    color: '#666',
-  },
-  linkText: {
-    color: '#6366F1',
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 

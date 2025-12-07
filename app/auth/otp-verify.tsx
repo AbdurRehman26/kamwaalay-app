@@ -1,19 +1,25 @@
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function OTPVerifyScreen() {
+  const insets = useSafeAreaInsets();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -43,21 +49,22 @@ export default function OTPVerifyScreen() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
   const handleOtpChange = (value: string, index: number) => {
     // Only allow numeric characters
     const numericValue = value.replace(/[^0-9]/g, '');
-    
+
     // If the value contains non-numeric characters, ignore it
     if (numericValue !== value && value.length > 0) {
       return; // Reject non-numeric input
     }
-    
+
     if (numericValue.length > 1) {
       // If multiple digits pasted, take only the first one
       const newOtp = [...otp];
       newOtp[index] = numericValue[0];
       setOtp(newOtp);
-      
+
       if (index < 5) {
         inputRefs.current[index + 1]?.focus();
       }
@@ -71,7 +78,6 @@ export default function OTPVerifyScreen() {
     if (numericValue && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
-    // Removed automatic verification - user must click verify button
   };
 
   const handleKeyPress = (key: string, index: number) => {
@@ -99,7 +105,6 @@ export default function OTPVerifyScreen() {
       const isValid = await verifyOTP(code);
       if (isValid) {
         // Navigation will be handled by the useEffect that checks isVerified
-        // No need to manually navigate here
       } else {
         const errorMsg = 'The code you entered is incorrect. Please try again.';
         setErrorMessage(errorMsg);
@@ -108,7 +113,6 @@ export default function OTPVerifyScreen() {
         inputRefs.current[0]?.focus();
       }
     } catch (error: any) {
-      // Extract backend error message from various possible formats
       const errorMsg = error.message || error.error || 'Failed to verify OTP. Please try again.';
       setErrorMessage(errorMsg);
       Alert.alert('Error', errorMsg);
@@ -120,9 +124,8 @@ export default function OTPVerifyScreen() {
   };
 
   const handleResend = async () => {
-    // Clear any previous error message
     setErrorMessage(null);
-    
+
     try {
       await resendOTP();
       setTimer(60);
@@ -130,7 +133,6 @@ export default function OTPVerifyScreen() {
       inputRefs.current[0]?.focus();
       Alert.alert('Success', 'OTP has been resent. Please check your email or phone.');
     } catch (error: any) {
-      // Extract backend error message from various possible formats
       const errorMsg = error.message || error.error || 'Failed to resend OTP. Please try again.';
       setErrorMessage(errorMsg);
       Alert.alert('Error', errorMsg);
@@ -138,37 +140,42 @@ export default function OTPVerifyScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.gradientBackground}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>🔐</Text>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.headerSection, { marginTop: insets.top + 40 }]}>
+            <View style={styles.iconContainer}>
+              <IconSymbol name="lock.shield.fill" size={40} color="#6366F1" />
             </View>
             <Text style={styles.title}>
-              {user?.email && (!user?.phoneNumber || user.phoneNumber.trim() === '') 
-                ? 'Verify Your Email' 
-                : 'Verify Your Phone'}
+              {user?.email && (!user?.phoneNumber || user.phoneNumber.trim() === '')
+                ? 'Verify Email'
+                : 'Verify Phone'}
             </Text>
             <Text style={styles.subtitle}>
               {user?.email && (!user?.phoneNumber || user.phoneNumber.trim() === '') ? (
                 <>
                   We've sent a 6-digit code to{'\n'}
-                  <Text style={styles.phoneNumber}>{user.email}</Text>
+                  <Text style={styles.highlightText}>{user.email}</Text>
                 </>
               ) : (
                 <>
                   We've sent a 6-digit code to{'\n'}
-                  <Text style={styles.phoneNumber}>+92 {user?.phoneNumber || 'your number'}</Text>
+                  <Text style={styles.highlightText}>+92 {user?.phoneNumber || 'your number'}</Text>
                 </>
               )}
             </Text>
-            <View style={styles.demoHint}>
-              <Text style={styles.demoHintText}>💡 Demo: Enter any 6-digit code (e.g., 123456)</Text>
-            </View>
           </View>
 
           <View style={styles.otpContainer}>
@@ -189,16 +196,14 @@ export default function OTPVerifyScreen() {
                 maxLength={1}
                 selectTextOnFocus
                 autoComplete="off"
-                textContentType="none"
-                autoCorrect={false}
-                spellCheck={false}
-                importantForAutofill="no"
+                textContentType="oneTimeCode"
               />
             ))}
           </View>
 
           {errorMessage && (
-            <View style={styles.errorContainer}>
+            <View style={styles.errorCard}>
+              <IconSymbol name="exclamationmark.circle.fill" size={16} color="#D32F2F" />
               <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           )}
@@ -208,11 +213,12 @@ export default function OTPVerifyScreen() {
             onPress={handleVerify}
             disabled={otp.some((d) => !d) || isVerifying}
           >
-            <Text style={styles.buttonText}>{isVerifying ? 'Verifying...' : 'Verify'}</Text>
+            <Text style={styles.buttonText}>{isVerifying ? 'Verifying...' : 'Verify Code'}</Text>
+            {!isVerifying && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
           </TouchableOpacity>
 
           <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>Didn't receive the code? </Text>
+            <Text style={styles.resendText}>Didn't receive code? </Text>
             {timer > 0 ? (
               <Text style={styles.timerText}>Resend in {timer}s</Text>
             ) : (
@@ -221,9 +227,14 @@ export default function OTPVerifyScreen() {
               </TouchableOpacity>
             )}
           </View>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+
+          <View style={styles.demoHint}>
+            <IconSymbol name="lightbulb.fill" size={16} color="#6366F1" />
+            <Text style={styles.demoHintText}>Demo: Enter any 6-digit code (e.g., 123456)</Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -231,145 +242,137 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTENT_PADDING = 24;
 const OTP_GAP = 8;
 const OTP_COUNT = 6;
-// Calculate available width: screen width - content padding (both sides)
 const AVAILABLE_WIDTH = SCREEN_WIDTH - (CONTENT_PADDING * 2);
-// Calculate total gap space: (number of inputs - 1) * gap
 const TOTAL_GAP_SPACE = (OTP_COUNT - 1) * OTP_GAP;
-// Calculate width per input, but limit max width to 50
 const CALCULATED_WIDTH = Math.floor((AVAILABLE_WIDTH - TOTAL_GAP_SPACE) / OTP_COUNT);
 const OTP_INPUT_WIDTH = Math.min(CALCULATED_WIDTH, 50);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  gradientBackground: {
+  keyboardView: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
   content: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
+    flexGrow: 1,
+    paddingHorizontal: 24,
   },
-  header: {
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.7,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.7,
+  },
+  headerSection: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
-  logoCircle: {
+  iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoText: {
-    fontSize: 36,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1A1A1A',
     marginBottom: 12,
     textAlign: 'center',
-    color: '#1A1A1A',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 12,
     color: '#666',
     lineHeight: 24,
   },
-  phoneNumber: {
+  highlightText: {
     fontWeight: '700',
     color: '#1A1A1A',
-  },
-  demoHint: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#BBDEFB',
-  },
-  demoHintText: {
-    fontSize: 13,
-    color: '#1976D2',
-    fontWeight: '600',
-    textAlign: 'center',
   },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 32,
-    paddingHorizontal: 0,
     gap: OTP_GAP,
   },
   otpInput: {
     width: OTP_INPUT_WIDTH,
-    height: 50,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 12,
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
     color: '#1A1A1A',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
   },
   otpInputFilled: {
     borderColor: '#6366F1',
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   button: {
     backgroundColor: '#6366F1',
-    padding: 18,
     borderRadius: 16,
+    height: 56,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'center',
+    gap: 8,
     shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 8,
+    marginBottom: 24,
   },
   buttonDisabled: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: '#E5E7EB',
     shadowOpacity: 0,
     elevation: 0,
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   resendContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexWrap: 'wrap',
+    marginBottom: 32,
   },
   resendText: {
     fontSize: 14,
-    opacity: 0.7,
     color: '#666',
-    fontWeight: '500',
   },
   timerText: {
     fontSize: 14,
@@ -381,20 +384,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#6366F1',
   },
-  errorContainer: {
-    backgroundColor: '#FFEBEE',
-    borderWidth: 1,
-    borderColor: '#F44336',
-    borderRadius: 12,
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
     padding: 12,
-    marginTop: 8,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    gap: 8,
   },
   errorText: {
-    color: '#C62828',
+    color: '#B91C1C',
     fontSize: 14,
     fontWeight: '500',
-    textAlign: 'center',
+    flex: 1,
+  },
+  demoHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    padding: 12,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  demoHintText: {
+    fontSize: 13,
+    color: '#4338CA',
+    fontWeight: '600',
   },
 });
-

@@ -1,11 +1,11 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +16,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -81,6 +83,7 @@ export default function EditProfileScreen() {
           businessName: businessName.trim(),
           ownerName: ownerName.trim(),
           bio: bio.trim() || undefined,
+          experience: bio.trim() || undefined, // Mapping bio to experience/description for business if needed
         };
         // Also update the main name field for businesses
         updatedUser.name = ownerName.trim();
@@ -98,185 +101,229 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
+            <IconSymbol name="chevron.left" size={24} color="#1A1A1A" />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.title}>
-            Edit Profile
-          </ThemedText>
+          <Text style={styles.headerTitle}>Edit Profile</Text>
           <TouchableOpacity
             onPress={handleSave}
             style={styles.saveButton}
             disabled={isLoading}
           >
-            <Text style={styles.saveButtonText}>{isLoading ? 'Saving...' : 'Save'}</Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#6366F1" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         >
           {/* Profile Picture Section */}
-          <View style={styles.section}>
+          <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
                   {(name || user?.name || 'U').charAt(0).toUpperCase()}
                 </Text>
               </View>
-              <TouchableOpacity style={styles.changePhotoButton}>
-                <IconSymbol name="camera.fill" size={20} color="#6366F1" />
-                <Text style={styles.changePhotoText}>Change Photo</Text>
+              <TouchableOpacity style={styles.cameraButton}>
+                <IconSymbol name="camera.fill" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-          </View>
+            <Text style={styles.changePhotoText}>Tap to change photo</Text>
 
-          {/* Basic Information */}
-          <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Basic Information
-            </ThemedText>
-
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>
-                {user?.userType === 'business' ? 'Owner Name' : 'Name'} *
-              </ThemedText>
-              <TextInput
-                style={styles.input}
-                value={user?.userType === 'business' ? ownerName : name}
-                onChangeText={user?.userType === 'business' ? setOwnerName : setName}
-                placeholder={`Enter ${user?.userType === 'business' ? 'owner' : ''} name`}
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            {user?.userType === 'business' && (
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>Business Name *</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={businessName}
-                  onChangeText={setBusinessName}
-                  placeholder="Enter business name"
-                  placeholderTextColor="#999"
-                />
-              </View>
-            )}
-
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Phone Number</ThemedText>
-              <TextInput
-                style={[styles.input, styles.disabledInput]}
-                value={user?.phoneNumber || ''}
-                editable={false}
-                placeholderTextColor="#999"
-              />
-              <ThemedText style={styles.helperText}>
-                Phone number cannot be changed
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* Profile Details for Helpers/Businesses */}
-          {(user?.userType === 'helper' || user?.userType === 'business') && (
-            <View style={styles.section}>
-              <ThemedText type="subtitle" style={styles.sectionTitle}>
-                Profile Details
-              </ThemedText>
-
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>Bio</ThemedText>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={bio}
-                  onChangeText={setBio}
-                  placeholder="Tell us about yourself..."
-                  placeholderTextColor="#999"
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </View>
-
-              {user?.userType === 'helper' && (
-                <View style={styles.inputGroup}>
-                  <ThemedText style={styles.label}>Experience</ThemedText>
-                  <TextInput
-                    style={[styles.input, styles.textArea]}
-                    value={experience}
-                    onChangeText={setExperience}
-                    placeholder="Describe your experience..."
-                    placeholderTextColor="#999"
-                    multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
-                  />
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Account Type Badge */}
-          <View style={styles.section}>
+            {/* Account Type Badge */}
             <View style={styles.badgeContainer}>
-              <ThemedText style={styles.badgeLabel}>Account Type</ThemedText>
               <View style={styles.badge}>
+                <IconSymbol
+                  name={user?.userType === 'business' ? 'building.2.fill' : user?.userType === 'helper' ? 'person.fill' : 'person'}
+                  size={14}
+                  color="#6366F1"
+                />
                 <Text style={styles.badgeText}>
                   {user?.userType === 'user'
                     ? 'Customer'
                     : user?.userType === 'helper'
                       ? 'Helper'
-                      : 'Business'}
+                      : 'Business'} Profile
                 </Text>
               </View>
             </View>
           </View>
+
+          {/* Form Fields */}
+          <View style={styles.formContainer}>
+            <Text style={styles.sectionTitle}>Basic Information</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                {user?.userType === 'business' ? 'Owner Name' : 'Full Name'} <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.inputWrapper}>
+                <IconSymbol name="person" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={user?.userType === 'business' ? ownerName : name}
+                  onChangeText={user?.userType === 'business' ? setOwnerName : setName}
+                  placeholder={`Enter ${user?.userType === 'business' ? 'owner' : 'your full'} name`}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+            </View>
+
+            {user?.userType === 'business' && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Business Name <Text style={styles.required}>*</Text></Text>
+                <View style={styles.inputWrapper}>
+                  <IconSymbol name="building.2" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    value={businessName}
+                    onChangeText={setBusinessName}
+                    placeholder="Enter business name"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              </View>
+            )}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Phone Number</Text>
+              <View style={[styles.inputWrapper, styles.disabledInputWrapper]}>
+                <IconSymbol name="phone" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, styles.disabledInput]}
+                  value={user?.phoneNumber || ''}
+                  editable={false}
+                  placeholderTextColor="#9CA3AF"
+                />
+                <IconSymbol name="lock.fill" size={16} color="#9CA3AF" style={styles.lockIcon} />
+              </View>
+              <Text style={styles.helperText}>
+                Phone number cannot be changed
+              </Text>
+            </View>
+
+            {/* Profile Details for Helpers/Businesses */}
+            {(user?.userType === 'helper' || user?.userType === 'business') && (
+              <>
+                <View style={styles.divider} />
+                <Text style={styles.sectionTitle}>Profile Details</Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Bio</Text>
+                  <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={bio}
+                      onChangeText={setBio}
+                      placeholder="Tell us about yourself..."
+                      placeholderTextColor="#9CA3AF"
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </View>
+
+                {user?.userType === 'helper' && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Experience</Text>
+                    <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+                      <TextInput
+                        style={[styles.input, styles.textArea]}
+                        value={experience}
+                        onChangeText={setExperience}
+                        placeholder="Describe your experience..."
+                        placeholderTextColor="#9CA3AF"
+                        multiline
+                        numberOfLines={3}
+                        textAlignVertical="top"
+                      />
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   keyboardView: {
     flex: 1,
+  },
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.6,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.6,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.8)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    borderBottomColor: 'rgba(239, 246, 255, 0.5)',
   },
   backButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1A1A1A',
-    flex: 1,
-    textAlign: 'center',
   },
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: 20,
   },
   saveButtonText: {
     fontSize: 16,
@@ -286,52 +333,77 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  section: {
+  profileSection: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: '#FFFFFF',
-    marginTop: 12,
-    padding: 20,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E8E8E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  avatarText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#6366F1',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  changePhotoText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+  },
+  badgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  formContainer: {
+    paddingHorizontal: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 20,
     color: '#1A1A1A',
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  avatarText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#6366F1',
-  },
-  changePhotoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-  },
-  changePhotoText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6366F1',
+    marginBottom: 20,
   },
   inputGroup: {
     marginBottom: 20,
@@ -339,52 +411,65 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#374151',
     marginBottom: 8,
-    color: '#1A1A1A',
+  },
+  required: {
+    color: '#EF4444',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  textAreaWrapper: {
+    height: 'auto',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+  },
+  inputIcon: {
+    marginRight: 12,
   },
   input: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
+    flex: 1,
     fontSize: 16,
     color: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  disabledInput: {
-    backgroundColor: '#F5F5F5',
-    color: '#999',
+    height: '100%',
   },
   textArea: {
     minHeight: 100,
-    paddingTop: 16,
+    textAlignVertical: 'top',
+  },
+  disabledInputWrapper: {
+    backgroundColor: '#F9FAFB',
+    borderColor: '#F3F4F6',
+    shadowOpacity: 0,
+  },
+  disabledInput: {
+    color: '#9CA3AF',
+  },
+  lockIcon: {
+    marginLeft: 12,
   },
   helperText: {
     fontSize: 12,
-    color: '#999',
+    color: '#9CA3AF',
     marginTop: 6,
+    marginLeft: 4,
   },
-  badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  badgeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  badge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6366F1',
-    textTransform: 'capitalize',
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 24,
   },
 });
-

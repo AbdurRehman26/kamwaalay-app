@@ -1,5 +1,3 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 const SERVICE_TYPES = [
   { id: 'maid', name: 'Maid', emoji: '🧹' },
@@ -236,317 +238,398 @@ export default function ServiceOfferingsScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
+
+      <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <IconSymbol name="chevron.left" size={24} color="#1A1A1A" />
           </TouchableOpacity>
-          <ThemedText type="title" style={styles.title}>
-            Service Offerings
-          </ThemedText>
-          <View style={{ width: 24 }} />
+          <Text style={styles.headerTitle}>Service Offerings</Text>
+          <View style={styles.placeholder} />
         </View>
 
-        {/* Existing Services */}
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
-            <ThemedText style={styles.loadingText}>Loading service listings...</ThemedText>
-          </View>
-        ) : serviceListings.length > 0 ? (
-          <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Your Service Listings ({serviceListings.length})
-            </ThemedText>
-            {serviceListings.map((listing: ServiceListing) => {
-              const serviceType = listing.service_type || 'Service';
-              const displayName = serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
-              const location = listing.location?.name || listing.area || 'Location not specified';
-
-              return (
-                <View key={listing.id} style={styles.serviceCard}>
-                  <View style={styles.serviceHeader}>
-                    <View style={styles.serviceInfo}>
-                      <ThemedText type="subtitle" style={styles.serviceName}>
-                        {displayName}
-                      </ThemedText>
-                      {listing.work_type && (
-                        <ThemedText style={styles.serviceCategory}>
-                          {listing.work_type.replace('_', ' ')}
-                        </ThemedText>
-                      )}
-                    </View>
-                    <TouchableOpacity onPress={() => handleDeleteService(listing.id.toString())}>
-                      <IconSymbol name="trash.fill" size={20} color="#FF3B30" />
-                    </TouchableOpacity>
-                  </View>
-                  {listing.description && (
-                    <ThemedText style={styles.serviceDescription}>{listing.description}</ThemedText>
-                  )}
-                  {listing.monthly_rate && (
-                    <ThemedText style={styles.servicePrice}>
-                      ₨{listing.monthly_rate.toLocaleString()}/month
-                    </ThemedText>
-                  )}
-                  <View style={styles.serviceLocations}>
-                    <View style={styles.locationTag}>
-                      <Text style={styles.locationTagText}>{location}</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={styles.emptyState}>
-            <IconSymbol name="list.bullet" size={48} color="#CCCCCC" />
-            <ThemedText style={styles.emptyText}>No service listings yet</ThemedText>
-            <ThemedText style={styles.emptySubtext}>Add your first service below</ThemedText>
-          </View>
-        )}
-
-        {/* Add New Service Form */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Add New Service
-          </ThemedText>
-
-          <View style={styles.form}>
-            {/* Service Types */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>
-                Select Service Types <Text style={styles.required}>*</Text>
-              </ThemedText>
-              <ThemedText style={styles.instruction}>
-                Choose the services for this offer. You can select multiple.
-              </ThemedText>
-              <View style={styles.serviceTypesContainer}>
-                {SERVICE_TYPES.map((service) => {
-                  const isSelected = selectedServiceTypes.includes(service.id);
-                  return (
-                    <TouchableOpacity
-                      key={service.id}
-                      style={[
-                        styles.serviceTypeCard,
-                        isSelected && styles.serviceTypeCardSelected,
-                      ]}
-                      onPress={() => toggleServiceType(service.id)}
-                    >
-                      <Text style={styles.serviceEmoji}>{service.emoji}</Text>
-                      <Text
-                        style={[
-                          styles.serviceTypeName,
-                          isSelected && styles.serviceTypeNameSelected,
-                        ]}
-                      >
-                        {service.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Existing Services */}
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#6366F1" />
+              <Text style={styles.loadingText}>Loading service listings...</Text>
             </View>
+          ) : serviceListings.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                Your Service Listings ({serviceListings.length})
+              </Text>
+              {serviceListings.map((listing: ServiceListing) => {
+                const serviceType = listing.service_type || 'Service';
+                const displayName = serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+                const location = listing.location?.name || listing.area || 'Location not specified';
 
-            {/* Locations */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>
-                Select Locations <Text style={styles.required}>*</Text>
-              </ThemedText>
-              <ThemedText style={styles.instruction}>
-                Add locations for this offer. You can add multiple locations.
-              </ThemedText>
-
-              {/* Selected Locations */}
-              {selectedLocations.length > 0 && (
-                <View style={styles.selectedLocationsContainer}>
-                  {selectedLocations.map((loc, index) => (
-                    <View key={loc.id || `location-${index}`} style={styles.locationTag}>
-                      <Text style={styles.locationTagText}>
-                        {loc.area || loc.name}
-                      </Text>
+                return (
+                  <View key={listing.id} style={styles.serviceCard}>
+                    <View style={styles.serviceHeader}>
+                      <View style={styles.serviceInfo}>
+                        <Text style={styles.serviceName}>
+                          {displayName}
+                        </Text>
+                        {listing.work_type && (
+                          <Text style={styles.serviceCategory}>
+                            {listing.work_type.replace('_', ' ')}
+                          </Text>
+                        )}
+                      </View>
                       <TouchableOpacity
-                        onPress={() => handleLocationRemove(loc.id)}
-                        style={styles.removeTagButton}
+                        style={styles.deleteButton}
+                        onPress={() => handleDeleteService(listing.id.toString())}
                       >
-                        <IconSymbol name="xmark.circle.fill" size={16} color="#FF3B30" />
+                        <IconSymbol name="trash.fill" size={20} color="#EF4444" />
                       </TouchableOpacity>
                     </View>
-                  ))}
-                </View>
-              )}
+                    {listing.description && (
+                      <Text style={styles.serviceDescription}>{listing.description}</Text>
+                    )}
+                    {listing.monthly_rate && (
+                      <View style={styles.priceContainer}>
+                        <IconSymbol name="dollarsign.circle.fill" size={16} color="#6366F1" />
+                        <Text style={styles.servicePrice}>
+                          ₨{listing.monthly_rate.toLocaleString()}/month
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.serviceLocations}>
+                      <View style={styles.locationTag}>
+                        <IconSymbol name="location.fill" size={12} color="#6366F1" />
+                        <Text style={styles.locationTagText}>{location}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <IconSymbol name="list.bullet" size={48} color="#9CA3AF" />
+              </View>
+              <Text style={styles.emptyText}>No service listings yet</Text>
+              <Text style={styles.emptySubtext}>Add your first service below</Text>
+            </View>
+          )}
 
-              {/* Location Search */}
-              <View style={styles.locationSearchContainer}>
-                <TextInput
-                  style={styles.locationInput}
-                  placeholder="Search location (e.g., Karachi, Clifton or type area name)..."
-                  placeholderTextColor="#999"
-                  value={locationSearch}
-                  onChangeText={setLocationSearch}
-                />
-                {isLoadingLocations && (
-                  <ActivityIndicator size="small" color="#6366F1" style={styles.loader} />
+          {/* Add New Service Form */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Add New Service
+            </Text>
+
+            <View style={styles.form}>
+              {/* Service Types */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Select Service Types <Text style={styles.required}>*</Text>
+                </Text>
+                <Text style={styles.instruction}>
+                  Choose the services for this offer. You can select multiple.
+                </Text>
+                <View style={styles.serviceTypesContainer}>
+                  {SERVICE_TYPES.map((service) => {
+                    const isSelected = selectedServiceTypes.includes(service.id);
+                    return (
+                      <TouchableOpacity
+                        key={service.id}
+                        style={[
+                          styles.serviceTypeCard,
+                          isSelected && styles.serviceTypeCardSelected,
+                        ]}
+                        onPress={() => toggleServiceType(service.id)}
+                      >
+                        <Text style={styles.serviceEmoji}>{service.emoji}</Text>
+                        <Text
+                          style={[
+                            styles.serviceTypeName,
+                            isSelected && styles.serviceTypeNameSelected,
+                          ]}
+                        >
+                          {service.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Locations */}
+              <View style={[styles.inputGroup, { zIndex: 10 }]}>
+                <Text style={styles.label}>
+                  Select Locations <Text style={styles.required}>*</Text>
+                </Text>
+                <Text style={styles.instruction}>
+                  Add locations for this offer. You can add multiple locations.
+                </Text>
+
+                {/* Selected Locations */}
+                {selectedLocations.length > 0 && (
+                  <View style={styles.selectedLocationsContainer}>
+                    {selectedLocations.map((loc, index) => (
+                      <View key={loc.id || `location-${index}`} style={styles.selectedLocationTag}>
+                        <Text style={styles.selectedLocationTagText}>
+                          {loc.area || loc.name}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => handleLocationRemove(loc.id)}
+                          style={styles.removeTagButton}
+                        >
+                          <IconSymbol name="xmark.circle.fill" size={16} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Location Search */}
+                <View style={styles.locationSearchContainer}>
+                  <IconSymbol name="magnifyingglass" size={20} color="#9CA3AF" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.locationInput}
+                    placeholder="Search location..."
+                    placeholderTextColor="#9CA3AF"
+                    value={locationSearch}
+                    onChangeText={setLocationSearch}
+                  />
+                  {isLoadingLocations && (
+                    <ActivityIndicator size="small" color="#6366F1" style={styles.loader} />
+                  )}
+                </View>
+
+                {/* Location Dropdown */}
+                {showLocationDropdown && filteredLocations.length > 0 && (
+                  <View style={styles.locationDropdown}>
+                    <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
+                      {filteredLocations.map((loc, index) => (
+                        <TouchableOpacity
+                          key={loc.id || `filtered-location-${index}`}
+                          style={styles.locationDropdownItem}
+                          onPress={() => handleLocationSelect(loc)}
+                        >
+                          <IconSymbol name="mappin.circle.fill" size={20} color="#6366F1" />
+                          <Text style={styles.locationDropdownText}>
+                            {loc.area || loc.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
                 )}
               </View>
 
-              {/* Location Dropdown */}
-              {showLocationDropdown && filteredLocations.length > 0 && (
-                <View style={styles.locationDropdown}>
-                  <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
-                    {filteredLocations.map((loc, index) => (
-                      <TouchableOpacity
-                        key={loc.id || `filtered-location-${index}`}
-                        style={styles.locationDropdownItem}
-                        onPress={() => handleLocationSelect(loc)}
-                      >
-                        <Text style={styles.locationDropdownText}>
-                          {loc.area || loc.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-
-            {/* Work Type */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>
-                Work Type <Text style={styles.required}>*</Text>
-              </ThemedText>
-              <View style={styles.workTypeContainer}>
-                {WORK_TYPES.map((type) => (
-                  <TouchableOpacity
-                    key={type.id}
-                    style={[
-                      styles.workTypeButton,
-                      workType === type.id && styles.workTypeButtonActive,
-                    ]}
-                    onPress={() => setWorkType(type.id)}
-                  >
-                    <Text
+              {/* Work Type */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Work Type <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={styles.workTypeContainer}>
+                  {WORK_TYPES.map((type) => (
+                    <TouchableOpacity
+                      key={type.id}
                       style={[
-                        styles.workTypeText,
-                        workType === type.id && styles.workTypeTextActive,
+                        styles.workTypeButton,
+                        workType === type.id && styles.workTypeButtonActive,
                       ]}
+                      onPress={() => setWorkType(type.id)}
                     >
-                      {type.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.workTypeText,
+                          workType === type.id && styles.workTypeTextActive,
+                        ]}
+                      >
+                        {type.name}
+                      </Text>
+                      {workType === type.id && (
+                        <IconSymbol name="checkmark.circle.fill" size={20} color="#6366F1" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Monthly Rate */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Monthly Rate (PKR)</ThemedText>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., 15000"
-                placeholderTextColor="#999"
-                value={monthlyRate}
-                onChangeText={setMonthlyRate}
-                keyboardType="numeric"
-              />
-            </View>
+              {/* Monthly Rate */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Monthly Rate (PKR)</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.currencyPrefix}>₨</Text>
+                  <TextInput
+                    style={styles.inputWithPrefix}
+                    placeholder="e.g., 15000"
+                    placeholderTextColor="#9CA3AF"
+                    value={monthlyRate}
+                    onChangeText={setMonthlyRate}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
 
-            {/* Description */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Description</ThemedText>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Describe this service offer..."
-                placeholderTextColor="#999"
-                multiline
-                numberOfLines={4}
-                value={description}
-                onChangeText={setDescription}
-              />
-            </View>
+              {/* Description */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Describe this service offer..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={4}
+                  value={description}
+                  onChangeText={setDescription}
+                />
+              </View>
 
-            <TouchableOpacity
-              style={[
-                styles.addButton,
-                (selectedServiceTypes.length === 0 || selectedLocations.length === 0) &&
-                styles.addButtonDisabled,
-              ]}
-              onPress={handleAddService}
-              disabled={selectedServiceTypes.length === 0 || selectedLocations.length === 0}
-            >
-              <Text style={styles.addButtonText}>Add Service</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.addButton,
+                  (selectedServiceTypes.length === 0 || selectedLocations.length === 0) &&
+                  styles.addButtonDisabled,
+                ]}
+                onPress={handleAddService}
+                disabled={selectedServiceTypes.length === 0 || selectedLocations.length === 0}
+              >
+                <Text style={styles.addButtonText}>Add Service</Text>
+                <IconSymbol name="plus" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </ThemedView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  scrollView: {
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.6,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.6,
+  },
+  safeArea: {
     flex: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  placeholder: {
+    width: 40,
+  },
+  scrollView: {
+    flex: 1,
   },
   section: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 16,
   },
   serviceCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   serviceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   serviceInfo: {
     flex: 1,
   },
   serviceName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 4,
   },
   serviceCategory: {
     fontSize: 14,
-    opacity: 0.6,
+    color: '#6B7280',
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  deleteButton: {
+    padding: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
   },
   serviceDescription: {
     fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 8,
+    color: '#4B5563',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
   },
   servicePrice: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#6366F1',
-    marginBottom: 8,
   },
   serviceLocations: {
     flexDirection: 'row',
@@ -559,16 +642,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 12,
     gap: 6,
   },
   locationTagText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6366F1',
     fontWeight: '600',
-  },
-  removeTagButton: {
-    padding: 2,
   },
   form: {
     marginTop: 8,
@@ -583,12 +663,12 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   required: {
-    color: '#FF3B30',
+    color: '#EF4444',
   },
   instruction: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
+    color: '#6B7280',
+    marginBottom: 16,
   },
   serviceTypesContainer: {
     flexDirection: 'row',
@@ -599,9 +679,9 @@ const styles = StyleSheet.create({
     width: '30%',
     aspectRatio: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 12,
@@ -617,7 +697,7 @@ const styles = StyleSheet.create({
   serviceTypeName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: '#6B7280',
     textAlign: 'center',
   },
   serviceTypeNameSelected: {
@@ -627,48 +707,78 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  selectedLocationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  selectedLocationTagText: {
+    fontSize: 14,
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  removeTagButton: {
+    padding: 2,
   },
   locationSearchContainer: {
     position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+  },
+  searchIcon: {
+    marginRight: 12,
   },
   locationInput: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    padding: 16,
+    flex: 1,
+    paddingVertical: 16,
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
+    color: '#1A1A1A',
   },
   loader: {
-    position: 'absolute',
-    right: 16,
-    top: 16,
+    marginLeft: 12,
   },
   locationDropdown: {
     maxHeight: 200,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB',
     marginTop: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 4,
+    overflow: 'hidden',
   },
   locationDropdownScroll: {
     maxHeight: 200,
   },
   locationDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#F3F4F6',
+    gap: 12,
   },
   locationDropdownText: {
     fontSize: 16,
     color: '#1A1A1A',
+    fontWeight: '500',
   },
   workTypeContainer: {
     flexDirection: 'row',
@@ -676,12 +786,15 @@ const styles = StyleSheet.create({
   },
   workTypeButton: {
     flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+    gap: 8,
   },
   workTypeButtonActive: {
     borderColor: '#6366F1',
@@ -690,33 +803,63 @@ const styles = StyleSheet.create({
   workTypeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: '#6B7280',
   },
   workTypeTextActive: {
     color: '#6366F1',
   },
-  input: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+  },
+  currencyPrefix: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginRight: 8,
+  },
+  inputWithPrefix: {
+    flex: 1,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  input: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
     color: '#1A1A1A',
   },
   textArea: {
-    height: 100,
+    height: 120,
     textAlignVertical: 'top',
   },
   addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#6366F1',
     padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 8,
+    borderRadius: 16,
+    marginTop: 16,
+    gap: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   addButtonDisabled: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: '#E5E7EB',
+    shadowOpacity: 0,
   },
   addButtonText: {
     color: '#FFFFFF',
@@ -731,24 +874,31 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    opacity: 0.6,
+    color: '#6B7280',
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 16,
-    opacity: 0.7,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    marginTop: 8,
-    opacity: 0.5,
+    color: '#6B7280',
   },
 });
-

@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@/constants/api';
 import { apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Job } from './AuthContext';
 
 interface AppContextType {
@@ -11,6 +11,7 @@ interface AppContextType {
   applyToJob: (requestId: string, applicantId: string) => Promise<void>;
   getJobs: () => Job[];
   getHelpers: () => any[];
+  refreshJobs: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -18,6 +19,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [helpers, setHelpers] = useState<any[]>([]);
+  const isRefreshingJobs = useRef(false);
 
   useEffect(() => {
     loadData();
@@ -33,11 +35,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         false // Public endpoint - no auth required
       );
       if (requestsResponse.success && requestsResponse.data) {
-        // API returns paginated data with 'bookings' key
+        // API returns data in 'job_posts' or 'bookings' key
         // Ensure data is an array
         let rawRequests = [];
-        if (requestsResponse.data.bookings) {
-          // Handle paginated response
+        if (requestsResponse.data.job_posts) {
+          // Handle job_posts response (can be paginated or direct array)
+          rawRequests = Array.isArray(requestsResponse.data.job_posts.data)
+            ? requestsResponse.data.job_posts.data
+            : (Array.isArray(requestsResponse.data.job_posts) ? requestsResponse.data.job_posts : []);
+        } else if (requestsResponse.data.bookings) {
+          // Handle paginated response with bookings key
           rawRequests = Array.isArray(requestsResponse.data.bookings.data)
             ? requestsResponse.data.bookings.data
             : (Array.isArray(requestsResponse.data.bookings) ? requestsResponse.data.bookings : []);
@@ -401,6 +408,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshJobs = useCallback(async () => {
+    // Prevent multiple simultaneous calls
+    if (isRefreshingJobs.current) {
+      console.log('Jobs refresh already in progress, skipping...');
+      return;
+    }
+    
+    isRefreshingJobs.current = true;
+    try {
+      console.log('Refreshing jobs from API...');
+      // Load jobs from API
+      const requestsResponse = await apiService.get(
+        API_ENDPOINTS.JOBS.LIST,
+        undefined,
+        undefined,
+        false
+      );
+      if (requestsResponse.success && requestsResponse.data) {
+        let rawRequests = [];
+        if (requestsResponse.data.job_posts) {
+          // Handle job_posts response (can be paginated or direct array)
+          rawRequests = Array.isArray(requestsResponse.data.job_posts.data)
+            ? requestsResponse.data.job_posts.data
+            : (Array.isArray(requestsResponse.data.job_posts) ? requestsResponse.data.job_posts : []);
+        } else if (requestsResponse.data.bookings) {
+          rawRequests = Array.isArray(requestsResponse.data.bookings.data)
+            ? requestsResponse.data.bookings.data
+            : (Array.isArray(requestsResponse.data.bookings) ? requestsResponse.data.bookings : []);
+        } else {
+          rawRequests = Array.isArray(requestsResponse.data)
+            ? requestsResponse.data
+            : (requestsResponse.data.requests || requestsResponse.data.data || []);
+        }
+
+        console.log(`Loaded ${rawRequests.length} jobs from API`);
+
+        const requests = rawRequests.map((booking: any) => ({
+          id: booking.id?.toString() || booking.booking_id?.toString() || Date.now().toString(),
+          userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
+          userName: booking.user?.name || booking.name || 'Unknown',
+          serviceName: booking.service_type
+            ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
+            : booking.service_name || 'Service',
+          description: booking.special_requirements || booking.description || '',
+          location: booking.area || booking.location || '',
+          budget: booking.monthly_rate || booking.budget || booking.price,
+          status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
+          createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
+          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
+            booking.applicants ||
+            [],
+          _original: booking,
+        }));
+
+        setJobs(requests);
+        await AsyncStorage.setItem('jobs', JSON.stringify(requests));
+        console.log(`Successfully updated ${requests.length} jobs`);
+      } else {
+        console.log('No jobs data in API response');
+      }
+    } catch (error) {
+      console.error('Error refreshing jobs:', error);
+    } finally {
+      isRefreshingJobs.current = false;
+    }
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -410,6 +484,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         applyToJob,
         getJobs: () => Array.isArray(jobs) ? jobs : [],
         getHelpers: () => Array.isArray(helpers) ? helpers : [],
+        refreshJobs,
       }}
     >
       {children}
@@ -428,6 +503,7 @@ export function useApp() {
       applyToJob: async () => { },
       getJobs: () => [],
       getHelpers: () => [],
+      refreshJobs: async () => { },
     } as AppContextType;
   }
   return context;

@@ -1,21 +1,27 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function OnboardingStartScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, updateUser, logout } = useAuth();
   const [name, setName] = useState('');
@@ -39,7 +45,7 @@ export default function OnboardingStartScreen() {
       try {
         // Check if token exists in AsyncStorage
         let token = await AsyncStorage.getItem('authToken');
-        
+
         // If no token in separate key, check user object
         if (!token && user) {
           const userToken = (user as any).token;
@@ -78,7 +84,7 @@ export default function OnboardingStartScreen() {
     try {
       // Ensure token is available before making API call
       let token = await AsyncStorage.getItem('authToken');
-      
+
       // If no token in AsyncStorage, check user object
       if (!token && user) {
         const userToken = (user as any).token;
@@ -116,13 +122,13 @@ export default function OnboardingStartScreen() {
       // Regular users go directly to tabs
       // Get the updated user to ensure we have the latest userType
       const updatedUser = { ...user, ...profileUpdateData };
-      
+
       setTimeout(() => {
         const userType = updatedUser?.userType || user?.userType;
-        
+
         console.log('Onboarding navigation - User type:', userType);
         console.log('Onboarding navigation - User object:', updatedUser);
-        
+
         if (userType === 'helper') {
           console.log('Navigating to helper-profile stepper');
           router.replace('/onboarding/helper-profile');
@@ -141,10 +147,10 @@ export default function OnboardingStartScreen() {
       }, 100);
     } catch (error: any) {
       // Profile update error
-      
+
       // Extract error message
       let extractedErrorMessage = 'Failed to update profile. Please try again.';
-      
+
       if (error instanceof Error) {
         extractedErrorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -152,7 +158,7 @@ export default function OnboardingStartScreen() {
       } else if (error && typeof error === 'object') {
         extractedErrorMessage = error.message || error.error || error.toString();
       }
-      
+
       setErrorMessage(extractedErrorMessage);
       Alert.alert('Update Failed', extractedErrorMessage);
     } finally {
@@ -161,107 +167,162 @@ export default function OnboardingStartScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Let's get started
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Tell us a bit about yourself
-          </ThemedText>
-        </View>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
 
-        <View style={styles.form} nativeID="onboarding-form" data-form="onboarding">
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>
-              {user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'} *
-            </ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder={user?.userType === 'business' ? 'Enter owner name' : 'Enter your name'}
-              placeholderTextColor="#999"
-              value={name}
-              onChangeText={setName}
-              autoComplete="name"
-              textContentType="name"
-              autoCorrect={false}
-              spellCheck={false}
-              importantForAutofill="yes"
-              nativeID="name-input"
-              accessibilityLabel={user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
-              data-autocomplete="name"
-              data-content-type="name"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Email (Optional)</ThemedText>
-            <TextInput
-              style={[styles.input, email && styles.inputDisabled]}
-              placeholder="Enter your email"
-              placeholderTextColor="#999"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-              editable={!email}
-              autoComplete="email"
-              textContentType="emailAddress"
-              autoCorrect={false}
-              spellCheck={false}
-              importantForAutofill="yes"
-              nativeID="email-input"
-              accessibilityLabel="Email Address"
-              data-autocomplete="email"
-              data-content-type="emailAddress"
-            />
-          </View>
-        </View>
-
-        {/* Error Message Display */}
-        {errorMessage && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[styles.button, (!name.trim() || isLoading) && styles.buttonDisabled]}
-          onPress={handleContinue}
-          disabled={!name.trim() || isLoading}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {isLoading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>Continue</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </ThemedView>
+          <View style={styles.content}>
+            {/* Header Section */}
+            <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
+              <Text style={styles.title}>Let's get started</Text>
+              <Text style={styles.subtitle}>
+                Tell us a bit about yourself to personalize your experience
+              </Text>
+            </View>
+
+            <View style={styles.form} nativeID="onboarding-form" data-form="onboarding">
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  {user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <IconSymbol name="person.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={user?.userType === 'business' ? 'Enter owner name' : 'Enter your name'}
+                    placeholderTextColor="#A0A0A0"
+                    value={name}
+                    onChangeText={setName}
+                    autoComplete="name"
+                    textContentType="name"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    importantForAutofill="yes"
+                    nativeID="name-input"
+                    accessibilityLabel={user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
+                    data-autocomplete="name"
+                    data-content-type="name"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email (Optional)</Text>
+                <View style={[styles.inputWrapper, email && styles.inputWrapperDisabled]}>
+                  <IconSymbol name="envelope.fill" size={20} color={email ? "#6B7280" : "#A0A0A0"} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, email && styles.inputDisabled]}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#A0A0A0"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
+                    editable={!email}
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    importantForAutofill="yes"
+                    nativeID="email-input"
+                    accessibilityLabel="Email Address"
+                    data-autocomplete="email"
+                    data-content-type="emailAddress"
+                  />
+                </View>
+                {email ? (
+                  <Text style={styles.helperText}>Email is pre-filled from your account</Text>
+                ) : null}
+              </View>
+            </View>
+
+            {/* Error Message Display */}
+            {errorMessage && (
+              <View style={styles.errorCard}>
+                <IconSymbol name="exclamationmark.circle.fill" size={16} color="#D32F2F" />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.button, (!name.trim() || isLoading) && styles.buttonDisabled]}
+              onPress={handleContinue}
+              disabled={!name.trim() || isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.buttonText}>Continue</Text>
+                  <IconSymbol name="arrow.right" size={20} color="#FFF" />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.7,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.7,
   },
   content: {
-    flexGrow: 1,
-    padding: 24,
+    paddingHorizontal: 24,
   },
-  header: {
-    marginTop: 40,
+  headerSection: {
     marginBottom: 32,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1A1A1A',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
-    opacity: 0.7,
+    color: '#666666',
+    lineHeight: 24,
   },
   form: {
     marginBottom: 32,
@@ -272,49 +333,81 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#374151',
     marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 56,
+    overflow: 'hidden',
+  },
+  inputWrapperDisabled: {
+    backgroundColor: '#F3F4F6',
+  },
+  inputIcon: {
+    marginLeft: 16,
+    marginRight: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    padding: 16,
+    flex: 1,
+    height: '100%',
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
+    color: '#1A1A1A',
+    fontWeight: '500',
   },
   inputDisabled: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#D0D0D0',
-    color: '#666',
+    color: '#6B7280',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 6,
+    marginLeft: 4,
   },
   button: {
     backgroundColor: '#6366F1',
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    height: 56,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
     marginBottom: 24,
   },
   buttonDisabled: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: '#E5E7EB',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  errorContainer: {
-    backgroundColor: '#FFEBEE',
-    borderWidth: 1,
-    borderColor: '#F44336',
-    borderRadius: 12,
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
     padding: 12,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    gap: 8,
   },
   errorText: {
-    color: '#C62828',
+    color: '#B91C1C',
     fontSize: 14,
     fontWeight: '500',
-    textAlign: 'center',
+    flex: 1,
   },
 });
-

@@ -1,4 +1,3 @@
-import { ThemedView } from '@/components/themed-view';
 import { Stepper } from '@/components/ui/stepper';
 import { HelperProfile, useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
@@ -6,12 +5,16 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   StyleSheet,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Step1ServiceOffer from './helper-steps/step1-service-offer';
 import Step2ProfileVerification from './helper-steps/step2-profile-verification';
 import Step3CompleteProfile from './helper-steps/step3-complete-profile';
+
+const { width } = Dimensions.get('window');
 
 interface Location {
   id: number | string;
@@ -41,6 +44,7 @@ interface CompleteProfileData {
 const STEP_LABELS = ['Service Offer', 'Verification', 'Complete Profile'];
 
 export default function HelperProfileScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
@@ -158,33 +162,69 @@ export default function HelperProfileScreen() {
 
   if (isSubmitting) {
     return (
-      <ThemedView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
         </View>
-      </ThemedView>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <Stepper
-        currentStep={currentStep}
-        totalSteps={3}
-        stepLabels={STEP_LABELS}
-      />
-      {renderStep()}
-    </ThemedView>
+    <View style={styles.container}>
+      {/* Decorative Background Elements */}
+      <View style={styles.topCircle} />
+      <View style={styles.bottomCircle} />
+
+      <View style={[styles.content, { paddingTop: insets.top }]}>
+        <Stepper
+          currentStep={currentStep}
+          totalSteps={3}
+          stepLabels={STEP_LABELS}
+        />
+        <View style={styles.stepContainer}>
+          {renderStep()}
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
+  },
+  stepContainer: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: '#EEF2FF',
+    opacity: 0.7,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: '#F5F3FF',
+    opacity: 0.7,
   },
 });

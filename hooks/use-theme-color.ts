@@ -4,19 +4,18 @@
  */
 
 import { Colors } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
-// Force light mode - always return light theme colors
 export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark
 ) {
-  // Always use light theme
-  const theme = 'light';
-  const colorFromProps = props[theme];
+  const { colorScheme } = useTheme();
+  const colorFromProps = props[colorScheme];
 
   if (colorFromProps) {
     return colorFromProps;
   } else {
-    return Colors[theme][colorName];
+    return Colors[colorScheme][colorName];
   }
 }

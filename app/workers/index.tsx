@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -16,6 +17,14 @@ export default function WorkersListScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
+    // Theme colors
+    const backgroundColor = useThemeColor({}, 'background');
+    const textColor = useThemeColor({}, 'text');
+    const textSecondary = useThemeColor({}, 'textSecondary');
+    const textMuted = useThemeColor({}, 'textMuted');
+    const primaryColor = useThemeColor({}, 'primary');
+    const cardBg = useThemeColor({}, 'card');
+
     // TODO: Fetch workers from API
     const workers: any[] = [];
 
@@ -28,15 +37,15 @@ export default function WorkersListScreen() {
             >
                 {workers.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <IconSymbol name="person.2.fill" size={64} color="#CCCCCC" />
-                        <ThemedText type="subtitle" style={styles.emptyTitle}>
+                        <IconSymbol name="person.2.fill" size={64} color={textMuted} />
+                        <ThemedText type="subtitle" style={[styles.emptyTitle, { color: textColor }]}>
                             No Workers Yet
                         </ThemedText>
-                        <ThemedText style={styles.emptyText}>
+                        <ThemedText style={[styles.emptyText, { color: textSecondary }]}>
                             Add your first worker to get started
                         </ThemedText>
                         <TouchableOpacity
-                            style={styles.addWorkerButton}
+                            style={[styles.addWorkerButton, { backgroundColor: primaryColor }]}
                             onPress={() => router.push('/workers/add')}
                         >
                             <Text style={styles.addWorkerButtonText}>Add Worker</Text>
@@ -55,7 +64,6 @@ export default function WorkersListScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F9FA',
     },
     scrollView: {
         flex: 1,
@@ -72,18 +80,15 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginTop: 24,
         marginBottom: 8,
-        color: '#1A1A1A',
     },
     emptyText: {
         fontSize: 15,
         opacity: 0.6,
         textAlign: 'center',
-        color: '#666',
         lineHeight: 22,
         marginBottom: 24,
     },
     addWorkerButton: {
-        backgroundColor: '#6366F1',
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 12,

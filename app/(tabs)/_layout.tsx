@@ -5,11 +5,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function TabLayout() {
   const { user } = useAuth();
   const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
   const insets = useSafeAreaInsets();
+
+  // Theme colors
+  const primaryColor = useThemeColor({}, 'primary');
+  const tabBarBackground = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const iconInactive = useThemeColor({}, 'iconSecondary');
 
   // Debug logging
   console.log('[TabLayout] User type:', user?.userType);
@@ -19,14 +26,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#6366F1', // Primary indigo for active tabs
-        tabBarInactiveTintColor: '#8E8E93', // Medium gray for inactive tabs - more visible
+        tabBarActiveTintColor: primaryColor,
+        tabBarInactiveTintColor: iconInactive,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: tabBarBackground,
           borderTopWidth: 1,
-          borderTopColor: '#E8E8E8',
+          borderTopColor: borderColor,
           height: 70 + insets.bottom,
           paddingBottom: Math.max(10, insets.bottom),
           paddingTop: 8,
@@ -78,9 +85,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="requests"
+        name="job-posts"
         options={{
-          title: isHelperOrBusiness ? 'Requests' : 'Requests',
+          title: isHelperOrBusiness ? 'Job Posts' : 'Job Posts',
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={focused ? 26 : 24}

@@ -106,7 +106,13 @@ export default function ChangePasswordScreen() {
           <View style={{ width: 24 }} />
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          horizontal={false}
+          contentContainerStyle={{ width: '100%' }}
+        >
           {/* Info Section */}
           <View style={styles.infoSection}>
             <IconSymbol name="info.circle.fill" size={24} color="#6366F1" />
@@ -250,6 +256,7 @@ export default function ChangePasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
     backgroundColor: '#F8F9FA',
   },
   keyboardView: {
@@ -277,6 +284,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   infoSection: {
     flexDirection: 'row',

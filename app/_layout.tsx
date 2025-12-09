@@ -1,4 +1,4 @@
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SplashScreen as CustomSplashScreen } from '@/components/splash-screen';
 import { AppProvider } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider as CustomThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -185,6 +186,7 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
       <Stack.Screen name="profile/bookings" options={{ headerShown: false }} />
       <Stack.Screen name="profile/service-offerings" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/add-service-offering" options={{ headerShown: false }} />
       <Stack.Screen name="profile/[type]/[id]" options={{ headerShown: false, title: 'View Profile' }} />
       <Stack.Screen name="service/[id]" options={{ headerShown: false, title: 'Service Details' }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
@@ -193,8 +195,8 @@ function RootLayoutNav() {
       <Stack.Screen name="terms" options={{ headerShown: false }} />
       <Stack.Screen name="privacy" options={{ headerShown: false }} />
       <Stack.Screen name="about" options={{ headerShown: false }} />
-      <Stack.Screen name="requests/create" options={{ headerShown: false }} />
-      <Stack.Screen name="requests/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="job-posts/create" options={{ headerShown: false }} />
+      <Stack.Screen name="job-view/[id]" options={{ headerShown: false }} />
       <Stack.Screen
         name="business/dashboard"
         options={{
@@ -232,6 +234,17 @@ function RootLayoutNav() {
   );
 }
 
+function ThemedApp({ children }: { children: React.ReactNode }) {
+  const { colorScheme } = useTheme();
+
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      {children}
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    </ThemeProvider>
+  );
+}
+
 export default function RootLayout() {
   const [showCustomSplash, setShowCustomSplash] = useState(true);
 
@@ -247,28 +260,24 @@ export default function RootLayout() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Force light mode - always use DefaultTheme
   return (
     <SafeAreaProvider>
-      <ThemeProvider value={DefaultTheme}>
+      <CustomThemeProvider>
         <AuthProvider>
           <AppProvider>
-            {showCustomSplash && (
-              <CustomSplashScreen
-                onFinish={() => {
-                  setShowCustomSplash(false);
-                }}
-              />
-            )}
-            {!showCustomSplash && (
-              <>
-                <RootLayoutNav />
-                <StatusBar style="dark" />
-              </>
-            )}
+            <ThemedApp>
+              {showCustomSplash && (
+                <CustomSplashScreen
+                  onFinish={() => {
+                    setShowCustomSplash(false);
+                  }}
+                />
+              )}
+              {!showCustomSplash && <RootLayoutNav />}
+            </ThemedApp>
           </AppProvider>
         </AuthProvider>
-      </ThemeProvider>
+      </CustomThemeProvider>
     </SafeAreaProvider>
   );
 }

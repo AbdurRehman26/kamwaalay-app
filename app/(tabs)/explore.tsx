@@ -326,7 +326,7 @@ export default function ExploreScreen() {
   // For helpers/businesses, redirect to requests tab (which shows jobs)
   useEffect(() => {
     if (user?.userType === 'helper' || user?.userType === 'business') {
-      router.replace('/(tabs)/requests');
+      router.replace('/(tabs)/job-posts');
     }
   }, [user?.userType, router]);
 

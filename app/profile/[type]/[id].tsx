@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -41,10 +42,13 @@ export default function ProfileViewScreen() {
   const router = useRouter();
   const { type, id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [otherServices, setOtherServices] = useState<any[]>([]);
   const [isLoadingOtherServices, setIsLoadingOtherServices] = useState(false);
+  const [canContact, setCanContact] = useState(false);
+  const [isCheckingContact, setIsCheckingContact] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -429,6 +433,108 @@ export default function ProfileViewScreen() {
     }
   }, [id, type]);
 
+  // Check if user can contact this helper/business
+  useEffect(() => {
+    const checkContactPermission = async () => {
+      // Only check for helper or business profiles
+      const isHelper = type === 'helper';
+      const isBusiness = type === 'business';
+      
+      if (!isHelper && !isBusiness) {
+        // For service listings, allow contact (no restriction)
+        setCanContact(true);
+        return;
+      }
+
+      // If user is not logged in, don't allow contact
+      if (!user?.id || !id) {
+        setCanContact(false);
+        return;
+      }
+
+      setIsCheckingContact(true);
+      try {
+        // Get the user ID of the helper/business profile
+        // Profile ID might be the profile ID, but we need the user ID for matching
+        const profileUserId = profile?.id?.toString() || id?.toString();
+        
+        // Check 1: Check if there's an existing conversation
+        let hasConversation = false;
+        try {
+          const conversationsResponse = await apiService.get(
+            API_ENDPOINTS.MESSAGES.CONVERSATIONS,
+            undefined,
+            undefined,
+            true
+          );
+          
+          if (conversationsResponse.success && conversationsResponse.data?.conversations) {
+            hasConversation = conversationsResponse.data.conversations.some(
+              (conv: any) => {
+                const otherUserId = conv.other_user?.id?.toString();
+                return otherUserId === profileUserId;
+              }
+            );
+          }
+        } catch (error) {
+          console.error('Error checking conversations:', error);
+        }
+
+        // Check 2: Check if user has accepted a job request from this helper/business
+        let hasAcceptedApplication = false;
+        try {
+          const applicationsResponse = await apiService.get(
+            API_ENDPOINTS.JOB_APPLICATIONS.MY_REQUEST_APPLICATIONS,
+            undefined,
+            undefined,
+            true
+          );
+          
+          if (applicationsResponse.success && applicationsResponse.data) {
+            const applications = Array.isArray(applicationsResponse.data)
+              ? applicationsResponse.data
+              : (applicationsResponse.data.applications || applicationsResponse.data.data || []);
+            
+            // Check if there's an accepted application from this helper/business
+            // The applicant should be the helper/business (profileUserId)
+            hasAcceptedApplication = applications.some((app: any) => {
+              const applicantId = app.applicant_id?.toString() || 
+                                  app.user_id?.toString() || 
+                                  app.helper_id?.toString() || 
+                                  app.business_id?.toString() ||
+                                  app.applicant?.id?.toString() ||
+                                  app.user?.id?.toString();
+              const isAccepted = app.status === 'accepted' || 
+                                 app.status === 'approved' || 
+                                 app.status === 'hired';
+              return applicantId === profileUserId && isAccepted;
+            });
+          }
+        } catch (error) {
+          console.error('Error checking job applications:', error);
+        }
+
+        // Allow contact if either condition is met
+        setCanContact(hasConversation || hasAcceptedApplication);
+      } catch (error) {
+        console.error('Error checking contact permission:', error);
+        setCanContact(false);
+      } finally {
+        setIsCheckingContact(false);
+      }
+    };
+
+    // Only check if profile is loaded and user is logged in
+    if (profile && user?.id) {
+      checkContactPermission();
+    } else if (!user?.id) {
+      // If user is not logged in, don't allow contact for helper/business
+      const isHelper = type === 'helper';
+      const isBusiness = type === 'business';
+      setCanContact(!isHelper && !isBusiness);
+    }
+  }, [profile, user, id, type]);
+
   if (isLoading) {
     return (
       <ThemedView style={styles.container}>
@@ -762,34 +868,47 @@ export default function ProfileViewScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Action Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-        <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.callBtn]}
-            onPress={() => handleCall(displayProfile.phone_number)}
-          >
-            <IconSymbol name="phone.fill" size={24} color="#1F2937" />
-            <Text style={[styles.actionBtnText, { color: '#1F2937' }]}>Call</Text>
-          </TouchableOpacity>
+      {/* Bottom Action Bar - Only show contact buttons if allowed */}
+      {(() => {
+        const isHelper = type === 'helper';
+        const isBusiness = type === 'business';
+        // Show contact buttons if: not helper/business OR (helper/business AND canContact)
+        const shouldShowContact = !isHelper && !isBusiness ? true : canContact;
+        
+        if (!shouldShowContact) {
+          return null;
+        }
 
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.whatsappBtn]}
-            onPress={() => handleWhatsApp(displayProfile.phone_number)}
-          >
-            <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
-            <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>WhatsApp</Text>
-          </TouchableOpacity>
+        return (
+          <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.bottomActions}>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.callBtn]}
+                onPress={() => handleCall(displayProfile.phone_number)}
+              >
+                <IconSymbol name="phone.fill" size={24} color="#1F2937" />
+                <Text style={[styles.actionBtnText, { color: '#1F2937' }]}>Call</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.messageBtn]}
-            onPress={() => router.push(`/chat/${displayProfile.id}`)}
-          >
-            <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
-            <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Message</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.whatsappBtn]}
+                onPress={() => handleWhatsApp(displayProfile.phone_number)}
+              >
+                <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
+                <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>WhatsApp</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.messageBtn]}
+                onPress={() => router.push(`/chat/${displayProfile.id}`)}
+              >
+                <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
+                <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Message</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      })()}
     </View>
   );
 }

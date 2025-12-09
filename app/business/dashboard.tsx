@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -19,6 +20,16 @@ export default function BusinessDashboardScreen() {
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<'workers' | 'bookings'>('workers');
 
+    // Theme colors
+    const backgroundColor = useThemeColor({}, 'background');
+    const textColor = useThemeColor({}, 'text');
+    const textSecondary = useThemeColor({}, 'textSecondary');
+    const textMuted = useThemeColor({}, 'textMuted');
+    const primaryColor = useThemeColor({}, 'primary');
+    const primaryLight = useThemeColor({}, 'primaryLight');
+    const cardBg = useThemeColor({}, 'card');
+    const borderColor = useThemeColor({}, 'border');
+
     // Mock data - replace with real data from API
     const stats = {
         totalWorkers: 0,
@@ -31,10 +42,10 @@ export default function BusinessDashboardScreen() {
     const workers: any[] = []; // Replace with actual workers data
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor }]}>
             {/* Decorative Background Elements */}
-            <View style={styles.topCircle} />
-            <View style={styles.bottomCircle} />
+            <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+            <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Header */}
@@ -62,52 +73,68 @@ export default function BusinessDashboardScreen() {
                 >
                     {/* Stats Cards */}
                     <View style={styles.statsContainer}>
-                        <View style={styles.statCard}>
-                            <View style={[styles.statIcon, { backgroundColor: '#EEF2FF' }]}>
-                                <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
+                        <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
+                            <View style={[styles.statIcon, { backgroundColor: primaryLight }]}>
+                                <IconSymbol name="person.2.fill" size={20} color={primaryColor} />
                             </View>
-                            <Text style={styles.statValue}>{stats.totalWorkers}</Text>
-                            <Text style={styles.statLabel}>Total Workers</Text>
+                            <Text style={[styles.statValue, { color: textColor }]}>{stats.totalWorkers}</Text>
+                            <Text style={[styles.statLabel, { color: textSecondary }]}>Total Workers</Text>
                         </View>
-                        <View style={styles.statCard}>
+                        <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
                             <View style={[styles.statIcon, { backgroundColor: '#F0FDF4' }]}>
                                 <IconSymbol name="checkmark.circle.fill" size={20} color="#16A34A" />
                             </View>
                             <Text style={[styles.statValue, { color: '#16A34A' }]}>{stats.activeWorkers}</Text>
-                            <Text style={styles.statLabel}>Active</Text>
+                            <Text style={[styles.statLabel, { color: textSecondary }]}>Active</Text>
                         </View>
-                        <View style={styles.statCard}>
+                        <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
                             <View style={[styles.statIcon, { backgroundColor: '#FFFBEB' }]}>
                                 <IconSymbol name="clock.fill" size={20} color="#D97706" />
                             </View>
                             <Text style={[styles.statValue, { color: '#D97706' }]}>{stats.pending}</Text>
-                            <Text style={styles.statLabel}>Pending</Text>
+                            <Text style={[styles.statLabel, { color: textSecondary }]}>Pending</Text>
                         </View>
-                        <View style={styles.statCard}>
+                        <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
                             <View style={[styles.statIcon, { backgroundColor: '#FAF5FF' }]}>
                                 <IconSymbol name="calendar" size={20} color="#9333EA" />
                             </View>
                             <Text style={[styles.statValue, { color: '#9333EA' }]}>{stats.bookings}</Text>
-                            <Text style={styles.statLabel}>Bookings</Text>
+                            <Text style={[styles.statLabel, { color: textSecondary }]}>Bookings</Text>
                         </View>
                     </View>
 
                     {/* Tabs */}
                     <View style={styles.tabsContainer}>
-                        <View style={styles.tabs}>
+                        <View style={[styles.tabs, { backgroundColor: cardBg, borderColor }]}>
                             <TouchableOpacity
-                                style={[styles.tab, activeTab === 'workers' && styles.tabActive]}
+                                style={[
+                                    styles.tab,
+                                    { backgroundColor: cardBg },
+                                    activeTab === 'workers' && { backgroundColor: primaryColor }
+                                ]}
                                 onPress={() => setActiveTab('workers')}
                             >
-                                <Text style={[styles.tabText, activeTab === 'workers' && styles.tabTextActive]}>
+                                <Text style={[
+                                    styles.tabText,
+                                    { color: textSecondary },
+                                    activeTab === 'workers' && { color: '#FFFFFF' }
+                                ]}>
                                     Workers
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.tab, activeTab === 'bookings' && styles.tabActive]}
+                                style={[
+                                    styles.tab,
+                                    { backgroundColor: cardBg },
+                                    activeTab === 'bookings' && { backgroundColor: primaryColor }
+                                ]}
                                 onPress={() => setActiveTab('bookings')}
                             >
-                                <Text style={[styles.tabText, activeTab === 'bookings' && styles.tabTextActive]}>
+                                <Text style={[
+                                    styles.tabText,
+                                    { color: textSecondary },
+                                    activeTab === 'bookings' && { color: '#FFFFFF' }
+                                ]}>
                                     Bookings
                                 </Text>
                             </TouchableOpacity>
@@ -117,29 +144,29 @@ export default function BusinessDashboardScreen() {
                     {/* Content */}
                     <View style={styles.contentSection}>
                         <View style={styles.sectionHeader}>
-                            <ThemedText type="subtitle" style={styles.sectionTitle}>
+                            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
                                 {activeTab === 'workers' ? 'Recent Workers' : 'Recent Bookings'}
                             </ThemedText>
                             <TouchableOpacity onPress={() => router.push(activeTab === 'workers' ? '/workers' : '/bookings')}>
-                                <Text style={styles.viewAllText}>View All</Text>
+                                <Text style={[styles.viewAllText, { color: primaryColor }]}>View All</Text>
                             </TouchableOpacity>
                         </View>
 
                         {workers.length === 0 ? (
-                            <View style={styles.emptyState}>
-                                <View style={styles.emptyIconContainer}>
+                            <View style={[styles.emptyState, { backgroundColor: cardBg, borderColor }]}>
+                                <View style={[styles.emptyIconContainer, { backgroundColor: cardBg }]}>
                                     <IconSymbol
                                         name={activeTab === 'workers' ? "person.2.fill" : "calendar"}
                                         size={48}
-                                        color="#9CA3AF"
+                                        color={textMuted}
                                     />
                                 </View>
-                                <ThemedText style={styles.emptyText}>
+                                <ThemedText style={[styles.emptyText, { color: textSecondary }]}>
                                     {activeTab === 'workers' ? 'No workers added yet' : 'No bookings yet'}
                                 </ThemedText>
                                 {activeTab === 'workers' && (
                                     <TouchableOpacity
-                                        style={styles.createButton}
+                                        style={[styles.createButton, { backgroundColor: primaryColor }]}
                                         onPress={() => router.push('/workers/add')}
                                     >
                                         <Text style={styles.createButtonText}>Add Your First Worker</Text>
@@ -160,7 +187,6 @@ export default function BusinessDashboardScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
     topCircle: {
         position: 'absolute',
@@ -169,8 +195,6 @@ const styles = StyleSheet.create({
         width: width * 0.8,
         height: width * 0.8,
         borderRadius: width * 0.4,
-        backgroundColor: '#EEF2FF',
-        opacity: 0.6,
     },
     bottomCircle: {
         position: 'absolute',
@@ -179,8 +203,6 @@ const styles = StyleSheet.create({
         width: width * 0.7,
         height: width * 0.7,
         borderRadius: width * 0.35,
-        backgroundColor: '#F5F3FF',
-        opacity: 0.6,
     },
     safeArea: {
         flex: 1,
@@ -195,12 +217,10 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: '800',
-        color: '#1A1A1A',
         letterSpacing: -0.5,
     },
     subtitle: {
         fontSize: 14,
-        color: '#6B7280',
         marginTop: 4,
     },
     addButton: {
@@ -217,11 +237,9 @@ const styles = StyleSheet.create({
     },
     statCard: {
         width: '48%',
-        backgroundColor: '#FFFFFF',
         borderRadius: 20,
         padding: 16,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
@@ -239,12 +257,10 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 24,
         fontWeight: '800',
-        color: '#1A1A1A',
         marginBottom: 4,
     },
     statLabel: {
         fontSize: 13,
-        color: '#6B7280',
         fontWeight: '500',
     },
     tabsContainer: {
@@ -253,9 +269,9 @@ const styles = StyleSheet.create({
     },
     tabs: {
         flexDirection: 'row',
-        backgroundColor: '#F3F4F6',
         borderRadius: 16,
         padding: 4,
+        borderWidth: 1,
     },
     tab: {
         flex: 1,
@@ -263,21 +279,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 12,
     },
-    tabActive: {
-        backgroundColor: '#FFFFFF',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
     tabText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#6B7280',
-    },
-    tabTextActive: {
-        color: '#6366F1',
     },
     contentSection: {
         paddingHorizontal: 24,
@@ -291,35 +295,29 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#1A1A1A',
     },
     viewAllText: {
         fontSize: 14,
-        color: '#6366F1',
         fontWeight: '600',
     },
     emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 40,
-        backgroundColor: '#F9FAFB',
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
         borderStyle: 'dashed',
     },
     emptyIconContainer: {
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: '#F3F4F6',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
     },
     emptyText: {
         fontSize: 16,
-        color: '#6B7280',
         marginBottom: 20,
         fontWeight: '500',
     },

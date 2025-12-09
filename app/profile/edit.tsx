@@ -1,5 +1,6 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -25,6 +26,18 @@ export default function EditProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const insets = useSafeAreaInsets();
+
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const iconColor = useThemeColor({}, 'icon');
+  const iconMuted = useThemeColor({}, 'iconMuted');
 
   // Basic profile fields
   const [name, setName] = useState(
@@ -101,30 +114,30 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
+      <View style={[styles.topCircle, { backgroundColor: primaryLight }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#1A1A1A" />
+        <View style={[styles.header, { paddingTop: insets.top + 10, backgroundColor: cardBg, borderBottomColor: borderColor }]}>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: borderColor }]}>
+            <IconSymbol name="chevron.left" size={24} color={textColor} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Edit Profile</Text>
+          <Text style={[styles.headerTitle, { color: textColor }]}>Edit Profile</Text>
           <TouchableOpacity
             onPress={handleSave}
-            style={styles.saveButton}
+            style={[styles.saveButton, { backgroundColor: primaryLight }]}
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#6366F1" />
+              <ActivityIndicator size="small" color={primaryColor} />
             ) : (
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={[styles.saveButtonText, { color: primaryColor }]}>Save</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -132,31 +145,33 @@ export default function EditProfileScreen() {
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+          showsHorizontalScrollIndicator={false}
+          horizontal={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 40, width: '100%' }}
         >
           {/* Profile Picture Section */}
           <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
+              <View style={[styles.avatar, { backgroundColor: cardBg, borderColor: cardBg, shadowColor: primaryColor }]}>
+                <Text style={[styles.avatarText, { color: primaryColor }]}>
                   {(name || user?.name || 'U').charAt(0).toUpperCase()}
                 </Text>
               </View>
-              <TouchableOpacity style={styles.cameraButton}>
+              <TouchableOpacity style={[styles.cameraButton, { backgroundColor: primaryColor, borderColor: cardBg }]}>
                 <IconSymbol name="camera.fill" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.changePhotoText}>Tap to change photo</Text>
+            <Text style={[styles.changePhotoText, { color: textSecondary }]}>Tap to change photo</Text>
 
             {/* Account Type Badge */}
             <View style={styles.badgeContainer}>
-              <View style={styles.badge}>
+              <View style={[styles.badge, { backgroundColor: primaryLight }]}>
                 <IconSymbol
                   name={user?.userType === 'business' ? 'building.2.fill' : user?.userType === 'helper' ? 'person.fill' : 'person'}
                   size={14}
-                  color="#6366F1"
+                  color={primaryColor}
                 />
-                <Text style={styles.badgeText}>
+                <Text style={[styles.badgeText, { color: primaryColor }]}>
                   {user?.userType === 'user'
                     ? 'Customer'
                     : user?.userType === 'helper'
@@ -169,53 +184,53 @@ export default function EditProfileScreen() {
 
           {/* Form Fields */}
           <View style={styles.formContainer}>
-            <Text style={styles.sectionTitle}>Basic Information</Text>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>Basic Information</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>
+              <Text style={[styles.label, { color: textColor }]}>
                 {user?.userType === 'business' ? 'Owner Name' : 'Full Name'} <Text style={styles.required}>*</Text>
               </Text>
-              <View style={styles.inputWrapper}>
-                <IconSymbol name="person" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+                <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: textColor }]}
                   value={user?.userType === 'business' ? ownerName : name}
                   onChangeText={user?.userType === 'business' ? setOwnerName : setName}
                   placeholder={`Enter ${user?.userType === 'business' ? 'owner' : 'your full'} name`}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={textMuted}
                 />
               </View>
             </View>
 
             {user?.userType === 'business' && (
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Business Name <Text style={styles.required}>*</Text></Text>
-                <View style={styles.inputWrapper}>
-                  <IconSymbol name="building.2" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: textColor }]}>Business Name <Text style={styles.required}>*</Text></Text>
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+                  <IconSymbol name="building.2" size={20} color={iconMuted} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     value={businessName}
                     onChangeText={setBusinessName}
                     placeholder="Enter business name"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={textMuted}
                   />
                 </View>
               </View>
             )}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number</Text>
-              <View style={[styles.inputWrapper, styles.disabledInputWrapper]}>
-                <IconSymbol name="phone" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+              <View style={[styles.inputWrapper, styles.disabledInputWrapper, { backgroundColor: borderColor, borderColor, shadowColor: textColor }]}>
+                <IconSymbol name="phone" size={20} color={iconMuted} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, styles.disabledInput]}
+                  style={[styles.input, styles.disabledInput, { color: textMuted }]}
                   value={user?.phoneNumber || ''}
                   editable={false}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={textMuted}
                 />
-                <IconSymbol name="lock.fill" size={16} color="#9CA3AF" style={styles.lockIcon} />
+                <IconSymbol name="lock.fill" size={16} color={iconMuted} style={styles.lockIcon} />
               </View>
-              <Text style={styles.helperText}>
+              <Text style={[styles.helperText, { color: textMuted }]}>
                 Phone number cannot be changed
               </Text>
             </View>
@@ -223,18 +238,18 @@ export default function EditProfileScreen() {
             {/* Profile Details for Helpers/Businesses */}
             {(user?.userType === 'helper' || user?.userType === 'business') && (
               <>
-                <View style={styles.divider} />
-                <Text style={styles.sectionTitle}>Profile Details</Text>
+                <View style={[styles.divider, { backgroundColor: borderColor }]} />
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Profile Details</Text>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Bio</Text>
-                  <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+                  <Text style={[styles.label, { color: textColor }]}>Bio</Text>
+                  <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
                     <TextInput
-                      style={[styles.input, styles.textArea]}
+                      style={[styles.input, styles.textArea, { color: textColor }]}
                       value={bio}
                       onChangeText={setBio}
                       placeholder="Tell us about yourself..."
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={textMuted}
                       multiline
                       numberOfLines={4}
                       textAlignVertical="top"
@@ -244,14 +259,14 @@ export default function EditProfileScreen() {
 
                 {user?.userType === 'helper' && (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Experience</Text>
-                    <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+                    <Text style={[styles.label, { color: textColor }]}>Experience</Text>
+                    <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
                       <TextInput
-                        style={[styles.input, styles.textArea]}
+                        style={[styles.input, styles.textArea, { color: textColor }]}
                         value={experience}
                         onChangeText={setExperience}
                         placeholder="Describe your experience..."
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor={textMuted}
                         multiline
                         numberOfLines={3}
                         textAlignVertical="top"
@@ -271,7 +286,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    width: '100%',
   },
   keyboardView: {
     flex: 1,
@@ -283,7 +298,6 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: width * 0.8,
     borderRadius: width * 0.4,
-    backgroundColor: '#EEF2FF',
     opacity: 0.6,
   },
   bottomCircle: {
@@ -293,7 +307,6 @@ const styles = StyleSheet.create({
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: width * 0.35,
-    backgroundColor: '#F5F3FF',
     opacity: 0.6,
   },
   header: {
@@ -302,36 +315,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.8)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(239, 246, 255, 0.5)',
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A1A',
   },
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
     borderRadius: 20,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#6366F1',
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   profileSection: {
     alignItems: 'center',
@@ -345,12 +353,9 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: '#FFFFFF',
-    shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -359,7 +364,6 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#6366F1',
   },
   cameraButton: {
     position: 'absolute',
@@ -368,15 +372,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#6366F1',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
   },
   changePhotoText: {
     fontSize: 14,
-    color: '#6B7280',
     marginBottom: 16,
   },
   badgeContainer: {
@@ -385,7 +386,6 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -394,7 +394,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6366F1',
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -402,7 +401,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A1A',
     marginBottom: 20,
   },
   inputGroup: {
@@ -411,7 +409,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
   },
   required: {
@@ -420,9 +417,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
@@ -443,7 +438,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1A1A1A',
     height: '100%',
   },
   textArea: {
@@ -451,25 +445,21 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   disabledInputWrapper: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#F3F4F6',
     shadowOpacity: 0,
   },
   disabledInput: {
-    color: '#9CA3AF',
+    // Color applied inline
   },
   lockIcon: {
     marginLeft: 12,
   },
   helperText: {
     fontSize: 12,
-    color: '#9CA3AF',
     marginTop: 6,
     marginLeft: 4,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
     marginVertical: 24,
   },
 });

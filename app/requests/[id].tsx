@@ -40,7 +40,7 @@ export default function JobViewScreen() {
             </Text>
             <TouchableOpacity
               style={styles.backToRequestsButton}
-              onPress={() => router.push('/(tabs)/requests')}
+              onPress={() => router.push('/(tabs)/job-posts')}
             >
               <Text style={styles.backToRequestsButtonText}>Back to Requests</Text>
             </TouchableOpacity>
@@ -117,7 +117,7 @@ export default function JobViewScreen() {
               Alert.alert('Success', 'Request deleted successfully', [
                 {
                   text: 'OK',
-                  onPress: () => router.push('/(tabs)/requests'),
+                  onPress: () => router.push('/(tabs)/job-posts'),
                 },
               ]);
             } catch (error) {

@@ -2,6 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -15,6 +16,14 @@ import {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+
+  // Theme colors
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const errorColor = useThemeColor({}, 'error');
 
   const handleLogout = async () => {
     try {
@@ -101,8 +110,8 @@ export default function ProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
+          <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
+            <Text style={[styles.avatarText, { color: primaryColor }]}>
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </Text>
           </View>
@@ -110,8 +119,8 @@ export default function ProfileScreen() {
             {user?.name || 'User'}
           </ThemedText>
           <ThemedText style={styles.phone}>{user?.phoneNumber}</ThemedText>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
+          <View style={[styles.badge, { backgroundColor: primaryLight }]}>
+            <Text style={[styles.badgeText, { color: primaryColor }]}>
               {user?.userType === 'user'
                 ? 'Customer'
                 : user?.userType === 'helper'
@@ -126,7 +135,7 @@ export default function ProfileScreen() {
           {visibleMenuItems.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={styles.menuItem}
+              style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
               onPress={() => {
                 if (item.onPress) {
                   item.onPress();
@@ -138,18 +147,18 @@ export default function ProfileScreen() {
                 <IconSymbol
                   name={item.icon as any}
                   size={24}
-                  color={item.destructive ? '#FF3B30' : '#6366F1'}
+                  color={item.destructive ? errorColor : primaryColor}
                 />
                 <ThemedText
                   style={[
                     styles.menuItemText,
-                    item.destructive && styles.menuItemTextDestructive,
+                    item.destructive && { color: errorColor },
                   ]}
                 >
                   {item.title}
                 </ThemedText>
               </View>
-              <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+              <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
@@ -175,7 +184,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -183,7 +191,6 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#6366F1',
   },
   name: {
     fontSize: 24,
@@ -196,7 +203,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   badge: {
-    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -204,7 +210,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6366F1',
     textTransform: 'capitalize',
   },
   menu: {
@@ -215,12 +220,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -230,9 +233,6 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     fontWeight: '500',
-  },
-  menuItemTextDestructive: {
-    color: '#FF3B30',
   },
 });
 

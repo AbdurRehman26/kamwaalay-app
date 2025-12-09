@@ -40,7 +40,22 @@ export const API_ENDPOINTS = {
 
   // Jobs (for helpers/businesses to browse)
   JOBS: {
-    LIST: '/service-requests', // Browse available jobs
+    BROWSE: '/bookings/browse', // Browse available job posts (public access)
+    LIST: '/service-requests', // Legacy endpoint
+  },
+
+  // Job Posts (service requests created by users)
+  // Based on: https://www.kamwaalay.com/api/documentation#/JobPosts
+  JOB_POSTS: {
+    LIST: '/job-posts', // GET - List all job posts
+    BROWSE: '/bookings/browse', // Browse available job posts
+    MY_POSTS: '/my-job-posts', // User's own job posts
+    CREATE_FORM: '/job-posts/create', // Get form data
+    CREATE: '/bookings', // Create new job post
+    GET: '/job-posts/:id', // Get specific job post
+    UPDATE: '/job-posts/:id', // Update job post
+    DELETE: '/job-posts/:id', // Delete job post
+    // Documentation: https://www.kamwaalay.com/api/documentation#/JobPosts/ba5c4f4528269686e482bf236a91d5d4
   },
 
   // Bookings (service requests created by users)
@@ -84,12 +99,15 @@ export const API_ENDPOINTS = {
   },
 
   // Service Listings (services offered by helpers/businesses)
+  // Based on: https://www.kamwaalay.com/api/documentation#/Service%20Listings
   SERVICE_LISTINGS: {
-    LIST: '/service-listings',
-    CREATE: '/service-listings/create',
-    GET: '/service-listings/:id',
-    EDIT: '/service-listings/:id/edit',
-    MY_LISTINGS: '/my-service-listings',
+    LIST: '/service-listings', // GET - List all service listings
+    CREATE: '/service-listings', // POST - Create new service listing
+    GET: '/service-listings/:id', // GET - Get specific service listing
+    UPDATE: '/service-listings/:id', // PUT/PATCH - Update service listing
+    DELETE: '/service-listings/:id', // DELETE - Delete service listing
+    MY_LISTINGS: '/service-listings/my-service-listings', // GET - Get authenticated user's service listings
+    // Documentation: https://www.kamwaalay.com/api/documentation#/Service%20Listings/8895da6a88c7b82d53897342cc96204f
   },
 
   // Reviews

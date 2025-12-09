@@ -12,20 +12,35 @@ import {
 } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { themeMode, setThemeMode, colorScheme } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
   const [emailNotifications, setEmailNotifications] = React.useState(false);
 
+  const primaryColor = useThemeColor({}, 'primary');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const iconColor = useThemeColor({}, 'icon');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        contentContainerStyle={{ width: '100%' }}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
+            <IconSymbol name="chevron.left" size={24} color={iconColor} />
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             Settings
@@ -33,31 +48,83 @@ export default function SettingsScreen() {
           <View style={{ width: 24 }} />
         </View>
 
+        {/* Theme Settings */}
+        <View style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Appearance
+          </ThemedText>
+          <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
+            <View style={styles.settingLeft}>
+              <IconSymbol
+                name={colorScheme === 'dark' ? 'moon.fill' : 'sun.max.fill'}
+                size={24}
+                color={iconColor}
+              />
+              <ThemedText style={styles.settingLabel}>Theme</ThemedText>
+            </View>
+          </View>
+          <View style={styles.themeOptions}>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                themeMode === 'light' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setThemeMode('light')}
+            >
+              <IconSymbol name="sun.max.fill" size={20} color={iconColor} />
+              <ThemedText style={styles.themeOptionText}>Light</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                themeMode === 'dark' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setThemeMode('dark')}
+            >
+              <IconSymbol name="moon.fill" size={20} color={iconColor} />
+              <ThemedText style={styles.themeOptionText}>Dark</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                themeMode === 'auto' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setThemeMode('auto')}
+            >
+              <IconSymbol name="circle.lefthalf.filled" size={20} color={iconColor} />
+              <ThemedText style={styles.themeOptionText}>Auto</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Notification Settings */}
         <View style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
             Notifications
           </ThemedText>
-          <View style={styles.settingItem}>
+          <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
             <View style={styles.settingLeft}>
-              <IconSymbol name="bell.fill" size={24} color="#6366F1" />
+              <IconSymbol name="bell.fill" size={24} color={iconColor} />
               <ThemedText style={styles.settingLabel}>Push Notifications</ThemedText>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#E0E0E0', true: '#6366F1' }}
+              trackColor={{ false: borderColor, true: primaryColor }}
             />
           </View>
-          <View style={styles.settingItem}>
+          <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
             <View style={styles.settingLeft}>
-              <IconSymbol name="envelope.fill" size={24} color="#6366F1" />
+              <IconSymbol name="envelope.fill" size={24} color={iconColor} />
               <ThemedText style={styles.settingLabel}>Email Notifications</ThemedText>
             </View>
             <Switch
               value={emailNotifications}
               onValueChange={setEmailNotifications}
-              trackColor={{ false: '#E0E0E0', true: '#6366F1' }}
+              trackColor={{ false: borderColor, true: primaryColor }}
             />
           </View>
         </View>
@@ -69,24 +136,24 @@ export default function SettingsScreen() {
               Business
             </ThemedText>
             <TouchableOpacity
-              style={styles.menuItem}
+              style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
               onPress={() => router.push('/business/dashboard')}
             >
               <View style={styles.menuItemLeft}>
-                <IconSymbol name="chart.bar.fill" size={24} color="#6366F1" />
+                <IconSymbol name="chart.bar.fill" size={24} color={iconColor} />
                 <ThemedText style={styles.menuItemText}>Business Dashboard</ThemedText>
               </View>
-              <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+              <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.menuItem}
+              style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
               onPress={() => router.push('/workers')}
             >
               <View style={styles.menuItemLeft}>
-                <IconSymbol name="person.2.fill" size={24} color="#6366F1" />
+                <IconSymbol name="person.2.fill" size={24} color={iconColor} />
                 <ThemedText style={styles.menuItemText}>Manage Workers</ThemedText>
               </View>
-              <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+              <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
           </View>
         )}
@@ -97,24 +164,24 @@ export default function SettingsScreen() {
             Account
           </ThemedText>
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
             onPress={() => router.push('/profile/edit')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="person.fill" size={24} color="#6366F1" />
+              <IconSymbol name="person.fill" size={24} color={iconColor} />
               <ThemedText style={styles.menuItemText}>Edit Profile</ThemedText>
             </View>
-            <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
             onPress={() => router.push('/settings/change-password')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="lock.fill" size={24} color="#6366F1" />
+              <IconSymbol name="lock.fill" size={24} color={iconColor} />
               <ThemedText style={styles.menuItemText}>Change Password</ThemedText>
             </View>
-            <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -124,34 +191,34 @@ export default function SettingsScreen() {
             App
           </ThemedText>
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
             onPress={() => router.push('/about')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="info.circle.fill" size={24} color="#6366F1" />
+              <IconSymbol name="info.circle.fill" size={24} color={iconColor} />
               <ThemedText style={styles.menuItemText}>About</ThemedText>
             </View>
-            <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
             onPress={() => router.push('/terms')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="doc.text.fill" size={24} color="#6366F1" />
+              <IconSymbol name="doc.text.fill" size={24} color={iconColor} />
               <ThemedText style={styles.menuItemText}>Terms & Conditions</ThemedText>
             </View>
-            <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
             onPress={() => router.push('/privacy')}
           >
             <View style={styles.menuItemLeft}>
-              <IconSymbol name="hand.raised.fill" size={24} color="#6366F1" />
+              <IconSymbol name="hand.raised.fill" size={24} color={iconColor} />
               <ThemedText style={styles.menuItemText}>Privacy Policy</ThemedText>
             </View>
-            <IconSymbol name="chevron.right" size={20} color="#CCCCCC" />
+            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -162,9 +229,11 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -190,12 +259,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
   settingLeft: {
     flexDirection: 'row',
@@ -206,16 +273,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  themeOptions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  themeOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
   menuItemLeft: {
     flexDirection: 'row',

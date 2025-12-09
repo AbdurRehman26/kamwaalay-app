@@ -2,6 +2,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { Job, useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { notificationService } from '@/services/notification.service';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -23,12 +24,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 const SERVICES = [
-  { id: '1', name: 'Cleaning', icon: '✨', color: '#EEF2FF', border: '#C7D2FE' },
-  { id: '2', name: 'Cooking', icon: '👨‍🍳', color: '#F0FDF4', border: '#BBF7D0' },
-  { id: '3', name: 'Babysitting', icon: '👶', color: '#FFF7ED', border: '#FFEDD5' },
-  { id: '4', name: 'Elderly Care', icon: '👵', color: '#FAF5FF', border: '#E9D5FF' },
-  { id: '5', name: 'All-Rounder', icon: '🛠️', color: '#F8FAFC', border: '#E2E8F0' },
-  { id: '6', name: '24/7 Live-in', icon: '🏠', color: '#FFF1F2', border: '#FECDD3' },
+  { id: '1', name: 'Cleaning', icon: '✨', color: '#EEF2FF', darkColor: '#312E81', border: '#C7D2FE', darkBorder: '#4F46E5' },
+  { id: '2', name: 'Cooking', icon: '👨‍🍳', color: '#F0FDF4', darkColor: '#064E3B', border: '#BBF7D0', darkBorder: '#10B981' },
+  { id: '3', name: 'Babysitting', icon: '👶', color: '#FFF7ED', darkColor: '#78350F', border: '#FFEDD5', darkBorder: '#F59E0B' },
+  { id: '4', name: 'Elderly Care', icon: '👵', color: '#FAF5FF', darkColor: '#581C87', border: '#E9D5FF', darkBorder: '#A855F7' },
+  { id: '5', name: 'All-Rounder', icon: '🛠️', color: '#F8FAFC', darkColor: '#334155', border: '#E2E8F0', darkBorder: '#64748B' },
+  { id: '6', name: '24/7 Live-in', icon: '🏠', color: '#FFF1F2', darkColor: '#7F1D1D', border: '#FECDD3', darkBorder: '#EF4444' },
 ];
 
 export default function HomeScreen() {
@@ -41,6 +42,16 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const jobs = getJobs();
+
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const primaryColor = useThemeColor({}, 'primary');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const secondaryLight = useThemeColor({}, 'secondaryLight');
 
   useFocusEffect(
     useCallback(() => {
@@ -126,8 +137,8 @@ export default function HomeScreen() {
 
   if (isAuthLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+      <View style={[styles.loadingContainer, { backgroundColor }]}>
+        <ActivityIndicator size="large" color={primaryColor} />
       </View>
     );
   }
@@ -139,22 +150,28 @@ export default function HomeScreen() {
     return 'Good Evening';
   };
 
-  const renderServiceCard = ({ item }: { item: typeof SERVICES[0] }) => (
-    <TouchableOpacity
-      style={[styles.serviceCard, { backgroundColor: item.color, borderColor: item.border }]}
-      onPress={() => {
-        router.push({
-          pathname: '/(tabs)/explore',
-          params: { service: item.name }
-        });
-      }}
-    >
-      <View style={styles.serviceIconContainer}>
-        <Text style={styles.serviceIcon}>{item.icon}</Text>
-      </View>
-      <Text style={styles.serviceName}>{item.name}</Text>
-    </TouchableOpacity>
-  );
+  const renderServiceCard = ({ item }: { item: typeof SERVICES[0] }) => {
+    const { colorScheme } = require('@/contexts/ThemeContext').useTheme();
+    const serviceColor = colorScheme === 'dark' ? item.darkColor : item.color;
+    const serviceBorder = colorScheme === 'dark' ? item.darkBorder : item.border;
+
+    return (
+      <TouchableOpacity
+        style={[styles.serviceCard, { backgroundColor: serviceColor, borderColor: serviceBorder }]}
+        onPress={() => {
+          router.push({
+            pathname: '/(tabs)/explore',
+            params: { service: item.name }
+          });
+        }}
+      >
+        <View style={[styles.serviceIconContainer, { backgroundColor: cardBg }]}>
+          <Text style={styles.serviceIcon}>{item.icon}</Text>
+        </View>
+        <Text style={[styles.serviceName, { color: textColor }]}>{item.name}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   const handleApply = async (requestId: string) => {
     if (!user?.id) {
@@ -187,17 +204,17 @@ export default function HomeScreen() {
 
     if (isHelperOrBusiness) {
       return (
-        <View key={request.id} style={styles.requestCard}>
+        <View key={request.id} style={[styles.requestCard, { backgroundColor: cardBg, borderColor }]}>
           <View style={styles.requestHeader}>
             <View style={styles.requestHeaderInfo}>
-              <Text style={styles.requestTitle} numberOfLines={1}>
+              <Text style={[styles.requestTitle, { color: textColor }]} numberOfLines={1}>
                 {request.serviceName}
               </Text>
               <View style={styles.userInfoRow}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
+                <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
+                  <Text style={[styles.avatarText, { color: primaryColor }]}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
                 </View>
-                <Text style={styles.requestUser}>{request.userName || 'Unknown'}</Text>
+                <Text style={[styles.requestUser, { color: textSecondary }]}>{request.userName || 'Unknown'}</Text>
               </View>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
@@ -205,19 +222,19 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <Text style={styles.requestDescription} numberOfLines={2}>
+          <Text style={[styles.requestDescription, { color: textSecondary }]} numberOfLines={2}>
             {request.description}
           </Text>
 
           <View style={styles.requestDetails}>
             <View style={styles.detailRow}>
-              <IconSymbol name="location.fill" size={14} color="#6366F1" />
-              <Text style={styles.detailText}>{request.location}</Text>
+              <IconSymbol name="location.fill" size={14} color={primaryColor} />
+              <Text style={[styles.detailText, { color: textSecondary }]}>{request.location}</Text>
             </View>
             {request.budget && (
               <View style={styles.detailRow}>
-                <IconSymbol name="dollarsign.circle.fill" size={14} color="#6366F1" />
-                <Text style={styles.detailText}>₨{request.budget}</Text>
+                <IconSymbol name="dollarsign.circle.fill" size={14} color={primaryColor} />
+                <Text style={[styles.detailText, { color: textSecondary }]}>₨{request.budget}</Text>
               </View>
             )}
           </View>
@@ -225,14 +242,14 @@ export default function HomeScreen() {
           {isOpen && !hasApplied && (
             <View style={styles.requestActions}>
               <TouchableOpacity
-                style={styles.contactButton}
+                style={[styles.contactButton, { borderColor: primaryColor }]}
                 onPress={() => handleContact(request)}
               >
-                <IconSymbol name="message.fill" size={16} color="#6366F1" />
-                <Text style={styles.contactButtonText}>Contact</Text>
+                <IconSymbol name="message.fill" size={16} color={primaryColor} />
+                <Text style={[styles.contactButtonText, { color: primaryColor }]}>Contact</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.applyButton}
+                style={[styles.applyButton, { backgroundColor: primaryColor }]}
                 onPress={() => handleApply(request.id)}
               >
                 <Text style={styles.applyButtonText}>Apply Now</Text>
@@ -253,27 +270,27 @@ export default function HomeScreen() {
     return (
       <TouchableOpacity
         key={request.id}
-        style={styles.requestCard}
-        onPress={() => router.push(`/requests/${request.id}`)}
+        style={[styles.requestCard, { backgroundColor: cardBg, borderColor }]}
+        onPress={() => router.push(`/job-view/${request.id}`)}
       >
         <View style={styles.requestHeader}>
-          <Text style={styles.requestTitle} numberOfLines={1}>
+          <Text style={[styles.requestTitle, { color: textColor }]} numberOfLines={1}>
             {request.serviceName}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
             <Text style={styles.statusText}>{request.status}</Text>
           </View>
         </View>
-        <Text style={styles.requestDescription} numberOfLines={2}>
+        <Text style={[styles.requestDescription, { color: textSecondary }]} numberOfLines={2}>
           {request.description}
         </Text>
-        <View style={styles.requestFooter}>
+        <View style={[styles.requestFooter, { borderTopColor: borderColor }]}>
           <View style={styles.detailRow}>
-            <IconSymbol name="mappin.and.ellipse" size={14} color="#6B7280" />
-            <Text style={styles.requestLocation}>{request.location}</Text>
+            <IconSymbol name="mappin.and.ellipse" size={14} color={textSecondary} />
+            <Text style={[styles.requestLocation, { color: textSecondary }]}>{request.location}</Text>
           </View>
           {request.budget && (
-            <Text style={styles.requestBudget}>₨{request.budget}</Text>
+            <Text style={[styles.requestBudget, { color: textColor }]}>₨{request.budget}</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -290,24 +307,24 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: secondaryLight, opacity: 0.3 }]} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366F1" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
         }
       >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>{getGreeting()},</Text>
-            <Text style={styles.userName}>
+            <Text style={[styles.greeting, { color: textSecondary }]}>{getGreeting()},</Text>
+            <Text style={[styles.userName, { color: textColor }]}>
               {user?.name?.split(' ')[0] || 'User'}
             </Text>
           </View>
@@ -315,8 +332,8 @@ export default function HomeScreen() {
             onPress={() => router.push('/notifications')}
             style={styles.notificationButton}
           >
-            <View style={styles.notificationIconContainer}>
-              <IconSymbol name="bell.fill" size={24} color="#1A1A1A" />
+            <View style={[styles.notificationIconContainer, { backgroundColor: cardBg, borderColor }]}>
+              <IconSymbol name="bell.fill" size={24} color={textColor} />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -331,19 +348,19 @@ export default function HomeScreen() {
         {/* View Helpers Button - Only for users/customers */}
         {(!user || user?.userType === 'user' || user?.userType === undefined) && (
           <TouchableOpacity
-            style={styles.viewHelpersButton}
+            style={[styles.viewHelpersButton, { backgroundColor: textColor }]}
             onPress={() => router.push('/(tabs)/helpers')}
           >
             <View style={styles.viewHelpersContent}>
               <View style={styles.viewHelpersIcon}>
-                <IconSymbol name="magnifyingglass" size={20} color="#FFFFFF" />
+                <IconSymbol name="magnifyingglass" size={20} color={backgroundColor} />
               </View>
               <View>
-                <Text style={styles.viewHelpersTitle}>Find Helpers</Text>
-                <Text style={styles.viewHelpersSubtitle}>Browse profiles & reviews</Text>
+                <Text style={[styles.viewHelpersTitle, { color: backgroundColor }]}>Find Helpers</Text>
+                <Text style={[styles.viewHelpersSubtitle, { color: backgroundColor, opacity: 0.7 }]}>Browse profiles & reviews</Text>
               </View>
             </View>
-            <IconSymbol name="chevron.right" size={20} color="#FFFFFF" />
+            <IconSymbol name="chevron.right" size={20} color={backgroundColor} />
           </TouchableOpacity>
         )}
 
@@ -353,9 +370,9 @@ export default function HomeScreen() {
             {/* Quick Actions */}
             <TouchableOpacity
               style={styles.quickActionButton}
-              onPress={() => router.push('/requests/create')}
+              onPress={() => router.push('/job-posts/create')}
             >
-              <View style={styles.quickActionContent}>
+              <View style={[styles.quickActionContent, { backgroundColor: primaryColor }]}>
                 <View style={styles.quickActionIcon}>
                   <IconSymbol name="plus" size={24} color="#FFFFFF" />
                 </View>
@@ -366,9 +383,9 @@ export default function HomeScreen() {
             {/* Services */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Categories</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Categories</Text>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/helpers')}>
-                  <Text style={styles.seeAll}>View All</Text>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>View All</Text>
                 </TouchableOpacity>
               </View>
               <FlatList
@@ -384,30 +401,30 @@ export default function HomeScreen() {
             {/* My Postings */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>My Jobs</Text>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
-                  <Text style={styles.seeAll}>See All</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>My Jobs</Text>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/job-posts')}>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>See All</Text>
                 </TouchableOpacity>
               </View>
               {isLoadingRequests ? (
                 <View style={styles.loadingState}>
-                  <ActivityIndicator size="small" color="#6366F1" />
+                  <ActivityIndicator size="small" color={primaryColor} />
                 </View>
               ) : myJobs.length > 0 ? (
                 myJobs.slice(0, 3).map((request) => (
                   <View key={request.id}>{renderRequestCard(request)}</View>
                 ))
               ) : (
-                <View style={styles.emptyCard}>
+                <View style={[styles.emptyCard, { backgroundColor: cardBg, borderColor }]}>
                   <View style={styles.emptyIconContainer}>
-                    <IconSymbol name="doc.text.fill" size={32} color="#9CA3AF" />
+                    <IconSymbol name="doc.text.fill" size={32} color={textSecondary} />
                   </View>
-                  <Text style={styles.emptyCardText}>
+                  <Text style={[styles.emptyCardText, { color: textSecondary }]}>
                     No active jobs found
                   </Text>
                   <TouchableOpacity
-                    style={styles.createRequestButton}
-                    onPress={() => router.push('/requests/create')}
+                    style={[styles.createRequestButton, { backgroundColor: primaryColor }]}
+                    onPress={() => router.push('/job-posts/create')}
                   >
                     <Text style={styles.createRequestButtonText}>Create Job</Text>
                   </TouchableOpacity>
@@ -422,44 +439,44 @@ export default function HomeScreen() {
           <>
             {user?.userType === 'business' && (
               <TouchableOpacity
-                style={styles.dashboardCard}
+                style={[styles.dashboardCard, { backgroundColor: cardBg, borderColor }]}
                 onPress={() => router.push('/business/dashboard')}
               >
                 <View style={styles.dashboardCardContent}>
-                  <View style={styles.dashboardIconContainer}>
-                    <IconSymbol name="chart.bar.fill" size={24} color="#6366F1" />
+                  <View style={[styles.dashboardIconContainer, { backgroundColor: primaryLight }]}>
+                    <IconSymbol name="chart.bar.fill" size={24} color={primaryColor} />
                   </View>
                   <View style={styles.dashboardCardText}>
-                    <Text style={styles.dashboardCardTitle}>Business Dashboard</Text>
-                    <Text style={styles.dashboardCardSubtitle}>Manage workers & bookings</Text>
+                    <Text style={[styles.dashboardCardTitle, { color: textColor }]}>Business Dashboard</Text>
+                    <Text style={[styles.dashboardCardSubtitle, { color: textSecondary }]}>Manage workers & bookings</Text>
                   </View>
                 </View>
-                <IconSymbol name="chevron.right" size={20} color="#6366F1" />
+                <IconSymbol name="chevron.right" size={20} color={primaryColor} />
               </TouchableOpacity>
             )}
 
             {/* Find Jobs Button */}
             <TouchableOpacity
-              style={styles.viewHelpersButton}
-              onPress={() => router.push('/(tabs)/requests')}
+              style={[styles.viewHelpersButton, { backgroundColor: textColor }]}
+              onPress={() => router.push('/(tabs)/job-posts')}
             >
               <View style={styles.viewHelpersContent}>
                 <View style={styles.viewHelpersIcon}>
-                  <IconSymbol name="briefcase.fill" size={20} color="#FFFFFF" />
+                  <IconSymbol name="briefcase.fill" size={20} color={backgroundColor} />
                 </View>
                 <View>
-                  <Text style={styles.viewHelpersTitle}>Find Jobs</Text>
-                  <Text style={styles.viewHelpersSubtitle}>Browse available opportunities</Text>
+                  <Text style={[styles.viewHelpersTitle, { color: backgroundColor }]}>Find Jobs</Text>
+                  <Text style={[styles.viewHelpersSubtitle, { color: backgroundColor, opacity: 0.7 }]}>Browse available opportunities</Text>
                 </View>
               </View>
-              <IconSymbol name="chevron.right" size={20} color="#FFFFFF" />
+              <IconSymbol name="chevron.right" size={20} color={backgroundColor} />
             </TouchableOpacity>
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>New Opportunities</Text>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
-                  <Text style={styles.seeAll}>See All</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>New Opportunities</Text>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/job-posts')}>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>See All</Text>
                 </TouchableOpacity>
               </View>
               {jobs.filter((r) => r.status === 'open').length > 0 ? (
@@ -470,8 +487,8 @@ export default function HomeScreen() {
                     <View key={request.id}>{renderRequestCard(request)}</View>
                   ))
               ) : (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyCardText}>No new jobs available</Text>
+                <View style={[styles.emptyCard, { backgroundColor: cardBg, borderColor }]}>
+                  <Text style={[styles.emptyCardText, { color: textSecondary }]}>No new jobs available</Text>
                 </View>
               )}
             </View>
@@ -485,13 +502,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   topCircle: {
     position: 'absolute',
@@ -500,8 +515,6 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: width * 0.8,
     borderRadius: width * 0.4,
-    backgroundColor: '#EEF2FF',
-    opacity: 0.6,
   },
   bottomCircle: {
     position: 'absolute',
@@ -510,8 +523,6 @@ const styles = StyleSheet.create({
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: width * 0.35,
-    backgroundColor: '#F5F3FF',
-    opacity: 0.6,
   },
   scrollView: {
     flex: 1,
@@ -528,14 +539,12 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 16,
-    color: '#6B7280',
     fontWeight: '500',
     marginBottom: 4,
   },
   userName: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#1A1A1A',
     letterSpacing: -0.5,
   },
   notificationButton: {
@@ -545,7 +554,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -554,7 +562,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   badge: {
     position: 'absolute',
@@ -578,7 +585,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1A1A1A',
     marginHorizontal: 24,
     padding: 20,
     borderRadius: 24,
@@ -603,13 +609,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   viewHelpersTitle: {
-    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 2,
   },
   viewHelpersSubtitle: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
   },
   quickActionButton: {
@@ -620,7 +624,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 16,
     gap: 12,
@@ -656,11 +659,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A1A',
   },
   seeAll: {
     fontSize: 14,
-    color: '#6366F1',
     fontWeight: '600',
   },
   servicesContainer: {
@@ -680,7 +681,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,

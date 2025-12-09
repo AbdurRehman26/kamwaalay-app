@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Job } from './AuthContext';
+import { Job, useAuth } from './AuthContext';
 
 interface AppContextType {
   jobs: Job[];
@@ -20,20 +20,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [helpers, setHelpers] = useState<any[]>([]);
   const isRefreshingJobs = useRef(false);
+  const { user } = useAuth(); // Get user from AuthContext
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user, user?.userType]); // Re-load when user is available or user type changes
+
 
   const loadData = async () => {
     try {
-      // Load jobs from API (available bookings for helpers/businesses)
-      const requestsResponse = await apiService.get(
-        API_ENDPOINTS.JOBS.LIST,
-        undefined,
-        undefined, // queryParams - can add filters like service_type, location_id, etc.
-        false // Public endpoint - no auth required
-      );
+      // Only load jobs from API if user is not a business or helper
+      // Service requests are only for regular users (customers)
+      const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
+      
+      if (!isHelperOrBusiness) {
+        // Load jobs from API (available bookings for helpers/businesses)
+        const requestsResponse = await apiService.get(
+          API_ENDPOINTS.JOBS.LIST,
+          undefined,
+          undefined, // queryParams - can add filters like service_type, location_id, etc.
+          false // Public endpoint - no auth required
+        );
       if (requestsResponse.success && requestsResponse.data) {
         // API returns data in 'job_posts' or 'bookings' key
         // Ensure data is an array
@@ -90,178 +97,186 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setJobs([]);
         }
       }
+      } else {
+        // For business/helper users, don't load service requests
+        // Set empty jobs array
+        setJobs([]);
+      }
 
-      // Load service listings from API (as requested by user)
-      const listingsResponse = await apiService.get(
-        API_ENDPOINTS.SERVICE_LISTINGS.LIST,
-        undefined,
-        undefined,
-        false
-      );
+      // Load service listings from API - ONLY for regular users (customers)
+      // Helpers and businesses should NOT see service listings in the explore tab
+      if (!isHelperOrBusiness) {
+        const listingsResponse = await apiService.get(
+          API_ENDPOINTS.SERVICE_LISTINGS.LIST,
+          undefined,
+          undefined,
+          false
+        );
 
-      if (listingsResponse.success && listingsResponse.data) {
-        let listings = [];
+        if (listingsResponse.success && listingsResponse.data) {
+          let listings = [];
 
-        // Handle different response formats - API returns under listings.data
-        if (listingsResponse.data.listings) {
-          // Check if it's paginated (listings.data)
-          if (listingsResponse.data.listings.data) {
-            listings = Array.isArray(listingsResponse.data.listings.data)
-              ? listingsResponse.data.listings.data
-              : [];
-          } else {
-            // Direct array under listings
-            listings = Array.isArray(listingsResponse.data.listings)
-              ? listingsResponse.data.listings
-              : [];
-          }
-        } else if (listingsResponse.data.service_listings) {
-          // Fallback: check service_listings key
-          listings = Array.isArray(listingsResponse.data.service_listings.data)
-            ? listingsResponse.data.service_listings.data
-            : (Array.isArray(listingsResponse.data.service_listings) ? listingsResponse.data.service_listings : []);
-        } else if (Array.isArray(listingsResponse.data)) {
-          // Direct array
-          listings = listingsResponse.data;
-        } else if (listingsResponse.data.data) {
-          // Generic data key
-          listings = Array.isArray(listingsResponse.data.data) ? listingsResponse.data.data : [];
-        }
-
-        console.log('📋 Total service listings fetched:', listings.length);
-
-        // Map each listing to a helper format (no grouping)
-        const helpers = listings
-          .filter((listing: any) => listing.user) // Only include listings with user data
-          .map((listing: any) => {
-            const user = listing.user;
-
-            // Parse experience if it's a string like "5 years"
-            let experience = 0;
-            const expRaw = user.profileData?.experience || user.experience;
-            if (typeof expRaw === 'number') {
-              experience = expRaw;
-            } else if (typeof expRaw === 'string') {
-              const match = expRaw.match(/(\d+)/);
-              if (match) experience = parseInt(match[1], 10);
+          // Handle different response formats - API returns under listings.data
+          if (listingsResponse.data.listings) {
+            // Check if it's paginated (listings.data)
+            if (listingsResponse.data.listings.data) {
+              listings = Array.isArray(listingsResponse.data.listings.data)
+                ? listingsResponse.data.listings.data
+                : [];
+            } else {
+              // Direct array under listings
+              listings = Array.isArray(listingsResponse.data.listings)
+                ? listingsResponse.data.listings
+                : [];
             }
+          } else if (listingsResponse.data.service_listings) {
+            // Fallback: check service_listings key
+            listings = Array.isArray(listingsResponse.data.service_listings.data)
+              ? listingsResponse.data.service_listings.data
+              : (Array.isArray(listingsResponse.data.service_listings) ? listingsResponse.data.service_listings : []);
+          } else if (Array.isArray(listingsResponse.data)) {
+            // Direct array
+            listings = listingsResponse.data;
+          } else if (listingsResponse.data.data) {
+            // Generic data key
+            listings = Array.isArray(listingsResponse.data.data) ? listingsResponse.data.data : [];
+          }
 
-            return {
-              id: listing.id, // Use listing ID instead of user ID
-              name: user.name,
-              user: user,
-              bio: user.profileData?.bio || user.bio || listing.description || '',
-              experience_years: experience,
-              // Handle both single service_type and array of service_types
-              services: (() => {
-                const servicesList = [];
+          console.log('📋 Total service listings fetched:', listings.length);
 
-                // Check if service_types is an array
-                if (listing.service_types && Array.isArray(listing.service_types)) {
-                  listing.service_types.forEach((serviceType: string) => {
+          // Map each listing to a helper format (no grouping)
+          const helpers = listings
+            .filter((listing: any) => listing.user) // Only include listings with user data
+            .map((listing: any) => {
+              const user = listing.user;
+
+              // Parse experience if it's a string like "5 years"
+              let experience = 0;
+              const expRaw = user.profileData?.experience || user.experience;
+              if (typeof expRaw === 'number') {
+                experience = expRaw;
+              } else if (typeof expRaw === 'string') {
+                const match = expRaw.match(/(\d+)/);
+                if (match) experience = parseInt(match[1], 10);
+              }
+
+              return {
+                id: listing.id, // Use listing ID instead of user ID
+                name: user.name,
+                user: user,
+                bio: user.profileData?.bio || user.bio || listing.description || '',
+                experience_years: experience,
+                // Handle both single service_type and array of service_types
+                services: (() => {
+                  const servicesList = [];
+
+                  // Check if service_types is an array
+                  if (listing.service_types && Array.isArray(listing.service_types)) {
+                    listing.service_types.forEach((serviceType: string) => {
+                      servicesList.push({
+                        id: listing.id,
+                        service_type: serviceType,
+                        monthly_rate: listing.monthly_rate,
+                        location_id: listing.location_id,
+                        location: listing.location,
+                        area: listing.area,
+                        description: listing.description
+                      });
+                    });
+                  } else if (listing.service_type) {
+                    // Single service_type
                     servicesList.push({
                       id: listing.id,
-                      service_type: serviceType,
+                      service_type: listing.service_type,
                       monthly_rate: listing.monthly_rate,
                       location_id: listing.location_id,
                       location: listing.location,
                       area: listing.area,
                       description: listing.description
                     });
-                  });
-                } else if (listing.service_type) {
-                  // Single service_type
-                  servicesList.push({
+                  }
+
+                  return servicesList.length > 0 ? servicesList : [{
                     id: listing.id,
-                    service_type: listing.service_type,
+                    service_type: 'Service',
                     monthly_rate: listing.monthly_rate,
                     location_id: listing.location_id,
                     location: listing.location,
                     area: listing.area,
                     description: listing.description
-                  });
-                }
+                  }];
+                })(),
+                area: listing.area || listing.location?.name || '',
+                rating: user.rating || 0,
+                reviews_count: user.reviews_count || 0,
+                profile_image: user.profile_image,
+                role: user.user_type || user.role || 'helper',
+                // Handle multiple locations - prioritize location_details
+                location_details: listing.location_details && Array.isArray(listing.location_details)
+                  ? listing.location_details
+                  : undefined,
+                // Handle multiple locations (fallback)
+                locations: (() => {
+                  const locationsList = [];
 
-                return servicesList.length > 0 ? servicesList : [{
-                  id: listing.id,
-                  service_type: 'Service',
-                  monthly_rate: listing.monthly_rate,
-                  location_id: listing.location_id,
-                  location: listing.location,
-                  area: listing.area,
-                  description: listing.description
-                }];
-              })(),
-              area: listing.area || listing.location?.name || '',
-              rating: user.rating || 0,
-              reviews_count: user.reviews_count || 0,
-              profile_image: user.profile_image,
-              role: user.user_type || user.role || 'helper',
-              // Handle multiple locations - prioritize location_details
-              location_details: listing.location_details && Array.isArray(listing.location_details) 
-                ? listing.location_details 
-                : undefined,
-              // Handle multiple locations (fallback)
-              locations: (() => {
-                const locationsList = [];
+                  // First check location_details
+                  if (listing.location_details && Array.isArray(listing.location_details)) {
+                    listing.location_details.forEach((loc: any) => {
+                      const locationName = loc.name || loc.location_name || '';
+                      const area = loc.area || loc.area_name || '';
+                      if (locationName && area) {
+                        locationsList.push(`${locationName}, ${area}`);
+                      } else if (locationName) {
+                        locationsList.push(locationName);
+                      } else if (area) {
+                        locationsList.push(area);
+                      }
+                    });
+                  }
 
-                // First check location_details
-                if (listing.location_details && Array.isArray(listing.location_details)) {
-                  listing.location_details.forEach((loc: any) => {
-                    const locationName = loc.name || loc.location_name || '';
-                    const area = loc.area || loc.area_name || '';
-                    if (locationName && area) {
-                      locationsList.push(`${locationName}, ${area}`);
-                    } else if (locationName) {
-                      locationsList.push(locationName);
-                    } else if (area) {
-                      locationsList.push(area);
-                    }
-                  });
-                }
+                  // Check if locations is an array
+                  if (listing.locations && Array.isArray(listing.locations)) {
+                    listing.locations.forEach((loc: any) => {
+                      if (typeof loc === 'string') {
+                        locationsList.push(loc);
+                      } else if (loc.name) {
+                        locationsList.push(loc.name);
+                      } else if (loc.area) {
+                        locationsList.push(loc.area);
+                      }
+                    });
+                  }
 
-                // Check if locations is an array
-                if (listing.locations && Array.isArray(listing.locations)) {
-                  listing.locations.forEach((loc: any) => {
-                    if (typeof loc === 'string') {
-                      locationsList.push(loc);
-                    } else if (loc.name) {
-                      locationsList.push(loc.name);
-                    } else if (loc.area) {
-                      locationsList.push(loc.area);
-                    }
-                  });
-                }
+                  // Add individual location fields
+                  if (listing.area) locationsList.push(listing.area);
+                  if (listing.location?.name) locationsList.push(listing.location.name);
+                  if (listing.location_name) locationsList.push(listing.location_name);
 
-                // Add individual location fields
-                if (listing.area) locationsList.push(listing.area);
-                if (listing.location?.name) locationsList.push(listing.location.name);
-                if (listing.location_name) locationsList.push(listing.location_name);
+                  // Remove duplicates and filter out empty values
+                  return [...new Set(locationsList.filter(Boolean))];
+                })()
+              };
+            });
 
-                // Remove duplicates and filter out empty values
-                return [...new Set(locationsList.filter(Boolean))];
-              })()
-            };
-          });
+          console.log('👥 Service listings displayed as cards:', helpers.length);
 
-        console.log('👥 Service listings displayed as cards:', helpers.length);
-
-        setHelpers(helpers);
-        await AsyncStorage.setItem('helpers', JSON.stringify(helpers));
-      } else {
-        // Fallback to local storage
-        const helpersData = await AsyncStorage.getItem('helpers');
-        if (helpersData) {
-          try {
-            const parsed = JSON.parse(helpersData);
-            setHelpers(Array.isArray(parsed) ? parsed : []);
-          } catch (e) {
+          setHelpers(helpers);
+          await AsyncStorage.setItem('helpers', JSON.stringify(helpers));
+        } else {
+          // Fallback to local storage
+          const helpersData = await AsyncStorage.getItem('helpers');
+          if (helpersData) {
+            try {
+              const parsed = JSON.parse(helpersData);
+              setHelpers(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+              setHelpers([]);
+            }
+          } else {
             setHelpers([]);
           }
-        } else {
-          setHelpers([]);
         }
-      }
+      } // End of if (!isHelperOrBusiness) - service listings only for customers
 
     } catch (error) {
       // Error loading app data
@@ -414,7 +429,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.log('Jobs refresh already in progress, skipping...');
       return;
     }
-    
+
+    // Only refresh jobs if user is not a business or helper
+    const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
+    if (isHelperOrBusiness) {
+      console.log('Skipping jobs refresh for business/helper user');
+      return;
+    }
+
     isRefreshingJobs.current = true;
     try {
       console.log('Refreshing jobs from API...');
@@ -473,7 +495,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       isRefreshingJobs.current = false;
     }
-  }, []);
+  }, [user?.userType]);
 
   return (
     <AppContext.Provider

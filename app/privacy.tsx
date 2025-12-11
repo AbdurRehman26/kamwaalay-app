@@ -50,114 +50,114 @@ export default function PrivacyScreen() {
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               1. Information We Collect
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               We collect information that you provide directly to us, including:
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={styles.listItem}>• Personal information (name, phone number, email address)</ThemedText>
-              <ThemedText style={styles.listItem}>• Profile information (bio, experience, service offerings)</ThemedText>
-              <ThemedText style={styles.listItem}>• Location information</ThemedText>
-              <ThemedText style={styles.listItem}>• Payment information (processed securely through third-party providers)</ThemedText>
-              <ThemedText style={styles.listItem}>• Communications and messages sent through the app</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Personal information (name, phone number, email address)</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Profile information (bio, experience, service offerings)</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Location information</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Payment information (processed securely through third-party providers)</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Communications and messages sent through the app</ThemedText>
             </View>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               2. How We Use Your Information
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               We use the information we collect to:
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={styles.listItem}>• Provide, maintain, and improve our services</ThemedText>
-              <ThemedText style={styles.listItem}>• Process transactions and send related information</ThemedText>
-              <ThemedText style={styles.listItem}>• Send you technical notices and support messages</ThemedText>
-              <ThemedText style={styles.listItem}>• Respond to your comments and questions</ThemedText>
-              <ThemedText style={styles.listItem}>• Monitor and analyze trends and usage</ThemedText>
-              <ThemedText style={styles.listItem}>• Personalize and improve your experience</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Provide, maintain, and improve our services</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Process transactions and send related information</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Send you technical notices and support messages</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Respond to your comments and questions</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Monitor and analyze trends and usage</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Personalize and improve your experience</ThemedText>
             </View>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               3. Information Sharing
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               We do not sell your personal information. We may share your information in the following circumstances:
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={styles.listItem}>• With other users as necessary to facilitate jobs and bookings</ThemedText>
-              <ThemedText style={styles.listItem}>• With service providers who assist us in operating our platform</ThemedText>
-              <ThemedText style={styles.listItem}>• When required by law or to protect our rights</ThemedText>
-              <ThemedText style={styles.listItem}>• In connection with a business transfer or merger</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• With other users as necessary to facilitate jobs and bookings</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• With service providers who assist us in operating our platform</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• When required by law or to protect our rights</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• In connection with a business transfer or merger</ThemedText>
             </View>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               4. Data Security
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               We implement appropriate technical and organizational security measures to protect your personal information. However, no method of transmission over the internet or electronic storage is 100% secure. While we strive to use commercially acceptable means to protect your information, we cannot guarantee absolute security.
             </ThemedText>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               5. Your Rights
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               You have the right to:
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={styles.listItem}>• Access and receive a copy of your personal data</ThemedText>
-              <ThemedText style={styles.listItem}>• Request correction of inaccurate data</ThemedText>
-              <ThemedText style={styles.listItem}>• Request deletion of your personal data</ThemedText>
-              <ThemedText style={styles.listItem}>• Object to processing of your personal data</ThemedText>
-              <ThemedText style={styles.listItem}>• Request restriction of processing</ThemedText>
-              <ThemedText style={styles.listItem}>• Withdraw consent at any time</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Access and receive a copy of your personal data</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Request correction of inaccurate data</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Request deletion of your personal data</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Object to processing of your personal data</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Request restriction of processing</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Withdraw consent at any time</ThemedText>
             </View>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               6. Cookies and Tracking
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               We use cookies and similar tracking technologies to track activity on our app and hold certain information. You can instruct your device to refuse all cookies or to indicate when a cookie is being sent.
             </ThemedText>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               7. Children's Privacy
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               Our service is not intended for children under the age of 18. We do not knowingly collect personal information from children under 18. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.
             </ThemedText>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               8. Changes to This Privacy Policy
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.
             </ThemedText>
           </View>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               9. Contact Us
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               If you have any questions about this Privacy Policy, please contact us at:
             </ThemedText>
-            <ThemedText style={styles.contactInfo}>
+            <ThemedText style={[styles.contactInfo, { color: primaryColor }]}>
               Email: privacy@kamwaalay.com{'\n'}
               Phone: +92-300-1234567{'\n'}
               Address: Karachi, Pakistan
@@ -172,7 +172,6 @@ export default function PrivacyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
@@ -180,9 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     paddingTop: 60,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
   },
   backButton: {
     padding: 4,
@@ -190,7 +187,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A1A1A',
     flex: 1,
     textAlign: 'center',
   },
@@ -202,7 +198,6 @@ const styles = StyleSheet.create({
   },
   lastUpdated: {
     fontSize: 12,
-    color: '#999',
     marginBottom: 24,
     fontStyle: 'italic',
   },
@@ -213,12 +208,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 12,
-    color: '#1A1A1A',
   },
   text: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#666',
     marginBottom: 12,
   },
   list: {
@@ -228,13 +221,11 @@ const styles = StyleSheet.create({
   listItem: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#666',
     marginBottom: 8,
   },
   contactInfo: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#6366F1',
     marginTop: 8,
     fontWeight: '600',
   },

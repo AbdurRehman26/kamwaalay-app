@@ -224,32 +224,35 @@ export default function BookingsScreen() {
         )}
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabs}>
+      {/* Filters */}
+      <View style={styles.filtersContainer}>
+        <Text style={[styles.filtersLabel, { color: textColor }]}>Filters</Text>
+        <View style={styles.filters}>
         <TouchableOpacity
-          style={[styles.tab, { backgroundColor: borderColor }, selectedTab === 'active' && { backgroundColor: primaryColor }]}
+          style={[styles.filter, { backgroundColor: borderColor }, selectedTab === 'active' && { backgroundColor: primaryColor }]}
           onPress={() => setSelectedTab('active')}
         >
-          <Text style={[styles.tabText, { color: textSecondary }, selectedTab === 'active' && styles.tabTextActive]}>
+          <Text style={[styles.filterText, { color: textSecondary }, selectedTab === 'active' && styles.filterTextActive]}>
             Active ({activeBookings.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, { backgroundColor: borderColor }, selectedTab === 'completed' && { backgroundColor: primaryColor }]}
+          style={[styles.filter, { backgroundColor: borderColor }, selectedTab === 'completed' && { backgroundColor: primaryColor }]}
           onPress={() => setSelectedTab('completed')}
         >
-          <Text style={[styles.tabText, { color: textSecondary }, selectedTab === 'completed' && styles.tabTextActive]}>
+          <Text style={[styles.filterText, { color: textSecondary }, selectedTab === 'completed' && styles.filterTextActive]}>
             Completed ({completedBookings.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, { backgroundColor: borderColor }, selectedTab === 'cancelled' && { backgroundColor: primaryColor }]}
+          style={[styles.filter, { backgroundColor: borderColor }, selectedTab === 'cancelled' && { backgroundColor: primaryColor }]}
           onPress={() => setSelectedTab('cancelled')}
         >
-          <Text style={[styles.tabText, { color: textSecondary }, selectedTab === 'cancelled' && styles.tabTextActive]}>
+          <Text style={[styles.filterText, { color: textSecondary }, selectedTab === 'cancelled' && styles.filterTextActive]}>
             Cancelled ({cancelledBookings.length})
           </Text>
         </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content */}
@@ -329,22 +332,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  tabs: {
-    flexDirection: 'row',
+  filtersContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
+  },
+  filtersLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  filters: {
+    flexDirection: 'row',
     gap: 12,
   },
-  tab: {
+  filter: {
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
   },
-  tabText: {
+  filterText: {
     fontSize: 13,
     fontWeight: '600',
   },
-  tabTextActive: {
+  filterTextActive: {
     color: '#FFFFFF',
   },
   scrollView: {

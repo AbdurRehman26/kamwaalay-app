@@ -1256,6 +1256,9 @@ export default function ExploreScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        contentContainerStyle={{ width: '100%' }}
         contentContainerStyle={{
           paddingTop: insets.top,
           paddingBottom: insets.bottom + 20
@@ -1577,9 +1580,11 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   header: {
     padding: 20,

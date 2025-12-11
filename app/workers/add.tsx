@@ -246,9 +246,14 @@ export default function AddWorkerScreen() {
 
 
                 <ScrollView
-                    style={styles.scrollView}
+                    style={[styles.scrollView, { backgroundColor }]}
+                    showsHorizontalScrollIndicator={false}
+                    horizontal={false}
+                    bounces={false}
+                    alwaysBounceHorizontal={false}
+                    alwaysBounceVertical={false}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+                    contentContainerStyle={{ paddingBottom: insets.bottom + 40, width: width, maxWidth: width }}
                 >
                     <View style={styles.formContainer}>
                         {/* Basic Information */}
@@ -477,9 +482,13 @@ export default function AddWorkerScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        width: width,
+        maxWidth: width,
     },
     keyboardView: {
         flex: 1,
+        width: width,
+        maxWidth: width,
     },
     topCircle: {
         position: 'absolute',
@@ -500,6 +509,8 @@ const styles = StyleSheet.create({
 
     scrollView: {
         flex: 1,
+        width: width,
+        maxWidth: width,
     },
     formContainer: {
         padding: 24,

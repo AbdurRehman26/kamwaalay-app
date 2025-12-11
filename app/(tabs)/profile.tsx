@@ -107,7 +107,13 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        contentContainerStyle={{ width: '100%' }}
+      >
         {/* Profile Header */}
         <View style={styles.header}>
           <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
@@ -170,9 +176,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   header: {
     alignItems: 'center',

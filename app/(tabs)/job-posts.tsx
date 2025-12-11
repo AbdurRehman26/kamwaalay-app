@@ -619,9 +619,14 @@ export default function JobPostsScreen() {
 
         {/* Content */}
         <ScrollView
-          style={styles.scrollView}
+          style={[styles.scrollView, { backgroundColor }]}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+          showsHorizontalScrollIndicator={false}
+          horizontal={false}
+          bounces={false}
+          alwaysBounceHorizontal={false}
+          alwaysBounceVertical={false}
+          contentContainerStyle={{ paddingBottom: 100 + insets.bottom, width: width, maxWidth: width }}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -871,7 +876,8 @@ export default function JobPostsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    width: width,
+    maxWidth: width,
   },
   topCircle: {
     position: 'absolute',
@@ -895,6 +901,8 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    width: width,
+    maxWidth: width,
   },
   header: {
     flexDirection: 'row',
@@ -983,6 +991,8 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    width: width,
+    maxWidth: width,
   },
   content: {
     paddingHorizontal: 24,

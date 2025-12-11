@@ -313,7 +313,12 @@ export default function HomeScreen() {
       <View style={[styles.bottomCircle, { backgroundColor: secondaryLight, opacity: 0.3 }]} />
 
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor }]}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        bounces={false}
+        alwaysBounceHorizontal={false}
+        alwaysBounceVertical={false}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -502,6 +507,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
   },
   loadingContainer: {
     flex: 1,
@@ -526,6 +532,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   scrollContent: {
     paddingBottom: 40,

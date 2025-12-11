@@ -4,6 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -49,6 +50,9 @@ export default function ProfileViewScreen() {
   const [isLoadingOtherServices, setIsLoadingOtherServices] = useState(false);
   const [canContact, setCanContact] = useState(false);
   const [isCheckingContact, setIsCheckingContact] = useState(false);
+
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -605,8 +609,16 @@ export default function ProfileViewScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <View style={[styles.container, { backgroundColor }]}>
+      <ScrollView 
+        style={[styles.scrollView, { backgroundColor }]} 
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        bounces={false}
+        alwaysBounceHorizontal={false}
+        alwaysBounceVertical={false}
+      >
         {/* Header Background */}
         <View style={styles.headerBackground}>
           <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
@@ -842,7 +854,12 @@ export default function ProfileViewScreen() {
           {otherServices.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>More from {displayProfile.name}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={{ paddingRight: 20 }}
+                style={{ width: '100%' }}
+              >
                 {otherServices.map((service: any, index: number) => (
                   <TouchableOpacity
                     key={index}
@@ -916,10 +933,13 @@ export default function ProfileViewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    width: '100%',
+    alignSelf: 'stretch',
   },
   scrollView: {
     flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   headerBackground: {
     backgroundColor: Colors.light.primary,
@@ -947,6 +967,9 @@ const styles = StyleSheet.create({
   profileContentContainer: {
     paddingHorizontal: 20,
     marginTop: -100,
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
@@ -1052,6 +1075,8 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+    width: '100%',
+    maxWidth: '100%',
   },
   sectionTitle: {
     fontSize: 18,

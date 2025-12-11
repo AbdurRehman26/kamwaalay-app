@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -160,9 +160,6 @@ export default function ServiceOfferingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
@@ -178,17 +175,25 @@ export default function ServiceOfferingsScreen() {
             style={[styles.addHeaderButton, { backgroundColor: primaryColor }]}
             onPress={() => router.push('/profile/add-service-offering')}
           >
-            <IconSymbol name="plus" size={20} color="#FFFFFF" />
+            <IconSymbol name="plus" size={16} color="#FFFFFF" />
+            <Text style={styles.addHeaderButtonText}>Add</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView 
-          style={styles.scrollView} 
+          style={[styles.scrollView, { backgroundColor }]} 
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           horizontal={false}
-          contentContainerStyle={{ paddingBottom: 0, flexGrow: 1, width: '100%' }}
+          bounces={false}
+          alwaysBounceHorizontal={false}
+          alwaysBounceVertical={false}
+          contentContainerStyle={{ paddingBottom: 0, flexGrow: 1, width: width, maxWidth: width }}
         >
+          {/* Decorative Background Elements */}
+          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
           {/* Existing Services */}
           {isLoading ? (
             <View style={styles.loadingContainer}>
@@ -201,48 +206,81 @@ export default function ServiceOfferingsScreen() {
                 Your Service Listings ({serviceListings.length})
               </Text>
               {serviceListings.map((listing: ServiceListing) => {
-                // Handle service type - could be in service_type or service_types array
-                let serviceType = listing.service_type || 'Service';
-                if (!serviceType && listing.service_types && Array.isArray(listing.service_types) && listing.service_types.length > 0) {
-                  serviceType = listing.service_types[0];
+                // Handle service types - get all service types
+                const serviceTypes: string[] = [];
+                if (listing.service_types && Array.isArray(listing.service_types) && listing.service_types.length > 0) {
+                  serviceTypes.push(...listing.service_types);
+                } else if (listing.service_type) {
+                  serviceTypes.push(listing.service_type);
                 }
-                const displayName = serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
                 
-                // Handle location - could be in location object, location_details array, or area
-                let location = 'Location not specified';
-                if (listing.location?.name) {
-                  location = listing.location.name;
+                const formatServiceType = (type: string) => {
+                  return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+                };
+                
+                // Handle locations - get all locations
+                const locations: string[] = [];
+                if (listing.location_details && Array.isArray(listing.location_details) && listing.location_details.length > 0) {
+                  listing.location_details.forEach((loc: any) => {
+                    const locationText = loc.display_text || 
+                                       (loc.city_name && loc.area ? `${loc.city_name}, ${loc.area}` : null) ||
+                                       loc.area || 
+                                       loc.area_name || 
+                                       loc.city_name || 
+                                       loc.name;
+                    if (locationText && !locations.includes(locationText)) {
+                      locations.push(locationText);
+                    }
+                  });
+                } else if (listing.location?.name) {
+                  locations.push(listing.location.name);
                 } else if (listing.location?.area) {
-                  location = listing.location.area;
+                  locations.push(listing.location.area);
                 } else if (listing.area) {
-                  location = listing.area;
-                } else if (listing.location_details && Array.isArray(listing.location_details) && listing.location_details.length > 0) {
-                  const firstLocation = listing.location_details[0];
-                  location = firstLocation.display_text || firstLocation.area || firstLocation.city_name || firstLocation.name || 'Location not specified';
+                  locations.push(listing.area);
                 }
 
                 return (
                   <View key={listing.id} style={[styles.serviceCard, { backgroundColor: cardBg, borderColor }]}>
                     <View style={styles.serviceHeader}>
                       <View style={styles.serviceInfo}>
-                        <Text style={[styles.serviceName, { color: textColor }]}>
-                          {displayName}
-                        </Text>
+                        <View style={styles.serviceTypesRow}>
+                          {serviceTypes.length > 0 ? (
+                            serviceTypes.map((type, idx) => (
+                              <View key={idx} style={[styles.serviceTypeBadge, { backgroundColor: primaryLight }]}>
+                                <Text style={[styles.serviceTypeBadgeText, { color: primaryColor }]}>
+                                  {formatServiceType(type)}
+                                </Text>
+                              </View>
+                            ))
+                          ) : (
+                            <Text style={[styles.serviceName, { color: textColor }]}>Service</Text>
+                          )}
+                        </View>
                         {listing.work_type && (
                           <Text style={[styles.serviceCategory, { color: textSecondary }]}>
-                            {listing.work_type.replace('_', ' ')}
+                            {listing.work_type.replace('_', ' ').charAt(0).toUpperCase() + listing.work_type.replace('_', ' ').slice(1)}
                           </Text>
                         )}
                       </View>
-                      <TouchableOpacity
-                        style={[styles.deleteButton, { backgroundColor: cardBg, borderColor: '#EF4444', borderWidth: 1 }]}
-                        onPress={() => handleDeleteService(listing.id.toString())}
-                      >
-                        <IconSymbol name="trash.fill" size={20} color="#EF4444" />
-                      </TouchableOpacity>
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={[styles.editButton, { backgroundColor: primaryColor }]}
+                          onPress={() => router.push(`/profile/add-service-offering?id=${listing.id}`)}
+                        >
+                          <IconSymbol name="pencil" size={16} color="#FFFFFF" />
+                          <Text style={styles.editButtonText}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.deleteButton, { backgroundColor: '#EF4444' }]}
+                          onPress={() => handleDeleteService(listing.id.toString())}
+                        >
+                          <IconSymbol name="trash.fill" size={16} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                     {listing.description && (
-                      <Text style={[styles.serviceDescription, { color: textSecondary }]}>{listing.description}</Text>
+                      <Text style={[styles.serviceDescription, { color: textSecondary }]} numberOfLines={2}>{listing.description}</Text>
                     )}
                     {listing.monthly_rate && (
                       <View style={styles.priceContainer}>
@@ -254,12 +292,18 @@ export default function ServiceOfferingsScreen() {
                         </Text>
                       </View>
                     )}
-                    <View style={styles.serviceLocations}>
-                      <View style={[styles.locationTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
-                        <IconSymbol name="location.fill" size={12} color={primaryColor} />
-                        <Text style={[styles.locationTagText, { color: primaryColor }]}>{location}</Text>
+                    {locations.length > 0 && (
+                      <View style={styles.serviceLocations}>
+                        <IconSymbol name="location.fill" size={14} color={textSecondary} style={styles.locationIcon} />
+                        <View style={styles.locationsList}>
+                          {locations.map((loc, idx) => (
+                            <View key={idx} style={[styles.locationTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
+                              <Text style={[styles.locationTagText, { color: primaryColor }]}>{loc}</Text>
+                            </View>
+                          ))}
+                        </View>
                       </View>
-                    </View>
+                    )}
                   </View>
                 );
               })}
@@ -282,7 +326,8 @@ export default function ServiceOfferingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
+    width: width,
+    maxWidth: width,
   },
   topCircle: {
     position: 'absolute',
@@ -302,6 +347,8 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    width: width,
+    maxWidth: width,
   },
   header: {
     flexDirection: 'row',
@@ -326,14 +373,22 @@ const styles = StyleSheet.create({
     width: 40,
   },
   addHeaderButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  addHeaderButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
+    width: width,
+    maxWidth: width,
   },
   section: {
     paddingHorizontal: 24,
@@ -344,6 +399,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
+    marginTop: 8,
     marginBottom: 16,
   },
   serviceCard: {
@@ -367,6 +423,22 @@ const styles = StyleSheet.create({
   },
   serviceInfo: {
     flex: 1,
+    marginRight: 12,
+  },
+  serviceTypesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
+  serviceTypeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  serviceTypeBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   serviceName: {
     fontSize: 18,
@@ -377,6 +449,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textTransform: 'capitalize',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+  },
+  editButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   deleteButton: {
     padding: 8,
@@ -399,21 +489,27 @@ const styles = StyleSheet.create({
   },
   serviceLocations: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    marginTop: 8,
     gap: 8,
-    width: '100%',
+  },
+  locationIcon: {
+    marginTop: 2,
+  },
+  locationsList: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   locationTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 1,
   },
   locationTagText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   form: {

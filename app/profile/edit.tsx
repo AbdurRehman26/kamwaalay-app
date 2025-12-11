@@ -116,12 +116,9 @@ export default function EditProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight }]} />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        style={[styles.keyboardView, { backgroundColor }]}
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 10, backgroundColor: cardBg, borderBottomColor: borderColor }]}>
@@ -143,12 +140,22 @@ export default function EditProfileScreen() {
         </View>
 
         <ScrollView
-          style={styles.scrollView}
+          style={[styles.scrollView, { backgroundColor }]}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           horizontal={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 40, width: '100%' }}
+          bounces={false}
+          alwaysBounceHorizontal={false}
+          alwaysBounceVertical={false}
+          contentContainerStyle={{ 
+            paddingBottom: insets.bottom + 40,
+            width: width,
+            maxWidth: width,
+          }}
         >
+          <View style={[styles.topCircle, { backgroundColor: primaryLight }]} />
+          <View style={[styles.bottomCircle, { backgroundColor: primaryLight }]} />
+
           {/* Profile Picture Section */}
           <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
@@ -286,10 +293,13 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
+    width: width,
+    maxWidth: width,
   },
   keyboardView: {
     flex: 1,
+    width: width,
+    maxWidth: width,
   },
   topCircle: {
     position: 'absolute',
@@ -316,6 +326,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
+    width: width,
+    maxWidth: width,
   },
   backButton: {
     width: 40,
@@ -339,7 +351,8 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    width: '100%',
+    width: width,
+    maxWidth: width,
   },
   profileSection: {
     alignItems: 'center',
@@ -397,6 +410,8 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     paddingHorizontal: 24,
+    width: width,
+    maxWidth: width,
   },
   sectionTitle: {
     fontSize: 18,
@@ -421,6 +436,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
+    width: width - 48, // screen width - padding*2
+    maxWidth: width - 48,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.02,

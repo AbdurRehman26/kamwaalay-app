@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -42,7 +42,9 @@ interface Location {
 
 export default function AddServiceOfferingScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
+  const isEditMode = !!id;
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
@@ -67,6 +69,14 @@ export default function AddServiceOfferingScreen() {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load service listing data when editing
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadServiceListing();
+    }
+  }, [id, isEditMode]);
 
   // Location search effect
   useEffect(() => {
@@ -81,6 +91,65 @@ export default function AddServiceOfferingScreen() {
 
     return () => clearTimeout(searchTimeout);
   }, [locationSearch]);
+
+  const loadServiceListing = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.SERVICE_LISTINGS.GET,
+        { id: id as string },
+        undefined,
+        true
+      );
+
+      if (response.success && response.data) {
+        const listing = response.data.listing || response.data.service_listing || response.data;
+        
+        // Set service types
+        if (listing.service_types && Array.isArray(listing.service_types)) {
+          setSelectedServiceTypes(listing.service_types);
+        } else if (listing.service_type) {
+          setSelectedServiceTypes([listing.service_type]);
+        }
+
+        // Set work type
+        if (listing.work_type) {
+          setWorkType(listing.work_type);
+        }
+
+        // Set monthly rate
+        if (listing.monthly_rate) {
+          setMonthlyRate(listing.monthly_rate.toString());
+        }
+
+        // Set description
+        if (listing.description) {
+          setDescription(listing.description);
+        }
+
+        // Set locations
+        if (listing.location_details && Array.isArray(listing.location_details)) {
+          const locations: Location[] = listing.location_details.map((loc: any) => ({
+            id: loc.id || loc.location_id || loc.name,
+            name: loc.display_text || loc.area || loc.area_name || loc.name || '',
+            area: loc.area || loc.area_name || loc.name || '',
+          }));
+          setSelectedLocations(locations);
+        } else if (listing.location) {
+          setSelectedLocations([{
+            id: listing.location.id || listing.location.name,
+            name: listing.location.name || listing.location.area || '',
+            area: listing.location.area || listing.location.name || '',
+          }]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading service listing:', error);
+      Alert.alert('Error', 'Failed to load service listing');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const searchLocations = async (query: string) => {
     try {
@@ -161,33 +230,50 @@ export default function AddServiceOfferingScreen() {
       // Prepare location IDs
       const locationIds = selectedLocations.map((loc) => loc.id);
 
-      // Call API to create service listing
-      const response = await apiService.post(
-        API_ENDPOINTS.SERVICE_LISTINGS.CREATE,
-        {
-          service_types: selectedServiceTypes,
-          locations: locationIds,
-          work_type: workType,
-          monthly_rate: monthlyRate ? parseFloat(monthlyRate) : null,
-          description: description || null,
-        },
-        undefined,
-        true
-      );
+      let response;
+      if (isEditMode && id) {
+        // Update existing service listing
+        response = await apiService.put(
+          API_ENDPOINTS.SERVICE_LISTINGS.UPDATE,
+          {
+            service_types: selectedServiceTypes,
+            locations: locationIds,
+            work_type: workType,
+            monthly_rate: monthlyRate ? parseFloat(monthlyRate) : null,
+            description: description || null,
+          },
+          { id: id },
+          true
+        );
+      } else {
+        // Create new service listing
+        response = await apiService.post(
+          API_ENDPOINTS.SERVICE_LISTINGS.CREATE,
+          {
+            service_types: selectedServiceTypes,
+            locations: locationIds,
+            work_type: workType,
+            monthly_rate: monthlyRate ? parseFloat(monthlyRate) : null,
+            description: description || null,
+          },
+          undefined,
+          true
+        );
+      }
 
       if (response.success) {
-        Alert.alert('Success', 'Service offering added successfully', [
+        Alert.alert('Success', isEditMode ? 'Service offering updated successfully' : 'Service offering added successfully', [
           {
             text: 'OK',
             onPress: () => router.back(),
           },
         ]);
       } else {
-        Alert.alert('Error', response.message || 'Failed to add service offering');
+        Alert.alert('Error', response.message || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
       }
     } catch (error: any) {
-      console.error('Error adding service offering:', error);
-      Alert.alert('Error', error.message || 'Failed to add service offering');
+      console.error('Error saving service offering:', error);
+      Alert.alert('Error', error.message || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
     } finally {
       setIsSubmitting(false);
     }
@@ -195,9 +281,6 @@ export default function AddServiceOfferingScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
@@ -208,18 +291,33 @@ export default function AddServiceOfferingScreen() {
           >
             <IconSymbol name="chevron.left" size={24} color={textColor} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: textColor }]}>Add New Service</Text>
+          <Text style={[styles.headerTitle, { color: textColor }]}>
+            {isEditMode ? 'Edit Service' : 'Add New Service'}
+          </Text>
           <View style={styles.placeholder} />
         </View>
 
         <ScrollView 
-          style={styles.scrollView} 
+          style={[styles.scrollView, { backgroundColor }]} 
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           horizontal={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24, width: '100%' }}
+          bounces={false}
+          alwaysBounceHorizontal={false}
+          alwaysBounceVertical={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24, width: width, maxWidth: width }}
         >
-          <View style={styles.form}>
+          {/* Decorative Background Elements */}
+          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={primaryColor} />
+              <Text style={[styles.loadingText, { color: textSecondary }]}>Loading service details...</Text>
+            </View>
+          ) : (
+            <View style={styles.form}>
             {/* Service Types */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: textColor }]}>
@@ -409,7 +507,7 @@ export default function AddServiceOfferingScreen() {
                   <Text style={[
                     styles.addButtonText,
                     (selectedServiceTypes.length === 0 || selectedLocations.length === 0) && { opacity: 0.7 }
-                  ]}>Add Service</Text>
+                  ]}>{isEditMode ? 'Update Service' : 'Add Service'}</Text>
                   <IconSymbol 
                     name="plus" 
                     size={20} 
@@ -419,6 +517,7 @@ export default function AddServiceOfferingScreen() {
               )}
             </TouchableOpacity>
           </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -428,7 +527,8 @@ export default function AddServiceOfferingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
+    width: width,
+    maxWidth: width,
   },
   topCircle: {
     position: 'absolute',
@@ -448,6 +548,8 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    width: width,
+    maxWidth: width,
   },
   header: {
     flexDirection: 'row',
@@ -473,7 +575,8 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    width: '100%',
+    width: width,
+    maxWidth: width,
   },
   form: {
     paddingHorizontal: 24,
@@ -649,6 +752,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
   },
 });
 

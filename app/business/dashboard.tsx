@@ -44,8 +44,6 @@ export default function BusinessDashboardScreen() {
     return (
         <View style={[styles.container, { backgroundColor }]}>
             {/* Decorative Background Elements */}
-            <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-            <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Header */}
@@ -67,10 +65,22 @@ export default function BusinessDashboardScreen() {
                 </View>
 
                 <ScrollView
-                    style={styles.scrollView}
+                    style={[styles.scrollView, { backgroundColor }]}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+                    showsHorizontalScrollIndicator={false}
+                    horizontal={false}
+                    bounces={false}
+                    alwaysBounceHorizontal={false}
+                    alwaysBounceVertical={false}
+                    contentContainerStyle={{ 
+                        paddingBottom: insets.bottom + 20,
+                        width: width,
+                        maxWidth: width,
+                    }}
                 >
+                    <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+                    <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
                     {/* Stats Cards */}
                     <View style={styles.statsContainer}>
                         <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
@@ -187,6 +197,8 @@ export default function BusinessDashboardScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        width: width,
+        maxWidth: width,
     },
     topCircle: {
         position: 'absolute',
@@ -206,6 +218,8 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
+        width: width,
+        maxWidth: width,
     },
     header: {
         flexDirection: 'row',
@@ -213,6 +227,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 24,
         paddingVertical: 16,
+        width: width,
+        maxWidth: width,
     },
     title: {
         fontSize: 28,
@@ -228,15 +244,20 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
+        width: width,
+        maxWidth: width,
     },
     statsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         padding: 24,
         gap: 12,
+        width: width,
+        maxWidth: width,
     },
     statCard: {
-        width: '48%',
+        width: (width - 48 - 12) / 2, // (screen width - padding*2 - gap) / 2
+        maxWidth: (width - 48 - 12) / 2,
         borderRadius: 20,
         padding: 16,
         borderWidth: 1,
@@ -266,6 +287,8 @@ const styles = StyleSheet.create({
     tabsContainer: {
         paddingHorizontal: 24,
         marginBottom: 24,
+        width: width,
+        maxWidth: width,
     },
     tabs: {
         flexDirection: 'row',
@@ -285,6 +308,8 @@ const styles = StyleSheet.create({
     },
     contentSection: {
         paddingHorizontal: 24,
+        width: width,
+        maxWidth: width,
     },
     sectionHeader: {
         flexDirection: 'row',

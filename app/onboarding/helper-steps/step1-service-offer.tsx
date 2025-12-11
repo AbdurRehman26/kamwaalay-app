@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { apiService } from '@/services/api';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { apiService } from '@/services/api';
-import { API_ENDPOINTS } from '@/constants/api';
 
 interface Location {
   id: number | string;
@@ -57,6 +58,17 @@ export default function Step1ServiceOffer({
   const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const errorColor = useThemeColor({}, 'error');
 
   useEffect(() => {
     const searchTimeout = setTimeout(() => {
@@ -171,10 +183,10 @@ export default function Step1ServiceOffer({
         <View style={styles.form}>
           {/* Service Types */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>
-              Select Service Types <Text style={styles.required}>*</Text>
+            <ThemedText style={[styles.label, { color: textColor }]}>
+              Select Service Types <Text style={[styles.required, { color: errorColor }]}>*</Text>
             </ThemedText>
-            <ThemedText style={styles.instruction}>
+            <ThemedText style={[styles.instruction, { color: textSecondary }]}>
               Choose the services for this offer. You can select multiple.
             </ThemedText>
             <View style={styles.serviceTypesContainer}>
@@ -185,7 +197,8 @@ export default function Step1ServiceOffer({
                     key={service.id}
                     style={[
                       styles.serviceCard,
-                      isSelected && styles.serviceCardSelected,
+                      { backgroundColor: cardBg, borderColor },
+                      isSelected && { borderColor: primaryColor, backgroundColor: primaryLight },
                     ]}
                     onPress={() => toggleServiceType(service.id)}
                   >
@@ -193,7 +206,8 @@ export default function Step1ServiceOffer({
                     <Text
                       style={[
                         styles.serviceName,
-                        isSelected && styles.serviceNameSelected,
+                        { color: textSecondary },
+                        isSelected && { color: primaryColor },
                       ]}
                     >
                       {service.name}
@@ -206,10 +220,10 @@ export default function Step1ServiceOffer({
 
           {/* Locations */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>
-              Select Locations <Text style={styles.required}>*</Text>
+            <ThemedText style={[styles.label, { color: textColor }]}>
+              Select Locations <Text style={[styles.required, { color: errorColor }]}>*</Text>
             </ThemedText>
-            <ThemedText style={styles.instruction}>
+            <ThemedText style={[styles.instruction, { color: textSecondary }]}>
               Add locations for this offer. You can add multiple locations.
             </ThemedText>
 
@@ -217,15 +231,15 @@ export default function Step1ServiceOffer({
             {data.locations.length > 0 && (
               <View style={styles.selectedLocationsContainer}>
                 {data.locations.map((loc, index) => (
-                  <View key={loc.id || `location-${index}`} style={styles.locationTag}>
-                    <Text style={styles.locationTagText}>
+                  <View key={loc.id || `location-${index}`} style={[styles.locationTag, { backgroundColor: primaryLight }]}>
+                    <Text style={[styles.locationTagText, { color: primaryColor }]}>
                       {loc.area || loc.name}
                     </Text>
                     <TouchableOpacity
                       onPress={() => handleLocationRemove(loc.id)}
                       style={styles.removeTagButton}
                     >
-                      <IconSymbol name="xmark.circle.fill" size={16} color="#FF3B30" />
+                      <IconSymbol name="xmark.circle.fill" size={16} color={errorColor} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -235,28 +249,28 @@ export default function Step1ServiceOffer({
             {/* Location Search */}
             <View style={styles.locationSearchContainer}>
               <TextInput
-                style={styles.locationInput}
+                style={[styles.locationInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
                 placeholder="Search location (e.g., Karachi, Clifton or type area name)..."
-                placeholderTextColor="#999"
+                placeholderTextColor={textMuted}
                 value={locationSearch}
                 onChangeText={setLocationSearch}
               />
               {isLoadingLocations && (
-                <ActivityIndicator size="small" color="#6366F1" style={styles.loader} />
+                <ActivityIndicator size="small" color={primaryColor} style={styles.loader} />
               )}
             </View>
 
             {/* Location Dropdown */}
             {showLocationDropdown && filteredLocations.length > 0 && (
-              <View style={styles.locationDropdown}>
+              <View style={[styles.locationDropdown, { backgroundColor: cardBg, borderColor }]}>
                 <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
                   {filteredLocations.map((loc, index) => (
                     <TouchableOpacity
                       key={loc.id || `filtered-location-${index}`}
-                      style={styles.locationDropdownItem}
+                      style={[styles.locationDropdownItem, { borderBottomColor: borderColor }]}
                       onPress={() => handleLocationSelect(loc)}
                     >
-                      <Text style={styles.locationDropdownText}>
+                      <Text style={[styles.locationDropdownText, { color: textColor }]}>
                         {loc.area || loc.name}
                       </Text>
                     </TouchableOpacity>
@@ -268,8 +282,8 @@ export default function Step1ServiceOffer({
 
           {/* Work Type */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>
-              Work Type <Text style={styles.required}>*</Text>
+            <ThemedText style={[styles.label, { color: textColor }]}>
+              Work Type <Text style={[styles.required, { color: errorColor }]}>*</Text>
             </ThemedText>
             <View style={styles.workTypeContainer}>
               {WORK_TYPES.map((type) => (
@@ -277,14 +291,16 @@ export default function Step1ServiceOffer({
                   key={type.id}
                   style={[
                     styles.workTypeButton,
-                    data.workType === type.id && styles.workTypeButtonActive,
+                    { backgroundColor: cardBg, borderColor },
+                    data.workType === type.id && { borderColor: primaryColor, backgroundColor: primaryLight },
                   ]}
                   onPress={() => onChange({ ...data, workType: type.id })}
                 >
                   <Text
                     style={[
                       styles.workTypeText,
-                      data.workType === type.id && styles.workTypeTextActive,
+                      { color: textSecondary },
+                      data.workType === type.id && { color: primaryColor },
                     ]}
                   >
                     {type.name}
@@ -296,11 +312,11 @@ export default function Step1ServiceOffer({
 
           {/* Monthly Rate */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Monthly Rate (PKR)</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>Monthly Rate (PKR)</ThemedText>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: cardBg, borderColor, color: textColor }]}
               placeholder="e.g., 15000"
-              placeholderTextColor="#999"
+              placeholderTextColor={textMuted}
               value={data.monthlyRate}
               onChangeText={(value) => onChange({ ...data, monthlyRate: value })}
               keyboardType="numeric"
@@ -309,11 +325,11 @@ export default function Step1ServiceOffer({
 
           {/* Description */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Description</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>Description</ThemedText>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor, color: textColor }]}
               placeholder="Describe this service offer..."
-              placeholderTextColor="#999"
+              placeholderTextColor={textMuted}
               multiline
               numberOfLines={4}
               value={data.description}
@@ -325,10 +341,11 @@ export default function Step1ServiceOffer({
         <TouchableOpacity
           style={[
             styles.nextButton,
+            { backgroundColor: primaryColor },
             (data.serviceTypes.length === 0 ||
               data.locations.length === 0 ||
               !data.workType) &&
-              styles.nextButtonDisabled,
+              { backgroundColor: textMuted, opacity: 0.5 },
           ]}
           onPress={handleNext}
           disabled={
@@ -369,14 +386,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
-    color: '#1A1A1A',
   },
   required: {
-    color: '#FF3B30',
   },
   instruction: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 12,
   },
   serviceTypesContainer: {
@@ -387,17 +401,13 @@ const styles = StyleSheet.create({
   serviceCard: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 12,
   },
   serviceCardSelected: {
-    borderColor: '#6366F1',
-    backgroundColor: '#EEF2FF',
   },
   serviceEmoji: {
     fontSize: 32,
@@ -406,11 +416,9 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
     textAlign: 'center',
   },
   serviceNameSelected: {
-    color: '#6366F1',
   },
   selectedLocationsContainer: {
     flexDirection: 'row',
@@ -421,7 +429,6 @@ const styles = StyleSheet.create({
   locationTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -429,7 +436,6 @@ const styles = StyleSheet.create({
   },
   locationTagText: {
     fontSize: 14,
-    color: '#6366F1',
     fontWeight: '600',
   },
   removeTagButton: {
@@ -440,11 +446,9 @@ const styles = StyleSheet.create({
   },
   locationInput: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
   },
   loader: {
     position: 'absolute',
@@ -453,10 +457,8 @@ const styles = StyleSheet.create({
   },
   locationDropdown: {
     maxHeight: 200,
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     marginTop: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -470,11 +472,9 @@ const styles = StyleSheet.create({
   locationDropdownItem: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   locationDropdownText: {
     fontSize: 16,
-    color: '#1A1A1A',
   },
   workTypeContainer: {
     flexDirection: 'row',
@@ -485,37 +485,27 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   workTypeButtonActive: {
-    borderColor: '#6366F1',
-    backgroundColor: '#EEF2FF',
   },
   workTypeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
   },
   workTypeTextActive: {
-    color: '#6366F1',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
-    color: '#1A1A1A',
   },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
   },
   nextButton: {
-    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -523,7 +513,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   nextButtonDisabled: {
-    backgroundColor: '#CCCCCC',
   },
   nextButtonText: {
     color: '#FFFFFF',

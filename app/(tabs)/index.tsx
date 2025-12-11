@@ -2,6 +2,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { Job, useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { notificationService } from '@/services/notification.service';
@@ -47,11 +48,16 @@ export default function HomeScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
   const primaryColor = useThemeColor({}, 'primary');
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
   const primaryLight = useThemeColor({}, 'primaryLight');
   const secondaryLight = useThemeColor({}, 'secondaryLight');
+  const successColor = useThemeColor({}, 'success');
+  
+  // Get color scheme for service cards
+  const { colorScheme } = useTheme();
 
   useFocusEffect(
     useCallback(() => {
@@ -151,7 +157,6 @@ export default function HomeScreen() {
   };
 
   const renderServiceCard = ({ item }: { item: typeof SERVICES[0] }) => {
-    const { colorScheme } = require('@/contexts/ThemeContext').useTheme();
     const serviceColor = colorScheme === 'dark' ? item.darkColor : item.color;
     const serviceBorder = colorScheme === 'dark' ? item.darkBorder : item.border;
 
@@ -194,106 +199,145 @@ export default function HomeScreen() {
   };
 
   const handleContact = (request: any) => {
-    router.push(`/chat/${request.userId}`);
+    const userName = request.userName || 'User';
+    router.push(`/chat/${request.userId}?name=${encodeURIComponent(userName)}`);
+  };
+
+  const handleContactApplicants = (request: any, event?: any) => {
+    if (event) {
+      event.stopPropagation?.();
+    }
+    if (request.applicants && request.applicants.length > 0) {
+      router.push(`/chat/${request.applicants[0]}`);
+    } else {
+      Alert.alert('No Applicants', 'There are no applicants to contact yet.');
+    }
+  };
+
+  const handleCardPress = (requestId: string) => {
+    router.push(`/job-view/${requestId}`);
   };
 
   const renderRequestCard = (request: any) => {
-    const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
     const hasApplied = request.applicants?.includes(user?.id || '');
     const isOpen = request.status === 'open';
+    const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
 
-    if (isHelperOrBusiness) {
-      return (
-        <View key={request.id} style={[styles.requestCard, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.requestHeader}>
-            <View style={styles.requestHeaderInfo}>
-              <Text style={[styles.requestTitle, { color: textColor }]} numberOfLines={1}>
+    return (
+      <View key={request.id} style={styles.cardWrapper}>
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: cardBg, borderColor }]}
+          onPress={() => handleCardPress(request.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardInfo}>
+              <Text style={[styles.cardTitle, { color: textColor }]} numberOfLines={1}>
                 {request.serviceName}
               </Text>
-              <View style={styles.userInfoRow}>
-                <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
-                  <Text style={[styles.avatarText, { color: primaryColor }]}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
+              {isHelperOrBusiness && (
+                <View style={styles.userInfo}>
+                  <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
+                    <Text style={[styles.avatarText, { color: primaryColor }]}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <Text style={[styles.cardUser, { color: textSecondary }]}>{request.userName || 'Unknown'}</Text>
                 </View>
-                <Text style={[styles.requestUser, { color: textSecondary }]}>{request.userName || 'Unknown'}</Text>
-              </View>
+              )}
+              {user?.userType === 'user' && (
+                <Text style={[styles.cardUser, { color: textSecondary }]}>by {request.userName || 'Unknown'}</Text>
+              )}
             </View>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
               <Text style={styles.statusText}>{request.status}</Text>
             </View>
           </View>
 
-          <Text style={[styles.requestDescription, { color: textSecondary }]} numberOfLines={2}>
+          <Text style={[styles.cardDescription, { color: textSecondary }]} numberOfLines={3}>
             {request.description}
           </Text>
 
-          <View style={styles.requestDetails}>
-            <View style={styles.detailRow}>
-              <IconSymbol name="location.fill" size={14} color={primaryColor} />
-              <Text style={[styles.detailText, { color: textSecondary }]}>{request.location}</Text>
-            </View>
-            {request.budget && (
+          {isHelperOrBusiness && (
+            <View style={styles.cardDetails}>
               <View style={styles.detailRow}>
-                <IconSymbol name="dollarsign.circle.fill" size={14} color={primaryColor} />
-                <Text style={[styles.detailText, { color: textSecondary }]}>₨{request.budget}</Text>
+                <IconSymbol name="location.fill" size={16} color={primaryColor} />
+                <Text style={[styles.detailText, { color: textSecondary }]}>{request.location}</Text>
+              </View>
+              {request.budget && (
+                <View style={styles.detailRow}>
+                  <IconSymbol name="dollarsign.circle.fill" size={16} color={primaryColor} />
+                  <Text style={[styles.detailText, { color: textSecondary }]}>₨{request.budget}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {!isHelperOrBusiness && (
+            <View style={[styles.cardFooter, { borderTopColor: borderColor }]}>
+              <View style={styles.locationContainer}>
+                <IconSymbol name="location.fill" size={14} color={textMuted} />
+                <Text style={[styles.location, { color: textSecondary }]}>{request.location}</Text>
+              </View>
+              {request.budget && (
+                <Text style={[styles.budget, { color: textColor }]}>₨{request.budget}</Text>
+              )}
+            </View>
+          )}
+
+          {request.applicants && request.applicants.length > 0 && (
+            <View style={[styles.applicantsTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
+              <IconSymbol name="person.2.fill" size={12} color={primaryColor} />
+              <Text style={[styles.applicantsTagText, { color: primaryColor }]}>
+                {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Actions for users (who own the request) */}
+        {user?.userType === 'user' && request.userId === user?.id && (
+          <View style={styles.cardActions}>
+            {request.applicants && request.applicants.length > 0 ? (
+              <TouchableOpacity
+                style={[styles.contactButton, { borderColor: primaryColor }]}
+                onPress={() => handleContactApplicants(request)}
+              >
+                <IconSymbol name="message.fill" size={18} color={primaryColor} />
+                <Text style={[styles.contactButtonText, { color: primaryColor }]}>
+                  Contact Applicant{request.applicants.length > 1 ? 's' : ''}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.noApplicantsBadge, { backgroundColor: cardBg, borderColor }]}>
+                <Text style={[styles.noApplicantsText, { color: textMuted }]}>No applicants yet</Text>
               </View>
             )}
           </View>
+        )}
 
-          {isOpen && !hasApplied && (
-            <View style={styles.requestActions}>
-              <TouchableOpacity
-                style={[styles.contactButton, { borderColor: primaryColor }]}
-                onPress={() => handleContact(request)}
-              >
-                <IconSymbol name="message.fill" size={16} color={primaryColor} />
-                <Text style={[styles.contactButtonText, { color: primaryColor }]}>Contact</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.applyButton, { backgroundColor: primaryColor }]}
-                onPress={() => handleApply(request.id)}
-              >
-                <Text style={styles.applyButtonText}>Apply Now</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {hasApplied && (
-            <View style={styles.appliedBadge}>
-              <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
-              <Text style={styles.appliedText}>Applied</Text>
-            </View>
-          )}
-        </View>
-      );
-    }
-
-    // For users - original card
-    return (
-      <TouchableOpacity
-        key={request.id}
-        style={[styles.requestCard, { backgroundColor: cardBg, borderColor }]}
-        onPress={() => router.push(`/job-view/${request.id}`)}
-      >
-        <View style={styles.requestHeader}>
-          <Text style={[styles.requestTitle, { color: textColor }]} numberOfLines={1}>
-            {request.serviceName}
-          </Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-            <Text style={styles.statusText}>{request.status}</Text>
+        {/* Actions for helpers/businesses */}
+        {isHelperOrBusiness && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={[styles.viewDetailsButton, { backgroundColor: primaryColor }]}
+              onPress={() => handleCardPress(request.id)}
+            >
+              <Text style={[styles.viewDetailsButtonText, { color: '#FFFFFF' }]}>View Details</Text>
+              <IconSymbol name="chevron.right" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+            {hasApplied && (
+              <View style={[styles.appliedBadge, { backgroundColor: cardBg, borderColor: successColor }]}>
+                <IconSymbol name="checkmark.circle.fill" size={18} color={successColor} />
+                <Text style={[styles.appliedText, { color: successColor }]}>Applied</Text>
+              </View>
+            )}
+            {!isOpen && !hasApplied && (
+              <View style={[styles.closedBadge, { backgroundColor: cardBg, borderColor: textMuted }]}>
+                <Text style={[styles.closedText, { color: textMuted }]}>Closed</Text>
+              </View>
+            )}
           </View>
-        </View>
-        <Text style={[styles.requestDescription, { color: textSecondary }]} numberOfLines={2}>
-          {request.description}
-        </Text>
-        <View style={[styles.requestFooter, { borderTopColor: borderColor }]}>
-          <View style={styles.detailRow}>
-            <IconSymbol name="mappin.and.ellipse" size={14} color={textSecondary} />
-            <Text style={[styles.requestLocation, { color: textSecondary }]}>{request.location}</Text>
-          </View>
-          {request.budget && (
-            <Text style={[styles.requestBudget, { color: textColor }]}>₨{request.budget}</Text>
-          )}
-        </View>
-      </TouchableOpacity>
+        )}
+      </View>
     );
   };
 
@@ -706,6 +750,19 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     textAlign: 'center',
   },
+  cardWrapper: {
+    marginBottom: 16,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+  },
   requestCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -718,6 +775,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 12,
     elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  cardInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
   },
   requestHeader: {
     flexDirection: 'row',
@@ -753,6 +831,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#6366F1',
   },
+  cardUser: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
   requestUser: {
     fontSize: 13,
     color: '#6B7280',
@@ -769,11 +851,38 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  cardDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  cardDetails: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
+  },
   requestDescription: {
     fontSize: 14,
     color: '#6B7280',
     lineHeight: 20,
     marginBottom: 16,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    marginBottom: 12,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  location: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   requestFooter: {
     flexDirection: 'row',
@@ -802,6 +911,75 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
+  },
+  budget: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  applicantsTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  applicantsTagText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  viewDetailsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  viewDetailsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  noApplicantsBadge: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  noApplicantsText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  closedBadge: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  closedText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   requestBudget: {
     fontSize: 16,
@@ -847,14 +1025,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0FDF4',
     padding: 12,
     borderRadius: 12,
     gap: 8,
-    marginTop: 12,
+    flex: 1,
+    borderWidth: 1,
   },
   appliedText: {
-    color: '#16A34A',
     fontSize: 14,
     fontWeight: '600',
   },

@@ -650,7 +650,7 @@ export default function ExploreScreen() {
                 <IconSymbol name="location.fill" size={14} color="#6B7280" />
                 <Text style={styles.serviceMetaText} numberOfLines={1}>
                   {locations.length > 0 ? locations[0] : 'Location not specified'}
-                  {locations.length > 1 && ` +${locations.length - 1}`}
+                  {locations.length > 1 ? ` +${locations.length - 1}` : ''}
                 </Text>
               </View>
               {servicesCount > 1 && (

@@ -1,5 +1,6 @@
 import { Stepper } from '@/components/ui/stepper';
 import { HelperProfile, useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -49,6 +50,11 @@ export default function HelperProfileScreen() {
   const { user, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
 
   // Step 1: Service Offer
   const [serviceOfferData, setServiceOfferData] = useState<ServiceOfferData>({
@@ -162,20 +168,18 @@ export default function HelperProfileScreen() {
 
   if (isSubmitting) {
     return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+      <View style={[styles.container, { backgroundColor }]}>
+        <View style={[styles.loadingContainer, { backgroundColor }]}>
+          <ActivityIndicator size="large" color={primaryColor} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
-
+      
       <View style={[styles.content, { paddingTop: insets.top }]}>
         <Stepper
           currentStep={currentStep}
@@ -193,7 +197,6 @@ export default function HelperProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -205,7 +208,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
   },
   topCircle: {
     position: 'absolute',
@@ -214,8 +216,6 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: width * 0.8,
     borderRadius: width * 0.4,
-    backgroundColor: '#EEF2FF',
-    opacity: 0.7,
   },
   bottomCircle: {
     position: 'absolute',
@@ -224,7 +224,5 @@ const styles = StyleSheet.create({
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: width * 0.35,
-    backgroundColor: '#F5F3FF',
-    opacity: 0.7,
   },
 });

@@ -186,9 +186,7 @@ export default function JobViewScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-
+      
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header with Back Button */}
         <View style={styles.header}>
@@ -205,6 +203,9 @@ export default function JobViewScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         >
+          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
           <View style={styles.content}>
             {/* Status Badge */}
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>

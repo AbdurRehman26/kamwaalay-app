@@ -1,16 +1,17 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 interface ProfileVerificationData {
   nicFile: any | null;
@@ -33,6 +34,17 @@ export default function Step2ProfileVerification({
 }: Step2ProfileVerificationProps) {
   const [nicFileUri, setNicFileUri] = useState<string | null>(null);
   const [photoFileUri, setPhotoFileUri] = useState<string | null>(null);
+  
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const primaryColor = useThemeColor({}, 'primary');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const errorColor = useThemeColor({}, 'error');
+  const successColor = useThemeColor({}, 'success');
 
   const handleNICUpload = async () => {
     // TODO: Implement file upload when expo-image-picker and expo-document-picker are installed
@@ -106,7 +118,7 @@ export default function Step2ProfileVerification({
           <ThemedText type="title" style={styles.title}>
             Profile Verification
           </ThemedText>
-          <ThemedText style={styles.subtitle}>
+          <ThemedText style={[styles.subtitle, { color: textSecondary }]}>
             Please upload your documents for verification
           </ThemedText>
         </View>
@@ -114,29 +126,29 @@ export default function Step2ProfileVerification({
         <View style={styles.form}>
           {/* NIC Upload */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>
+            <ThemedText style={[styles.label, { color: textColor }]}>
               National Identity Card (NIC) (Optional)
             </ThemedText>
-            <ThemedText style={styles.instruction}>
+            <ThemedText style={[styles.instruction, { color: textSecondary }]}>
               Upload a clear photo or scan of your NIC (front and back if needed)
             </ThemedText>
             <TouchableOpacity
-              style={styles.uploadArea}
+              style={[styles.uploadArea, { backgroundColor: cardBg, borderColor }]}
               onPress={handleNICUpload}
             >
               {nicFileUri ? (
                 <View style={styles.uploadedFile}>
-                  <IconSymbol name="checkmark.circle.fill" size={48} color="#34C759" />
-                  <Text style={styles.uploadedFileText}>NIC Uploaded</Text>
-                  <Text style={styles.uploadedFileName}>
+                  <IconSymbol name="checkmark.circle.fill" size={48} color={successColor} />
+                  <Text style={[styles.uploadedFileText, { color: successColor }]}>NIC Uploaded</Text>
+                  <Text style={[styles.uploadedFileName, { color: textSecondary }]}>
                     {data.nicFile?.name || 'NIC Document'}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.uploadPlaceholder}>
-                  <IconSymbol name="doc.fill" size={48} color="#999" />
-                  <Text style={styles.uploadText}>Click or drag to upload NIC</Text>
-                  <Text style={styles.uploadHint}>
+                  <IconSymbol name="doc.fill" size={48} color={textMuted} />
+                  <Text style={[styles.uploadText, { color: textSecondary }]}>Click or drag to upload NIC</Text>
+                  <Text style={[styles.uploadHint, { color: textMuted }]}>
                     Supports: JPG, PNG, PDF (Max 5MB)
                   </Text>
                 </View>
@@ -146,13 +158,13 @@ export default function Step2ProfileVerification({
 
           {/* NIC Number */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>
-              NIC Number <Text style={styles.required}>*</Text>
+            <ThemedText style={[styles.label, { color: textColor }]}>
+              NIC Number <Text style={[styles.required, { color: errorColor }]}>*</Text>
             </ThemedText>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: cardBg, borderColor, color: textColor }]}
               placeholder="e.g., 42101-1234567-1"
-              placeholderTextColor="#999"
+              placeholderTextColor={textMuted}
               value={data.nicNumber}
               onChangeText={(value) => onChange({ ...data, nicNumber: value })}
               autoCapitalize="none"
@@ -162,27 +174,27 @@ export default function Step2ProfileVerification({
 
           {/* Photo Upload */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Photo (Optional)</ThemedText>
-            <ThemedText style={styles.instruction}>
+            <ThemedText style={[styles.label, { color: textColor }]}>Photo (Optional)</ThemedText>
+            <ThemedText style={[styles.instruction, { color: textSecondary }]}>
               Upload your profile photo (optional)
             </ThemedText>
             <TouchableOpacity
-              style={styles.uploadArea}
+              style={[styles.uploadArea, { backgroundColor: cardBg, borderColor }]}
               onPress={handlePhotoUpload}
             >
               {photoFileUri ? (
                 <View style={styles.uploadedFile}>
-                  <IconSymbol name="checkmark.circle.fill" size={48} color="#34C759" />
-                  <Text style={styles.uploadedFileText}>Photo Uploaded</Text>
-                  <Text style={styles.uploadedFileName}>
+                  <IconSymbol name="checkmark.circle.fill" size={48} color={successColor} />
+                  <Text style={[styles.uploadedFileText, { color: successColor }]}>Photo Uploaded</Text>
+                  <Text style={[styles.uploadedFileName, { color: textSecondary }]}>
                     {data.photoFile?.name || 'Profile Photo'}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.uploadPlaceholder}>
-                  <IconSymbol name="camera.fill" size={48} color="#999" />
-                  <Text style={styles.uploadText}>Click or drag to upload photo</Text>
-                  <Text style={styles.uploadHint}>
+                  <IconSymbol name="camera.fill" size={48} color={textMuted} />
+                  <Text style={[styles.uploadText, { color: textSecondary }]}>Click or drag to upload photo</Text>
+                  <Text style={[styles.uploadHint, { color: textMuted }]}>
                     Supports: JPG, PNG (Max 2MB)
                   </Text>
                 </View>
@@ -192,13 +204,14 @@ export default function Step2ProfileVerification({
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Text style={styles.backButtonText}>Back</Text>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
+            <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
           </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.nextButton,
-                !data.nicNumber.trim() && styles.nextButtonDisabled,
+                { backgroundColor: primaryColor },
+                !data.nicNumber.trim() && { backgroundColor: textMuted, opacity: 0.5 },
               ]}
               onPress={handleNext}
               disabled={!data.nicNumber.trim()}
@@ -229,7 +242,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
   },
   form: {
     padding: 20,
@@ -241,25 +253,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
-    color: '#1A1A1A',
   },
   required: {
-    color: '#FF3B30',
   },
   instruction: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 12,
   },
   uploadArea: {
     borderWidth: 2,
-    borderColor: '#E0E0E0',
     borderStyle: 'dashed',
     borderRadius: 12,
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
     minHeight: 180,
   },
   uploadPlaceholder: {
@@ -269,13 +276,11 @@ const styles = StyleSheet.create({
   uploadText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
     marginTop: 12,
     marginBottom: 4,
   },
   uploadHint: {
     fontSize: 12,
-    color: '#999',
     marginTop: 4,
   },
   uploadedFile: {
@@ -285,23 +290,18 @@ const styles = StyleSheet.create({
   uploadedFileText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#34C759',
     marginTop: 12,
     marginBottom: 4,
   },
   uploadedFileName: {
     fontSize: 12,
-    color: '#666',
     marginTop: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
-    color: '#1A1A1A',
   },
   actions: {
     flexDirection: 'row',
@@ -311,25 +311,21 @@ const styles = StyleSheet.create({
   },
   backButton: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#666',
     fontSize: 16,
     fontWeight: '700',
   },
   nextButton: {
     flex: 1,
-    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   nextButtonDisabled: {
-    backgroundColor: '#CCCCCC',
   },
   nextButtonText: {
     color: '#FFFFFF',

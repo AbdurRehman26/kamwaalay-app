@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface CompleteProfileData {
   experience: string;
@@ -29,6 +30,14 @@ export default function Step3CompleteProfile({
   onBack,
   onSubmit,
 }: Step3CompleteProfileProps) {
+  // Theme colors
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const primaryColor = useThemeColor({}, 'primary');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  
   const handleSubmit = () => {
     onSubmit();
   };
@@ -40,7 +49,7 @@ export default function Step3CompleteProfile({
           <ThemedText type="title" style={styles.title}>
             Your Profile
           </ThemedText>
-          <ThemedText style={styles.subtitle}>
+          <ThemedText style={[styles.subtitle, { color: textSecondary }]}>
             Optional: Add more details about yourself
           </ThemedText>
         </View>
@@ -48,11 +57,11 @@ export default function Step3CompleteProfile({
         <View style={styles.form}>
           {/* Years of Experience */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Years of Experience</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>Years of Experience</ThemedText>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: cardBg, borderColor, color: textColor }]}
               placeholder="e.g., 5"
-              placeholderTextColor="#999"
+              placeholderTextColor={textMuted}
               value={data.experience}
               onChangeText={(value) => onChange({ ...data, experience: value })}
               keyboardType="numeric"
@@ -61,11 +70,11 @@ export default function Step3CompleteProfile({
 
           {/* Bio */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Bio</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>Bio</ThemedText>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor, color: textColor }]}
               placeholder="Tell us about yourself..."
-              placeholderTextColor="#999"
+              placeholderTextColor={textMuted}
               multiline
               numberOfLines={6}
               value={data.bio}
@@ -75,10 +84,10 @@ export default function Step3CompleteProfile({
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Text style={styles.backButtonText}>Back</Text>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
+            <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <TouchableOpacity style={[styles.submitButton, { backgroundColor: primaryColor }]} onPress={handleSubmit}>
             <Text style={styles.submitButtonText}>Complete Profile</Text>
           </TouchableOpacity>
         </View>
@@ -105,7 +114,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
   },
   form: {
     padding: 20,
@@ -117,16 +125,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
-    color: '#1A1A1A',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
-    color: '#1A1A1A',
   },
   textArea: {
     height: 120,
@@ -140,19 +144,16 @@ const styles = StyleSheet.create({
   },
   backButton: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#666',
     fontSize: 16,
     fontWeight: '700',
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#6366F1',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

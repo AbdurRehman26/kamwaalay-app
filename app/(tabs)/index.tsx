@@ -39,7 +39,9 @@ export default function HomeScreen() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { getJobs, applyToJob } = useApp();
   const [myJobs, setMyJobs] = useState<Job[]>([]);
+  const [opportunities, setOpportunities] = useState<Job[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const jobs = getJobs();
@@ -129,17 +131,80 @@ export default function HomeScreen() {
     }
   }, [user?.id, jobs]);
 
+  // Fetch job opportunities for "New Opportunities" section
+  const loadOpportunities = useCallback(async () => {
+    try {
+      setIsLoadingOpportunities(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.JOB_POSTS.LIST,
+        undefined,
+        undefined,
+        true // Requires authentication
+      );
+
+      if (response.success && response.data) {
+        let jobPostsData: any[] = [];
+
+        // Handle different response formats
+        if (response.data.job_posts) {
+          jobPostsData = Array.isArray(response.data.job_posts.data)
+            ? response.data.job_posts.data
+            : (Array.isArray(response.data.job_posts) ? response.data.job_posts : []);
+        } else if (response.data.data) {
+          jobPostsData = Array.isArray(response.data.data) ? response.data.data : [];
+        } else if (Array.isArray(response.data)) {
+          jobPostsData = response.data;
+        }
+
+        // Map API response to Job format
+        const mappedJobs: Job[] = jobPostsData.map((post: any) => ({
+          id: post.id?.toString() || Date.now().toString(),
+          userId: post.user_id?.toString() || post.user?.id?.toString() || '',
+          userName: post.user?.name || post.name || 'Unknown',
+          serviceName: post.service_type
+            ? post.service_type.charAt(0).toUpperCase() + post.service_type.slice(1).replace('_', ' ')
+            : post.service_name || 'Service',
+          description: post.description || post.special_requirements || '',
+          location: post.area || post.location || post.location_name || '',
+          budget: post.monthly_rate || post.budget || post.price || 0,
+          status: post.status === 'pending' ? 'open' : (post.status || 'open'),
+          createdAt: post.created_at || post.createdAt || new Date().toISOString(),
+          applicants: post.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
+            post.applicants ||
+            [],
+        }));
+
+        setOpportunities(mappedJobs);
+      } else {
+        // Fallback to jobs from context
+        setOpportunities(jobs.filter((r) => r.status === 'open'));
+      }
+    } catch (error) {
+      console.error('Error loading opportunities:', error);
+      // Fallback to jobs from context
+      setOpportunities(jobs.filter((r) => r.status === 'open'));
+    } finally {
+      setIsLoadingOpportunities(false);
+    }
+  }, [jobs]);
+
   useEffect(() => {
     if (user?.userType === 'user' && user?.id) {
       loadMyJobs();
     }
   }, [user?.id, user?.userType, loadMyJobs]);
 
+  useEffect(() => {
+    if (user?.id) {
+      loadOpportunities();
+    }
+  }, [user?.id, loadOpportunities]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchUnreadCount(), loadMyJobs()]);
+    await Promise.all([fetchUnreadCount(), loadMyJobs(), loadOpportunities()]);
     setRefreshing(false);
-  }, [fetchUnreadCount, loadMyJobs]);
+  }, [fetchUnreadCount, loadMyJobs, loadOpportunities]);
 
   if (isAuthLoading) {
     return (
@@ -528,8 +593,13 @@ export default function HomeScreen() {
                   <Text style={[styles.seeAll, { color: primaryColor }]}>See All</Text>
                 </TouchableOpacity>
               </View>
-              {jobs.filter((r) => r.status === 'open').length > 0 ? (
-                jobs
+              {isLoadingOpportunities ? (
+                <View style={[styles.emptyCard, { backgroundColor: cardBg, borderColor }]}>
+                  <ActivityIndicator size="small" color={primaryColor} />
+                  <Text style={[styles.emptyCardText, { color: textSecondary, marginTop: 8 }]}>Loading opportunities...</Text>
+                </View>
+              ) : opportunities.filter((r) => r.status === 'open').length > 0 ? (
+                opportunities
                   .filter((r) => r.status === 'open')
                   .slice(0, 3)
                   .map((request) => (

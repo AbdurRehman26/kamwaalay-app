@@ -1,10 +1,13 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { apiService } from '@/services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   ScrollView,
@@ -17,6 +20,19 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const { width } = Dimensions.get('window');
 
+interface Job {
+  id: string;
+  userId: string;
+  userName: string;
+  serviceName: string;
+  description: string;
+  location: string;
+  budget?: number;
+  status: string;
+  createdAt: string;
+  applicants?: string[];
+}
+
 export default function JobViewScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +40,10 @@ export default function JobViewScreen() {
   const { getJobs, applyToJob } = useApp();
   const insets = useSafeAreaInsets();
   const jobs = getJobs();
+  
+  const [request, setRequest] = useState<Job | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
@@ -37,9 +57,91 @@ export default function JobViewScreen() {
   const successColor = useThemeColor({}, 'success');
   const errorColor = useThemeColor({}, 'error');
 
-  const request = jobs.find((r) => r.id === id);
+  useEffect(() => {
+    const loadJob = async () => {
+      // First, check local jobs
+      const localJob = jobs.find((r) => r.id === id);
+      if (localJob) {
+        setRequest(localJob);
+        setIsLoading(false);
+        return;
+      }
 
-  if (!request) {
+      // If not found locally, fetch from API
+      try {
+        setIsLoading(true);
+        
+        // Try job-posts endpoint first
+        let response = await apiService.get(
+          API_ENDPOINTS.JOB_POSTS.GET,
+          { id: id as string },
+          undefined,
+          true
+        );
+
+        // If job-posts fails, try bookings endpoint
+        if (!response.success || !response.data) {
+          response = await apiService.get(
+            API_ENDPOINTS.BOOKINGS.GET,
+            { id: id as string },
+            undefined,
+            true
+          );
+        }
+
+        if (response.success && response.data) {
+          const jobData = response.data.job_post || response.data.booking || response.data;
+          
+          const mappedJob: Job = {
+            id: jobData.id?.toString() || id,
+            userId: jobData.user_id?.toString() || jobData.user?.id?.toString() || '',
+            userName: jobData.user?.name || jobData.name || 'Unknown',
+            serviceName: jobData.service_type
+              ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
+              : jobData.service_name || 'Service',
+            description: jobData.description || jobData.special_requirements || '',
+            location: jobData.area || jobData.location || jobData.location_name || '',
+            budget: jobData.monthly_rate || jobData.budget || jobData.price,
+            status: jobData.status === 'pending' ? 'open' : (jobData.status || 'open'),
+            createdAt: jobData.created_at || jobData.createdAt || new Date().toISOString(),
+            applicants: jobData.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
+              jobData.applicants ||
+              [],
+          };
+
+          setRequest(mappedJob);
+        } else {
+          setNotFound(true);
+        }
+      } catch (error) {
+        console.error('Error fetching job:', error);
+        setNotFound(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) {
+      loadJob();
+    }
+  }, [id, jobs]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor }]}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={primaryColor} />
+            <Text style={[styles.emptyText, { color: textSecondary, marginTop: 16 }]}>
+              Loading job details...
+            </Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (notFound || !request) {
     return (
       <View style={[styles.container, { backgroundColor }]}>
         <SafeAreaView style={styles.safeArea}>
@@ -109,7 +211,8 @@ export default function JobViewScreen() {
   };
 
   const handleEdit = () => {
-    router.push(`/job-posts/edit/${request.id}`);
+    // TODO: Navigate to edit job post screen when route is available
+    Alert.alert('Edit', 'Edit functionality coming soon');
   };
 
   const handleDelete = () => {

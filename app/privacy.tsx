@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -12,15 +13,24 @@ import {
 
 export default function PrivacyScreen() {
   const router = useRouter();
+  
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const primaryColor = useThemeColor({}, 'primary');
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color="#6366F1" />
+          <IconSymbol name="chevron.left" size={24} color={primaryColor} />
         </TouchableOpacity>
-        <ThemedText type="title" style={styles.title}>
+        <ThemedText type="title" style={[styles.title, { color: textColor }]}>
           Privacy Policy
         </ThemedText>
         <View style={{ width: 24 }} />
@@ -28,13 +38,13 @@ export default function PrivacyScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          <ThemedText style={styles.lastUpdated}>Last Updated: January 2024</ThemedText>
+          <ThemedText style={[styles.lastUpdated, { color: textMuted }]}>Last Updated: January 2024</ThemedText>
 
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
               Introduction
             </ThemedText>
-            <ThemedText style={styles.text}>
+            <ThemedText style={[styles.text, { color: textSecondary }]}>
               Kamwaalay ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.
             </ThemedText>
           </View>

@@ -2,6 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -16,6 +17,7 @@ import {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { themeMode, setThemeMode, colorScheme } = useTheme();
 
   // Theme colors
   const primaryColor = useThemeColor({}, 'primary');
@@ -24,6 +26,7 @@ export default function ProfileScreen() {
   const borderColor = useThemeColor({}, 'border');
   const textSecondary = useThemeColor({}, 'textSecondary');
   const errorColor = useThemeColor({}, 'error');
+  const iconColor = useThemeColor({}, 'icon');
 
   const handleLogout = async () => {
     try {
@@ -107,8 +110,8 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         horizontal={false}
@@ -167,6 +170,48 @@ export default function ProfileScreen() {
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Theme Selection */}
+        <View style={styles.themeSection}>
+          <ThemedText type="subtitle" style={styles.themeSectionTitle}>
+            Appearance
+          </ThemedText>
+          <View style={styles.themeOptions}>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                themeMode === 'light' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setThemeMode('light')}
+            >
+              <IconSymbol name="sun.max.fill" size={24} color={iconColor} />
+              <ThemedText style={styles.themeOptionText}>Light</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                themeMode === 'dark' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setThemeMode('dark')}
+            >
+              <IconSymbol name="moon.fill" size={24} color={iconColor} />
+              <ThemedText style={styles.themeOptionText}>Dark</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                themeMode === 'auto' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setThemeMode('auto')}
+            >
+              <IconSymbol name="circle.lefthalf.filled" size={24} color={iconColor} />
+              <ThemedText style={styles.themeOptionText}>Auto</ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </ThemedView>
@@ -240,6 +285,33 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
+    fontWeight: '500',
+  },
+  themeSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  themeSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  themeOptionText: {
+    fontSize: 13,
     fontWeight: '500',
   },
 });

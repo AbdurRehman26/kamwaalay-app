@@ -1,8 +1,6 @@
-import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
-import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
@@ -12,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Linking,
   ScrollView,
@@ -20,6 +19,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 // Mock profile data as fallback
 const MOCK_PROFILE = {
@@ -53,6 +54,13 @@ export default function ProfileViewScreen() {
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -134,6 +142,9 @@ export default function ProfileViewScreen() {
               location_details: business.location_details || [],
               verified: business.verified || business.is_verified || false,
               phone_number: business.phone_number || business.user?.phone_number || business.user?.phoneNumber || null,
+              gender: business.gender || business.user?.gender || null,
+              religion: business.religion || business.user?.religion || null,
+              languages: business.languages || business.user?.languages || [],
             };
 
             setProfile(mappedProfile);
@@ -195,6 +206,9 @@ export default function ProfileViewScreen() {
               location_details: helper.location_details || [],
               verified: helper.verified || helper.is_verified || false,
               phone_number: helper.phone_number || helper.user?.phone_number || helper.user?.phoneNumber || null,
+              gender: helper.gender || helper.user?.gender || null,
+              religion: helper.religion || helper.user?.religion || null,
+              languages: helper.languages || helper.user?.languages || [],
             };
 
             setProfile(mappedProfile);
@@ -358,7 +372,10 @@ export default function ProfileViewScreen() {
             profile_image: user.profile_image || user.avatar,
             // Store the full listing and user data for reference
             _listing: listing,
-            _user: user
+            _user: user,
+            gender: listing.gender || user.gender || null,
+            religion: listing.religion || user.religion || null,
+            languages: listing.languages || user.languages || [],
           };
 
           console.log('✅ Mapped Profile:', JSON.stringify(mappedProfile, null, 2));
@@ -443,7 +460,7 @@ export default function ProfileViewScreen() {
       // Only check for helper or business profiles
       const isHelper = type === 'helper';
       const isBusiness = type === 'business';
-      
+
       if (!isHelper && !isBusiness) {
         // For service listings, allow contact (no restriction)
         setCanContact(true);
@@ -461,7 +478,7 @@ export default function ProfileViewScreen() {
         // Get the user ID of the helper/business profile
         // Profile ID might be the profile ID, but we need the user ID for matching
         const profileUserId = profile?.id?.toString() || id?.toString();
-        
+
         // Check 1: Check if there's an existing conversation
         let hasConversation = false;
         try {
@@ -471,7 +488,7 @@ export default function ProfileViewScreen() {
             undefined,
             true
           );
-          
+
           if (conversationsResponse.success && conversationsResponse.data?.conversations) {
             hasConversation = conversationsResponse.data.conversations.some(
               (conv: any) => {
@@ -493,24 +510,24 @@ export default function ProfileViewScreen() {
             undefined,
             true
           );
-          
+
           if (applicationsResponse.success && applicationsResponse.data) {
             const applications = Array.isArray(applicationsResponse.data)
               ? applicationsResponse.data
               : (applicationsResponse.data.applications || applicationsResponse.data.data || []);
-            
+
             // Check if there's an accepted application from this helper/business
             // The applicant should be the helper/business (profileUserId)
             hasAcceptedApplication = applications.some((app: any) => {
-              const applicantId = app.applicant_id?.toString() || 
-                                  app.user_id?.toString() || 
-                                  app.helper_id?.toString() || 
-                                  app.business_id?.toString() ||
-                                  app.applicant?.id?.toString() ||
-                                  app.user?.id?.toString();
-              const isAccepted = app.status === 'accepted' || 
-                                 app.status === 'approved' || 
-                                 app.status === 'hired';
+              const applicantId = app.applicant_id?.toString() ||
+                app.user_id?.toString() ||
+                app.helper_id?.toString() ||
+                app.business_id?.toString() ||
+                app.applicant?.id?.toString() ||
+                app.user?.id?.toString();
+              const isAccepted = app.status === 'accepted' ||
+                app.status === 'approved' ||
+                app.status === 'hired';
               return applicantId === profileUserId && isAccepted;
             });
           }
@@ -610,107 +627,168 @@ export default function ProfileViewScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <ScrollView 
-        style={[styles.scrollView, { backgroundColor }]} 
+
+      <ScrollView
+        style={[styles.scrollView]}
         showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
-        horizontal={false}
-        bounces={false}
-        alwaysBounceHorizontal={false}
-        alwaysBounceVertical={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* Header Background */}
-        <View style={styles.headerBackground}>
-          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <ThemedText style={styles.headerTitle}>Profile</ThemedText>
-            <View style={{ width: 40 }} />
-          </View>
+        {/* Decorative Background Elements */}
+        <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+        <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: cardBg, shadowColor: borderColor }]}
+          >
+            <IconSymbol name="chevron.left" size={24} color={textColor} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: textColor }]}>Profile</Text>
+          <View style={{ width: 44 }} />
         </View>
 
-        {/* Profile Content */}
-        <View style={styles.profileContentContainer}>
-          {/* Profile Card */}
-          <View style={styles.profileCard}>
+        <View style={styles.contentContainer}>
+          {/* Profile Header */}
+          <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
               {displayProfile.profileImage ? (
-                <Image source={{ uri: displayProfile.profileImage }} style={styles.avatarImage} />
+                <Image source={{ uri: displayProfile.profileImage }} style={[styles.avatarImage, { borderColor: cardBg }]} />
               ) : (
-                <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarText}>{displayProfile.name.charAt(0).toUpperCase()}</Text>
+                <View style={[styles.avatarImage, styles.avatarPlaceholder, { backgroundColor: primaryLight, borderColor: cardBg }]}>
+                  <Text style={[styles.avatarText, { color: primaryColor }]}>{displayProfile.name.charAt(0).toUpperCase()}</Text>
                 </View>
               )}
               {displayProfile.verified && (
-                <View style={styles.verifiedBadge}>
-                  <IconSymbol name="checkmark.seal.fill" size={16} color="#FFFFFF" />
+                <View style={[styles.verifiedBadge, { borderColor: cardBg }]}>
+                  <IconSymbol name="checkmark.seal.fill" size={14} color="#FFFFFF" />
                 </View>
               )}
             </View>
 
-            <ThemedText type="title" style={styles.name}>{displayProfile.name}</ThemedText>
-            <Text style={styles.serviceType}>{displayProfile.service}</Text>
+            <Text style={[styles.name, { color: textColor }]}>{displayProfile.name}</Text>
+            <Text style={[styles.serviceType, { color: textSecondary }]}>{displayProfile.service}</Text>
 
-            <View style={styles.statsRow}>
+            <View style={[styles.statsRow, { borderColor }]}>
               <View style={styles.statItem}>
-                <IconSymbol name="star.fill" size={16} color="#FFC107" />
-                <Text style={styles.statValue}>
+                <View style={[styles.statIconContainer, { backgroundColor: '#FFF9C4' }]}>
+                  <IconSymbol name="star.fill" size={14} color="#F59E0B" />
+                </View>
+                <Text style={[styles.statValue, { color: textColor }]}>
                   {typeof displayProfile.rating === 'number' ? displayProfile.rating.toFixed(1) : displayProfile.rating}
                 </Text>
-                <Text style={styles.statLabel}>Rating</Text>
+                <Text style={[styles.statLabel, { color: textSecondary }]}>Rating</Text>
               </View>
-              <View style={styles.statDivider} />
+
+              <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
+
               <View style={styles.statItem}>
-                <IconSymbol name="clock.fill" size={16} color={Colors.light.primary} />
-                <Text style={styles.statValue}>{displayProfile.experience}</Text>
-                <Text style={styles.statLabel}>Experience</Text>
+                <View style={[styles.statIconContainer, { backgroundColor: primaryLight }]}>
+                  <IconSymbol name="clock.fill" size={14} color={primaryColor} />
+                </View>
+                <Text style={[styles.statValue, { color: textColor }]}>{displayProfile.experience}</Text>
+                <Text style={[styles.statLabel, { color: textSecondary }]}>Exp.</Text>
               </View>
-              <View style={styles.statDivider} />
+
+              <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
+
               <View style={styles.statItem}>
-                <IconSymbol name="location.fill" size={16} color="#EF4444" />
-                <Text style={styles.statValue} numberOfLines={1}>
+                <View style={[styles.statIconContainer, { backgroundColor: '#FEE2E2' }]}>
+                  <IconSymbol name="location.fill" size={14} color="#EF4444" />
+                </View>
+                <Text style={[styles.statValue, { color: textColor }]} numberOfLines={1}>
                   {displayProfile.location.split(',')[0]}
                 </Text>
-                <Text style={styles.statLabel}>Location</Text>
+                <Text style={[styles.statLabel, { color: textSecondary }]}>Location</Text>
               </View>
             </View>
-
-            {/* Contact Actions */}
-
           </View>
 
           {/* About Section */}
           {displayProfile.bio && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>About</Text>
-              <Text style={styles.bioText}>{displayProfile.bio}</Text>
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>About</Text>
+              <Text style={[styles.bioText, { color: textSecondary }]}>{displayProfile.bio}</Text>
             </View>
           )}
 
-          {/* Services Offered Section - from listing.service_types */}
+          {/* Personal Details Section */}
+          {(displayProfile.gender || displayProfile.religion || (displayProfile.languages && displayProfile.languages.length > 0)) && (
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Details</Text>
+              <View style={styles.detailsList}>
+                {displayProfile.gender && (
+                  <View style={styles.detailItem}>
+                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                      <FontAwesome name="user" size={16} color={primaryColor} />
+                    </View>
+                    <View>
+                      <Text style={[styles.detailLabel, { color: textSecondary }]}>Gender</Text>
+                      <Text style={[styles.detailValue, { color: textColor }]}>
+                        {displayProfile.gender.charAt(0).toUpperCase() + displayProfile.gender.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {displayProfile.religion && (
+                  <View style={styles.detailItem}>
+                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                      <FontAwesome name="moon-o" size={16} color={primaryColor} />
+                    </View>
+                    <View>
+                      <Text style={[styles.detailLabel, { color: textSecondary }]}>Religion</Text>
+                      <Text style={[styles.detailValue, { color: textColor }]}>{displayProfile.religion}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {displayProfile.languages && displayProfile.languages.length > 0 && (
+                  <View style={styles.detailItem}>
+                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                      <FontAwesome name="language" size={16} color={primaryColor} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.detailLabel, { color: textSecondary }]}>Languages</Text>
+                      <View style={styles.languageTags}>
+                        {displayProfile.languages.map((lang: string | any, index: number) => {
+                          const langName = typeof lang === 'object' && lang.name ? lang.name : lang;
+                          return (
+                            <View key={index} style={[styles.langTag, { backgroundColor: '#F3F4F6' }]}>
+                              <Text style={[styles.langTagText, { color: '#4B5563' }]}>{langName}</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Services Offered Section */}
           {displayProfile.services && displayProfile.services.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Services Offered</Text>
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Services Offered</Text>
               <View style={styles.tagsContainer}>
                 {displayProfile.services.map((service: string, index: number) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{service}</Text>
+                  <View key={index} style={[styles.tag, { backgroundColor: primaryLight }]}>
+                    <Text style={[styles.tagText, { color: primaryColor }]}>{service}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Service Areas Section - from listing.location_details */}
+          {/* Service Areas Section */}
           {displayProfile.locations && displayProfile.locations.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Service Areas</Text>
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Service Areas</Text>
               <View style={styles.tagsContainer}>
-                <IconSymbol name="mappin.circle.fill" size={16} color="#8B5CF6" />
                 {displayProfile.locations.map((loc: string, index: number) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{loc}</Text>
+                  <View key={index} style={[styles.locationTag, { borderColor }]}>
+                    <IconSymbol name="mappin.circle.fill" size={14} color={textSecondary} />
+                    <Text style={[styles.locationTagText, { color: textSecondary }]}>{loc}</Text>
                   </View>
                 ))}
               </View>
@@ -720,195 +798,110 @@ export default function ProfileViewScreen() {
           {/* Service Listings Section */}
           {displayProfile.service_listings && displayProfile.service_listings.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Services</Text>
+              <Text style={[styles.sectionTitle, { color: textColor, paddingLeft: 4 }]}>Service Packages</Text>
               {displayProfile.service_listings.map((service: any, index: number) => {
-                // Get service types from service.service_types array
                 const serviceTypes = service.service_types && Array.isArray(service.service_types) && service.service_types.length > 0
                   ? service.service_types
                   : service.service_type
-                  ? [service.service_type]
-                  : ['Service'];
+                    ? [service.service_type]
+                    : ['Service'];
 
                 const formatServiceType = (type: string) => {
                   return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
                 };
 
-                // Extract locations from service.location_details array
-                const serviceLocations: string[] = [];
-                if (service.location_details && Array.isArray(service.location_details)) {
-                  service.location_details.forEach((loc: any) => {
-                    // Prefer display_text if available
-                    if (loc.display_text) {
-                      if (!serviceLocations.includes(loc.display_text)) {
-                        serviceLocations.push(loc.display_text);
-                      }
-                    } else {
-                      const cityName = loc.city_name || loc.city || '';
-                      const area = loc.area || loc.area_name || '';
-                      if (cityName && area) {
-                        const formatted = `${cityName}, ${area}`;
-                        if (!serviceLocations.includes(formatted)) {
-                          serviceLocations.push(formatted);
-                        }
-                      } else if (area) {
-                        if (!serviceLocations.includes(area)) {
-                          serviceLocations.push(area);
-                        }
-                      } else if (cityName) {
-                        if (!serviceLocations.includes(cityName)) {
-                          serviceLocations.push(cityName);
-                        }
-                      }
-                    }
-                  });
-                } else if (service.area && service.city) {
-                  serviceLocations.push(`${service.city}, ${service.area}`);
-                } else if (service.area) {
-                  serviceLocations.push(service.area);
-                } else if (service.city) {
-                  serviceLocations.push(service.city);
-                }
-
                 const monthlyRate = parseFloat(service.monthly_rate || '0');
 
                 return (
-                  <View key={index} style={styles.serviceCard}>
-                    <View style={styles.serviceCardHeader}>
-                      <View style={styles.serviceTitleRow}>
-                        <View style={styles.serviceIconSmall}>
-                          <IconSymbol name="wrench.fill" size={14} color={Colors.light.primary} />
-                        </View>
-                        <Text style={styles.serviceCardTitle}>
-                          {serviceTypes.length === 1
-                            ? formatServiceType(serviceTypes[0])
-                            : `${formatServiceType(serviceTypes[0])} +${serviceTypes.length - 1} more`}
+                  <TouchableOpacity
+                    key={index}
+                    activeOpacity={0.9}
+                    onPress={() => router.push(`/service/${service.id}`)}
+                    style={[styles.listingCard, { backgroundColor: cardBg, borderColor }]}
+                  >
+                    <View style={styles.listingHeader}>
+                      <View style={styles.listingTitleContent}>
+                        <Text style={[styles.listingTitle, { color: textColor }]}>
+                          {serviceTypes.map(formatServiceType).join(', ')}
+                        </Text>
+                        <Text style={[styles.listingPrice, { color: primaryColor }]}>
+                          {monthlyRate > 0 ? `₨${Math.floor(monthlyRate).toLocaleString()}/mo` : 'Contact for Price'}
                         </Text>
                       </View>
-                      {monthlyRate > 0 && (
-                        <Text style={styles.serviceCardPrice}>
-                          ₨{Math.floor(monthlyRate).toLocaleString()}/mo
-                        </Text>
-                      )}
+                      <View style={[styles.iconBox, { backgroundColor: primaryLight }]}>
+                        <IconSymbol name="chevron.right" size={16} color={primaryColor} />
+                      </View>
                     </View>
 
-                    {/* Service Types Tags */}
-                    {serviceTypes.length > 1 && (
-                      <View style={styles.serviceTypesContainer}>
-                        {serviceTypes.slice(0, 3).map((serviceType: string, idx: number) => (
-                          <View key={idx} style={styles.serviceTypeTag}>
-                            <Text style={styles.serviceTypeTagText}>{formatServiceType(serviceType)}</Text>
-                          </View>
-                        ))}
-                        {serviceTypes.length > 3 && (
-                          <View style={styles.serviceTypeTag}>
-                            <Text style={styles.serviceTypeTagText}>+{serviceTypes.length - 3} more</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-
                     {service.description && (
-                      <Text style={styles.serviceCardDescription} numberOfLines={3}>
+                      <Text style={[styles.listingDesc, { color: textSecondary }]} numberOfLines={2}>
                         {service.description}
                       </Text>
                     )}
-
-                    <View style={styles.serviceCardMeta}>
-                      {service.work_type && (
-                        <View style={styles.metaItem}>
-                          <IconSymbol name="clock.fill" size={12} color="#6B7280" />
-                          <Text style={styles.metaText}>
-                            {service.work_type.charAt(0).toUpperCase() + service.work_type.slice(1).replace('_', ' ')}
-                          </Text>
-                        </View>
-                      )}
-
-                      {serviceLocations.length > 0 && (
-                        <View style={styles.metaItem}>
-                          <IconSymbol name="location.fill" size={12} color="#6B7280" />
-                          <Text style={styles.metaText}>
-                            {serviceLocations.slice(0, 2).join(', ')}
-                            {serviceLocations.length > 2 && ` +${serviceLocations.length - 2} more`}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.viewDetailBtn}
-                      onPress={() => {
-                        router.push(`/service/${service.id}`);
-                      }}
-                    >
-                      <Text style={styles.viewDetailBtnText}>View Details</Text>
-                      <IconSymbol name="chevron.right" size={16} color={Colors.light.primary} />
-                    </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
           )}
 
-
           {/* Other Services Section */}
           {otherServices.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>More from {displayProfile.name}</Text>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
+              <Text style={[styles.sectionTitle, { color: textColor, paddingLeft: 4 }]}>More from {displayProfile.name}</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingRight: 20 }}
-                style={{ width: '100%' }}
               >
                 {otherServices.map((service: any, index: number) => (
                   <TouchableOpacity
                     key={index}
-                    style={styles.otherServiceCard}
+                    style={[styles.miniCard, { backgroundColor: cardBg, borderColor }]}
                     onPress={() => router.push(`/profile/helper/${service.id}` as any)}
                   >
-                    <View style={styles.otherServiceIcon}>
-                      <IconSymbol name="briefcase.fill" size={24} color="#FFFFFF" />
+                    <View style={[styles.miniCardIcon, { backgroundColor: primaryLight }]}>
+                      <IconSymbol name="briefcase.fill" size={20} color={primaryColor} />
                     </View>
-                    <Text style={styles.otherServiceName} numberOfLines={1}>
+                    <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>
                       {service.service_type
                         ? service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ')
                         : 'Service'}
                     </Text>
-                    <Text style={styles.otherServicePrice}>₨{service.monthly_rate?.toLocaleString()}</Text>
+                    <Text style={[styles.miniCardPrice, { color: textSecondary }]}>
+                      ₨{service.monthly_rate?.toLocaleString()}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
           )}
-
-          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
-      {/* Bottom Action Bar - Only show contact buttons if allowed */}
+      {/* Bottom Action Bar */}
       {(() => {
         const isHelper = type === 'helper';
         const isBusiness = type === 'business';
-        // Show contact buttons if: not helper/business OR (helper/business AND canContact)
-        const shouldShowContact = !isHelper && !isBusiness ? true : canContact;
-        
-        if (!shouldShowContact) {
+        // Always show contact options
+        const shouldShowContact = true;
+
+        if (!displayProfile) {
           return null;
         }
 
         return (
-          <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor, paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.bottomActions}>
               <TouchableOpacity
-                style={[styles.actionBtn, styles.callBtn]}
+                style={[styles.actionBtn, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB', borderWidth: 1 }]}
                 onPress={() => handleCall(displayProfile.phone_number)}
               >
-                <IconSymbol name="phone.fill" size={24} color="#1F2937" />
-                <Text style={[styles.actionBtnText, { color: '#1F2937' }]}>Call</Text>
+                <IconSymbol name="phone.fill" size={24} color="#374151" />
+                <Text style={[styles.actionBtnText, { color: '#374151' }]}>Call</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionBtn, styles.whatsappBtn]}
+                style={[styles.actionBtn, { backgroundColor: '#25D366' }]}
                 onPress={() => handleWhatsApp(displayProfile.phone_number)}
               >
                 <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
@@ -916,7 +909,7 @@ export default function ProfileViewScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionBtn, styles.messageBtn]}
+                style={[styles.actionBtn, { backgroundColor: primaryColor }]}
                 onPress={() => router.push(`/chat/${displayProfile.id}`)}
               >
                 <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
@@ -933,306 +926,252 @@ export default function ProfileViewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    alignSelf: 'stretch',
+  },
+  topCircle: {
+    position: 'absolute',
+    top: -width * 0.4,
+    right: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+  },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: -width * 0.3,
+    left: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
   },
   scrollView: {
     flex: 1,
-    width: '100%',
-    alignSelf: 'stretch',
   },
-  headerBackground: {
-    backgroundColor: Colors.light.primary,
-    height: 220,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  headerContent: {
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
   backButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
-  },
-  profileContentContainer: {
-    paddingHorizontal: 20,
-    marginTop: -100,
-    width: '100%',
-    maxWidth: '100%',
-    alignSelf: 'stretch',
-  },
-  profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+  },
+  profileHeader: {
+    alignItems: 'center',
     marginBottom: 24,
   },
   avatarContainer: {
-    position: 'relative',
     marginBottom: 16,
+    position: 'relative',
   },
   avatarImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
   },
   avatarPlaceholder: {
-    backgroundColor: Colors.light.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: Colors.light.primary,
+    fontSize: 32,
+    fontWeight: '700',
   },
   verifiedBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
     backgroundColor: '#10B981',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderWidth: 3,
   },
   name: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    textAlign: 'center',
+    fontWeight: '800',
     marginBottom: 4,
+    textAlign: 'center',
   },
   serviceType: {
     fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 24,
-    fontWeight: '500',
+    marginBottom: 20,
   },
   statsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#F3F4F6',
-    marginBottom: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
+  statIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   statDivider: {
     width: 1,
-    height: '100%',
-    backgroundColor: '#F3F4F6',
+    height: 30,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
-    marginTop: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 2,
   },
-  contactActions: {
-    flexDirection: 'row',
-    gap: 16,
-    marginTop: 8,
-  },
-  contactActionBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.light.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+  card: {
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 1,
   },
   section: {
-    marginBottom: 24,
-    width: '100%',
-    maxWidth: '100%',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   bioText: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#4B5563',
-  },
-  serviceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  serviceCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  serviceTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  serviceIconSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: Colors.light.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  serviceCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    flex: 1,
-  },
-  serviceCardPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.light.primary,
-  },
-  serviceCardDescription: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#4B5563',
-    marginBottom: 16,
-  },
-  serviceCardMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    alignItems: 'center',
   },
   tag: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   tagText: {
     fontSize: 14,
-    color: '#4B5563',
+    fontWeight: '600',
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  locationTagText: {
+    fontSize: 13,
     fontWeight: '500',
   },
-  serviceTypesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  serviceTypeTag: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
-  },
-  serviceTypeTagText: {
-    fontSize: 12,
-    color: Colors.light.primary,
-    fontWeight: '600',
-  },
-  otherServiceCard: {
-    backgroundColor: Colors.light.primary,
+  listingCard: {
     padding: 16,
     borderRadius: 20,
-    width: 160,
-    marginRight: 12,
-  },
-  otherServiceIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
     marginBottom: 12,
   },
-  otherServiceName: {
+  listingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  listingTitleContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  listingTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  otherServicePrice: {
+  listingPrice: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
     fontWeight: '600',
+  },
+  iconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listingDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  miniCard: {
+    width: 150,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 12,
+  },
+  miniCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  miniCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  miniCardPrice: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 10,
   },
   bottomActions: {
     flexDirection: 'row',
@@ -1243,45 +1182,56 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    height: 72,
     borderRadius: 16,
     gap: 4,
-    height: 72,
-  },
-  callBtn: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  whatsappBtn: {
-    backgroundColor: '#25D366',
-  },
-  messageBtn: {
-    backgroundColor: Colors.light.primary,
+    paddingVertical: 12,
   },
   actionBtnText: {
     fontSize: 12,
     fontWeight: '600',
   },
+  detailsList: {
+    gap: 16,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  detailIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailLabel: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  languageTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  langTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  langTagText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-  },
-  viewDetailBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-    paddingVertical: 10,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
-    gap: 6,
-  },
-  viewDetailBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.primary,
   },
 });

@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useThemeColor } from '@/hooks/use-theme-color';
+
 const { width } = Dimensions.get('window');
 
 export default function BusinessProfileScreen() {
@@ -26,6 +28,16 @@ export default function BusinessProfileScreen() {
   const [businessAddress, setBusinessAddress] = useState('');
   const [businessDescription, setBusinessDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const errorColor = useThemeColor({}, 'error');
+  const iconColor = useThemeColor({}, 'icon');
 
   const handleContinue = async () => {
     if (!businessName.trim()) {
@@ -60,10 +72,10 @@ export default function BusinessProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -74,21 +86,21 @@ export default function BusinessProfileScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
-            <Text style={styles.title}>Business Profile</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: textColor }]}>Business Profile</Text>
+            <Text style={[styles.subtitle, { color: textSecondary }]}>
               Tell us about your business to get started
             </Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Business Name</Text>
-              <View style={styles.inputWrapper}>
-                <IconSymbol name="building.2.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: textColor }]}>Business Name</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                <IconSymbol name="building.2.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: textColor }]}
                   placeholder="Enter your business name"
-                  placeholderTextColor="#A0A0A0"
+                  placeholderTextColor={textSecondary}
                   value={businessName}
                   onChangeText={setBusinessName}
                   autoComplete="organization"
@@ -97,13 +109,13 @@ export default function BusinessProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Business Address (Optional)</Text>
-              <View style={styles.inputWrapper}>
-                <IconSymbol name="mappin.and.ellipse" size={20} color="#A0A0A0" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: textColor }]}>Business Address (Optional)</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: textColor }]}
                   placeholder="Enter your business address"
-                  placeholderTextColor="#A0A0A0"
+                  placeholderTextColor={textSecondary}
                   value={businessAddress}
                   onChangeText={setBusinessAddress}
                   autoComplete="street-address"
@@ -112,12 +124,12 @@ export default function BusinessProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description (Optional)</Text>
-              <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+              <Text style={[styles.label, { color: textColor }]}>Description (Optional)</Text>
+              <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor }]}>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { color: textColor }]}
                   placeholder="Describe your business and services..."
-                  placeholderTextColor="#A0A0A0"
+                  placeholderTextColor={textSecondary}
                   multiline
                   numberOfLines={4}
                   value={businessDescription}
@@ -129,7 +141,11 @@ export default function BusinessProfileScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.button, (!businessName.trim() || isLoading) && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              { backgroundColor: primaryColor, shadowColor: primaryColor },
+              (!businessName.trim() || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
+            ]}
             onPress={handleContinue}
             disabled={!businessName.trim() || isLoading}
           >
@@ -152,7 +168,7 @@ export default function BusinessProfileScreen() {
               router.replace('/(tabs)');
             }}
           >
-            <Text style={styles.skipButtonText}>Skip for now</Text>
+            <Text style={[styles.skipButtonText, { color: textSecondary }]}>Skip for now</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

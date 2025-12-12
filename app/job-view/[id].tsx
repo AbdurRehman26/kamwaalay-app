@@ -4,12 +4,14 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -40,6 +42,13 @@ interface Job {
     phoneNumber?: string;
     rating?: number;
     jobsCount?: number;
+    gender?: string;
+    religion?: string;
+    services?: string[];
+    locations?: string[];
+    age?: number;
+    experience?: number;
+    languages?: string[];
   }[];
 }
 
@@ -125,6 +134,15 @@ export default function JobViewScreen() {
               phoneNumber: app.user?.phone_number || app.user?.phone,
               rating: app.user?.average_rating,
               jobsCount: app.user?.completed_jobs_count,
+              gender: app.user?.gender,
+              religion: app.user?.religion,
+              age: app.user?.age,
+              experience: app.user?.experience_years,
+              languages: app.user?.languages || [],
+              services: app.user?.service_listings?.map((s: any) => s.service_type || s.name) || [],
+              locations: app.user?.service_listings?.flatMap((s: any) => s.service_locations?.map((l: any) => l.name || l.city) || [])
+                .filter((value: any, index: any, self: any) => self.indexOf(value) === index) // Unique locations
+                .slice(0, 3) || (app.user?.city ? [app.user.city] : []),
             })) || [],
           };
 
@@ -230,8 +248,7 @@ export default function JobViewScreen() {
   };
 
   const handleEdit = () => {
-    // TODO: Navigate to edit job post screen when route is available
-    Alert.alert('Edit', 'Edit functionality coming soon');
+    router.push(`/job/edit/${id}`);
   };
 
   const handleDelete = () => {
@@ -248,15 +265,25 @@ export default function JobViewScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // TODO: Call API to delete the request
-              Alert.alert('Success', 'Job post deleted successfully', [
-                {
-                  text: 'OK',
-                  onPress: () => router.push('/(tabs)/job-posts'),
-                },
-              ]);
+              setIsLoading(true);
+              // Try deleting via bookings endpoint which is the primary one for jobs now
+              const response = await apiService.delete(API_ENDPOINTS.BOOKINGS.DELETE, { id: id as string });
+
+              if (response.success) {
+                Alert.alert('Success', 'Job post deleted successfully', [
+                  {
+                    text: 'OK',
+                    onPress: () => router.replace('/(tabs)/job-posts'),
+                  },
+                ]);
+              } else {
+                throw new Error(response.message || 'Failed to delete job post');
+              }
             } catch (error) {
+              console.error('Delete error:', error);
               Alert.alert('Error', 'Failed to delete job post. Please try again.');
+            } finally {
+              setIsLoading(false);
             }
           },
         },
@@ -450,61 +477,155 @@ export default function JobViewScreen() {
                   <Text style={[styles.sectionTitle, { color: textColor, fontSize: 16, marginTop: 16 }]}>
                     Applicants ({request.applicantsDetails?.length || request.applicants?.length || 0})
                   </Text>
-
                   {request.applicantsDetails && request.applicantsDetails.length > 0 ? (
                     <View style={styles.applicantsList}>
                       {request.applicantsDetails.map((applicant, index) => (
-                        <View key={applicant.id || index} style={[styles.applicantCard, { backgroundColor: cardBg, borderColor }]}>
-                          <View style={styles.applicantInfo}>
-                            <View style={[styles.applicantAvatar, { backgroundColor: primaryLight }]}>
-                              <Text style={[styles.applicantAvatarText, { color: primaryColor }]}>
-                                {(applicant.name || 'H').charAt(0).toUpperCase()}
-                              </Text>
-                            </View>
-                            <View>
-                              <Text style={[styles.applicantName, { color: textColor }]}>
-                                {applicant.name || 'Helper'}
-                              </Text>
-                              <View style={styles.applicantMeta}>
-                                <Text style={[styles.applicantRole, { color: textMuted }]}>
-                                  {applicant.role || 'Helper'}
-                                </Text>
-                                {applicant.rating && (
-                                  <>
-                                    <Text style={[styles.metaDot, { color: textMuted }]}>•</Text>
-                                    <IconSymbol name="star.fill" size={12} color="#F59E0B" />
-                                    <Text style={[styles.metaText, { color: textColor }]}>{applicant.rating}</Text>
-                                  </>
-                                )}
+                        <View key={applicant.id || index} style={[
+                          styles.applicantCardNew,
+                          {
+                            backgroundColor: cardBg,
+                            borderColor: borderColor,
+                            borderWidth: 1,
+                          }
+                        ]}>
+                          {/* Top Section: Profile */}
+                          <View style={styles.cardHeaderNew}>
+                            <View style={styles.avatarContainerNew}>
+                              {applicant.profileImage ? (
+                                <Image source={{ uri: applicant.profileImage }} style={styles.avatarImageNew} />
+                              ) : (
+                                <View style={[styles.avatarPlaceholderNew, { backgroundColor: primaryLight }]}>
+                                  <Text style={[styles.avatarTextNew, { color: primaryColor }]}>{(applicant.name || 'H').charAt(0).toUpperCase()}</Text>
+                                </View>
+                              )}
+                              <View style={styles.verifiedBadgeNew}>
+                                <IconSymbol name="checkmark.seal.fill" size={12} color="#FFFFFF" />
                               </View>
                             </View>
+
+                            <Text style={[styles.cardNameNew, { color: textColor }]}>
+                              {applicant.name || 'Helper'}
+                            </Text>
+
+                            <View style={[styles.roleBadgeNew, { backgroundColor: 'rgba(99, 102, 241, 0.2)' }]}>
+                              <Text style={[styles.roleBadgeTextNew, { color: '#818CF8' }]}>
+                                {(applicant.role || 'HELPER').toUpperCase()}
+                              </Text>
+                            </View>
+
+                            <View style={[styles.ratingBadgeNew, { backgroundColor: cardBg, borderColor: borderColor }]}>
+                              <IconSymbol name="star.fill" size={12} color="#FCD34D" />
+                              <Text style={[styles.ratingTextNew, { color: '#FCD34D' }]}>
+                                {applicant.rating ? applicant.rating.toFixed(1) : 'New'}
+                              </Text>
+                              {applicant.jobsCount !== undefined && (
+                                <Text style={[styles.jobsCountTextNew, { color: textMuted }]}>
+                                  • {applicant.jobsCount} Jobs
+                                </Text>
+                              )}
+                            </View>
+
+                            {applicant.locations && applicant.locations.length > 0 && (
+                              <View style={styles.locationRowNew}>
+                                <IconSymbol name="mappin.and.ellipse" size={14} color="#EF4444" />
+                                <Text style={[styles.locationTextNew, { color: '#94A3B8' }]}>
+                                  {applicant.locations[0]}
+                                </Text>
+                              </View>
+                            )}
                           </View>
 
-                          <View style={styles.applicantActions}>
+                          {/* Info Grid */}
+                          <View style={styles.infoGridNew}>
+                            {applicant.experience !== undefined && (
+                              <View style={styles.infoItemNew}>
+                                <FontAwesome name="briefcase" size={14} color="#94A3B8" style={styles.infoIconNew} />
+                                <Text style={styles.infoTextNew}>{applicant.experience} Years</Text>
+                              </View>
+                            )}
+                            {applicant.gender && (
+                              <View style={styles.infoItemNew}>
+                                <FontAwesome name="user" size={14} color="#94A3B8" style={styles.infoIconNew} />
+                                <Text style={styles.infoTextNew}>{applicant.gender}</Text>
+                              </View>
+                            )}
+                            {applicant.age !== undefined && (
+                              <View style={styles.infoItemNew}>
+                                <FontAwesome name="birthday-cake" size={14} color="#94A3B8" style={styles.infoIconNew} />
+                                <Text style={styles.infoTextNew}>{applicant.age} Years</Text>
+                              </View>
+                            )}
+                            {applicant.religion && (
+                              <View style={styles.infoItemNew}>
+                                <FontAwesome name="moon-o" size={14} color="#94A3B8" style={styles.infoIconNew} />
+                                <Text style={styles.infoTextNew}>{applicant.religion}</Text>
+                              </View>
+                            )}
+                          </View>
+
+                          {/* Languages */}
+                          {applicant.languages && applicant.languages.length > 0 && (
+                            <View style={styles.sectionNew}>
+                              <View style={styles.sectionHeaderNew}>
+                                <MaterialIcons name="chat" size={14} color="#94A3B8" />
+                                <Text style={styles.sectionTitleNew}>Languages</Text>
+                              </View>
+                              <View style={styles.chipsContainerNew}>
+                                {applicant.languages.slice(0, 3).map((lang: any, idx) => {
+                                  const langLabel = typeof lang === 'object' && lang?.name ? lang.name : lang;
+                                  return (
+                                    <View key={idx} style={[styles.chipNew, { backgroundColor: primaryLight, borderColor: borderColor }]}>
+                                      <Text style={[styles.chipTextNew, { color: primaryColor }]}>{langLabel}</Text>
+                                    </View>
+                                  );
+                                })}
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Services */}
+                          {applicant.services && applicant.services.length > 0 && (
+                            <View style={styles.sectionNew}>
+                              <View style={styles.sectionHeaderNew}>
+                                <IconSymbol name="bolt.fill" size={14} color="#FCD34D" />
+                                <Text style={[styles.sectionTitleNew, { color: '#FCD34D' }]}>Skills</Text>
+                              </View>
+                              <View style={styles.chipsContainerNew}>
+                                {applicant.services.slice(0, 3).map((service, idx) => (
+                                  <View key={idx} style={[styles.chipNew, { backgroundColor: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.2)', borderWidth: 1 }]}>
+                                    <Text style={[styles.chipTextNew, { color: '#C7D2FE' }]}>{service}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Action Buttons */}
+                          <View style={styles.actionsRowNew}>
+                            <TouchableOpacity
+                              style={[styles.actionBtnCircle, { backgroundColor: '#6366F1' }]} // Indigo
+                              onPress={() => router.push(`/chat/${applicant.id}?name=${encodeURIComponent(applicant.name || 'Helper')}`)}
+                            >
+                              <MaterialIcons name="message" size={24} color="#FFFFFF" />
+                            </TouchableOpacity>
+
                             {applicant.phoneNumber && (
                               <>
                                 <TouchableOpacity
-                                  style={[styles.actionIconButton, { backgroundColor: '#DCFCE7' }]}
-                                  onPress={() => Linking.openURL(`whatsapp://send?phone=${applicant.phoneNumber}`)}
+                                  style={[styles.actionBtnCircle, { backgroundColor: '#22C55E' }]} // Green
+                                  onPress={() => Linking.openURL(`tel:${applicant.phoneNumber}`)}
                                 >
-                                  <IconSymbol name="phone.bubble.fill" size={18} color="#16A34A" />
+                                  <IconSymbol name="phone.fill" size={24} color="#FFFFFF" />
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                  style={[styles.actionIconButton, { backgroundColor: '#DBEAFE' }]}
-                                  onPress={() => Linking.openURL(`tel:${applicant.phoneNumber}`)}
+                                  style={[styles.actionBtnCircle, { backgroundColor: '#25D366' }]} // WhatsApp Green
+                                  onPress={() => Linking.openURL(`whatsapp://send?phone=${applicant.phoneNumber}`)}
                                 >
-                                  <IconSymbol name="phone.fill" size={18} color="#2563EB" />
+                                  <FontAwesome name="whatsapp" size={28} color="#FFFFFF" />
                                 </TouchableOpacity>
                               </>
                             )}
-
-                            <TouchableOpacity
-                              style={[styles.actionIconButton, { backgroundColor: primaryLight }]}
-                              onPress={() => router.push(`/chat/${applicant.id}?name=${encodeURIComponent(applicant.name || 'Helper')}`)}
-                            >
-                              <IconSymbol name="bubble.left.fill" size={18} color={primaryColor} />
-                            </TouchableOpacity>
                           </View>
                         </View>
                       ))}
@@ -942,5 +1063,167 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  applicantCardNew: {
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    gap: 20,
+  },
+  cardHeaderNew: {
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  avatarContainerNew: {
+    width: 80,
+    height: 80,
+    marginBottom: 12,
+    position: 'relative',
+  },
+  avatarImageNew: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  avatarPlaceholderNew: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  avatarTextNew: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#818CF8',
+  },
+  verifiedBadgeNew: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardNameNew: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  roleBadgeNew: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 100,
+    marginBottom: 12,
+  },
+  roleBadgeTextNew: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  ratingBadgeNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  ratingTextNew: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  jobsCountTextNew: {
+    fontSize: 12,
+  },
+  locationRowNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationTextNew: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  infoGridNew: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  infoItemNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#334155', // Slate 700
+    borderRadius: 8,
+  },
+  infoIconNew: {
+    width: 16,
+    textAlign: 'center',
+  },
+  infoTextNew: {
+    fontSize: 13,
+    color: '#E2E8F0',
+    fontWeight: '500',
+  },
+  sectionNew: {
+    gap: 8,
+  },
+  sectionHeaderNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionTitleNew: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  chipsContainerNew: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chipNew: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  chipTextNew: {
+    fontSize: 13,
+    color: '#E2E8F0',
+    fontWeight: '500',
+  },
+  actionsRowNew: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginTop: 8,
+  },
+  actionBtnCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });

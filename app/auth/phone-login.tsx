@@ -21,6 +21,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const DUMMY_PHONE = '9876543210';
 const { width } = Dimensions.get('window');
 
+import { useThemeColor } from '@/hooks/use-theme-color';
+
 export default function PhoneLoginScreen() {
   const insets = useSafeAreaInsets();
   const [authMethod, setAuthMethod] = useState<'otp' | 'password'>('otp');
@@ -31,6 +33,16 @@ export default function PhoneLoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const errorColor = useThemeColor({}, 'error');
+  const iconColor = useThemeColor({}, 'icon');
 
   // Clear unverified user data when component mounts to allow fresh login
   useEffect(() => {
@@ -140,10 +152,10 @@ export default function PhoneLoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -157,34 +169,34 @@ export default function PhoneLoginScreen() {
           <View style={styles.content}>
             {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 40 }]}>
-              <View style={styles.logoContainer}>
+              <View style={[styles.logoContainer, { backgroundColor: cardBg, shadowColor: primaryColor }]}>
                 <Image
                   source={require('@/assets/images/icon.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
               </View>
-              <Text style={styles.welcomeText}>Welcome Back!</Text>
-              <Text style={styles.subtitleText}>
+              <Text style={[styles.welcomeText, { color: textColor }]}>Welcome Back!</Text>
+              <Text style={[styles.subtitleText, { color: textSecondary }]}>
                 Login to access your personalized services
               </Text>
             </View>
 
             {/* Auth Method Tabs */}
-            <View style={styles.tabContainer}>
+            <View style={[styles.tabContainer, { backgroundColor: authMethod === 'otp' ? primaryLight : cardBg }]}>
               <TouchableOpacity
-                style={[styles.tab, authMethod === 'otp' && styles.activeTab]}
+                style={[styles.tab, authMethod === 'otp' && [styles.activeTab, { backgroundColor: cardBg }]]}
                 onPress={() => setAuthMethod('otp')}
               >
-                <Text style={[styles.tabText, authMethod === 'otp' && styles.activeTabText]}>
+                <Text style={[styles.tabText, { color: textSecondary }, authMethod === 'otp' && [styles.activeTabText, { color: textColor }]]}>
                   OTP Login
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tab, authMethod === 'password' && styles.activeTab]}
+                style={[styles.tab, authMethod === 'password' && [styles.activeTab, { backgroundColor: cardBg }]]}
                 onPress={() => setAuthMethod('password')}
               >
-                <Text style={[styles.tabText, authMethod === 'password' && styles.activeTabText]}>
+                <Text style={[styles.tabText, { color: textSecondary }, authMethod === 'password' && [styles.activeTabText, { color: textColor }]]}>
                   Password
                 </Text>
               </TouchableOpacity>
@@ -193,17 +205,17 @@ export default function PhoneLoginScreen() {
             {/* Form Section */}
             <View style={styles.formSection}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Phone Number</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <View style={styles.prefixContainer}>
                     <Text style={styles.flag}>🇵🇰</Text>
-                    <Text style={styles.prefix}>+92</Text>
+                    <Text style={[styles.prefix, { color: textColor }]}>+92</Text>
                   </View>
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: borderColor }]} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     placeholder="300 1234567"
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     keyboardType="phone-pad"
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
@@ -215,13 +227,13 @@ export default function PhoneLoginScreen() {
 
               {authMethod === 'password' && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <IconSymbol name="lock.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <Text style={[styles.label, { color: textColor }]}>Password</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                    <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: textColor }]}
                       placeholder="Enter your password"
-                      placeholderTextColor="#A0A0A0"
+                      placeholderTextColor={textSecondary}
                       secureTextEntry={!showPassword}
                       value={password}
                       onChangeText={setPassword}
@@ -234,7 +246,7 @@ export default function PhoneLoginScreen() {
                       <IconSymbol
                         name={showPassword ? "eye.fill" : "eye.slash.fill"}
                         size={20}
-                        color="#A0A0A0"
+                        color={textSecondary}
                       />
                     </TouchableOpacity>
                   </View>
@@ -242,22 +254,23 @@ export default function PhoneLoginScreen() {
               )}
 
               {errorMessage && (
-                <View style={styles.errorCard}>
-                  <IconSymbol name="exclamationmark.circle.fill" size={16} color="#D32F2F" />
-                  <Text style={styles.errorText}>{errorMessage}</Text>
+                <View style={[styles.errorCard, { backgroundColor: authMethod === 'otp' ? '#FEF2F2' : 'transparent' }]}>
+                  <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
+                  <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
                 </View>
               )}
 
               {authMethod === 'otp' && (
                 <TouchableOpacity style={styles.demoLink} onPress={handleUseDummy}>
-                  <Text style={styles.demoLinkText}>Use Demo Account</Text>
+                  <Text style={[styles.demoLinkText, { color: primaryColor }]}>Use Demo Account</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
                 style={[
                   styles.submitButton,
-                  (!isFormValid() || isLoading) && styles.submitButtonDisabled
+                  { backgroundColor: primaryColor, shadowColor: primaryColor },
+                  (!isFormValid() || isLoading) && [styles.submitButtonDisabled, { backgroundColor: borderColor }]
                 ]}
                 onPress={handleContinue}
                 disabled={!isFormValid() || isLoading}
@@ -275,9 +288,9 @@ export default function PhoneLoginScreen() {
 
             {/* Footer */}
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account?</Text>
+              <Text style={[styles.footerText, { color: textSecondary }]}>Don't have an account?</Text>
               <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-                <Text style={styles.footerLink}>Create Account</Text>
+                <Text style={[styles.footerLink, { color: primaryColor }]}>Create Account</Text>
               </TouchableOpacity>
             </View>
           </View>

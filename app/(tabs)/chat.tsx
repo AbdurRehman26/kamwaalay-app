@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -31,6 +32,15 @@ export default function ChatScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [conversations, setConversations] = useState<ChatItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
 
   useEffect(() => {
     fetchConversations();
@@ -69,7 +79,7 @@ export default function ChatScreen() {
 
   const renderChatItem = ({ item }: { item: ChatItem }) => (
     <TouchableOpacity
-      style={styles.chatItem}
+      style={[styles.chatItem, { backgroundColor: cardBg, borderColor }]}
       onPress={() => router.push({
         pathname: `/chat/${item.id}`,
         params: {
@@ -79,22 +89,22 @@ export default function ChatScreen() {
         }
       } as any)}
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.avatar}</Text>
+      <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
+        <Text style={[styles.avatarText, { color: primaryColor }]}>{item.avatar}</Text>
       </View>
       <View style={styles.chatInfo}>
         <View style={styles.chatHeader}>
           <ThemedText type="subtitle" style={styles.chatName}>
             {item.name}
           </ThemedText>
-          <ThemedText style={styles.chatTime}>{item.time}</ThemedText>
+          <ThemedText style={[styles.chatTime, { color: textMuted }]}>{item.time}</ThemedText>
         </View>
         <View style={styles.chatFooter}>
-          <ThemedText style={styles.chatMessage} numberOfLines={1}>
+          <ThemedText style={[styles.chatMessage, { color: textMuted }]} numberOfLines={1}>
             {item.lastMessage}
           </ThemedText>
           {item.unread > 0 && (
-            <View style={styles.unreadBadge}>
+            <View style={[styles.unreadBadge, { backgroundColor: primaryColor }]}>
               <Text style={styles.unreadText}>{item.unread}</Text>
             </View>
           )}
@@ -113,12 +123,12 @@ export default function ChatScreen() {
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <IconSymbol name="magnifyingglass" size={20} color="#999" />
+      <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor }]}>
+        <IconSymbol name="magnifyingglass" size={20} color={textMuted} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: textColor }]}
           placeholder="Search conversations..."
-          placeholderTextColor="#999"
+          placeholderTextColor={textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -135,9 +145,9 @@ export default function ChatScreen() {
         />
       ) : (
         <View style={styles.emptyState}>
-          <IconSymbol name="message" size={48} color="#CCCCCC" />
+          <IconSymbol name="message" size={48} color={textMuted} />
           <ThemedText style={styles.emptyText}>No conversations yet</ThemedText>
-          <ThemedText style={styles.emptySubtext}>
+          <ThemedText style={[styles.emptySubtext, { color: textMuted }]}>
             Start chatting with helpers or businesses
           </ThemedText>
         </View>
@@ -161,12 +171,12 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginHorizontal: 20,
     marginBottom: 20,
+    borderWidth: 1,
   },
   searchInput: {
     flex: 1,
@@ -180,12 +190,10 @@ const styles = StyleSheet.create({
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -196,13 +204,13 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   avatarText: {
-    fontSize: 24,
+    fontSize: 20,
+    fontWeight: '700',
   },
   chatInfo: {
     flex: 1,
@@ -219,7 +227,6 @@ const styles = StyleSheet.create({
   },
   chatTime: {
     fontSize: 12,
-    opacity: 0.6,
   },
   chatFooter: {
     flexDirection: 'row',
@@ -228,11 +235,9 @@ const styles = StyleSheet.create({
   },
   chatMessage: {
     fontSize: 14,
-    opacity: 0.7,
     flex: 1,
   },
   unreadBadge: {
-    backgroundColor: '#6366F1',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -259,7 +264,6 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    opacity: 0.6,
     marginTop: 8,
   },
 });

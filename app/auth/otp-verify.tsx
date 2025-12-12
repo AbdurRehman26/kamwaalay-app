@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useThemeColor } from '@/hooks/use-theme-color';
+
 const { width } = Dimensions.get('window');
 
 export default function OTPVerifyScreen() {
@@ -27,6 +29,16 @@ export default function OTPVerifyScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const router = useRouter();
   const { verifyOTP, resendOTP, user } = useAuth();
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const errorColor = useThemeColor({}, 'error');
+  const iconColor = useThemeColor({}, 'icon');
 
   // If user is already verified, redirect to appropriate screen
   useEffect(() => {
@@ -140,10 +152,10 @@ export default function OTPVerifyScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -155,24 +167,24 @@ export default function OTPVerifyScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.headerSection, { marginTop: insets.top + 40 }]}>
-            <View style={styles.iconContainer}>
-              <IconSymbol name="lock.shield.fill" size={40} color="#6366F1" />
+            <View style={[styles.iconContainer, { backgroundColor: primaryLight }]}>
+              <IconSymbol name="lock.shield.fill" size={40} color={primaryColor} />
             </View>
-            <Text style={styles.title}>
+            <Text style={[styles.title, { color: textColor }]}>
               {user?.email && (!user?.phoneNumber || user.phoneNumber.trim() === '')
                 ? 'Verify Email'
                 : 'Verify Phone'}
             </Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, { color: textSecondary }]}>
               {user?.email && (!user?.phoneNumber || user.phoneNumber.trim() === '') ? (
                 <>
                   We've sent a 6-digit code to{'\n'}
-                  <Text style={styles.highlightText}>{user.email}</Text>
+                  <Text style={[styles.highlightText, { color: textColor }]}>{user.email}</Text>
                 </>
               ) : (
                 <>
                   We've sent a 6-digit code to{'\n'}
-                  <Text style={styles.highlightText}>+92 {user?.phoneNumber || 'your number'}</Text>
+                  <Text style={[styles.highlightText, { color: textColor }]}>+92 {user?.phoneNumber || 'your number'}</Text>
                 </>
               )}
             </Text>
@@ -187,7 +199,9 @@ export default function OTPVerifyScreen() {
                 }}
                 style={[
                   styles.otpInput,
+                  { backgroundColor: cardBg, borderColor, color: textColor },
                   digit && styles.otpInputFilled,
+                  digit && { borderColor: primaryColor, backgroundColor: cardBg, shadowColor: primaryColor }
                 ]}
                 value={digit}
                 onChangeText={(value) => handleOtpChange(value, index)}
@@ -202,14 +216,18 @@ export default function OTPVerifyScreen() {
           </View>
 
           {errorMessage && (
-            <View style={styles.errorCard}>
-              <IconSymbol name="exclamationmark.circle.fill" size={16} color="#D32F2F" />
-              <Text style={styles.errorText}>{errorMessage}</Text>
+            <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
+              <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
+              <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
             </View>
           )}
 
           <TouchableOpacity
-            style={[styles.button, (otp.some((d) => !d) || isVerifying) && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              { backgroundColor: primaryColor, shadowColor: primaryColor },
+              (otp.some((d) => !d) || isVerifying) && [styles.buttonDisabled, { backgroundColor: borderColor }]
+            ]}
             onPress={handleVerify}
             disabled={otp.some((d) => !d) || isVerifying}
           >
@@ -218,19 +236,19 @@ export default function OTPVerifyScreen() {
           </TouchableOpacity>
 
           <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>Didn't receive code? </Text>
+            <Text style={[styles.resendText, { color: textSecondary }]}>Didn't receive code? </Text>
             {timer > 0 ? (
-              <Text style={styles.timerText}>Resend in {timer}s</Text>
+              <Text style={[styles.timerText, { color: primaryColor }]}>Resend in {timer}s</Text>
             ) : (
               <TouchableOpacity onPress={handleResend}>
-                <Text style={styles.resendLink}>Resend OTP</Text>
+                <Text style={[styles.resendLink, { color: primaryColor }]}>Resend OTP</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          <View style={styles.demoHint}>
-            <IconSymbol name="lightbulb.fill" size={16} color="#6366F1" />
-            <Text style={styles.demoHintText}>Demo: Enter any 6-digit code (e.g., 123456)</Text>
+          <View style={[styles.demoHint, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
+            <IconSymbol name="lightbulb.fill" size={16} color={primaryColor} />
+            <Text style={[styles.demoHintText, { color: primaryColor }]}>Demo: Enter any 6-digit code (e.g., 123456)</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

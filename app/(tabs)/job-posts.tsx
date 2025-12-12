@@ -393,13 +393,13 @@ export default function JobPostsScreen() {
     return (
       <View key={request.id} style={styles.cardWrapper}>
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: '#1E293B', borderColor: '#334155', borderWidth: 1 }]} // Dark card background like screenshot
+          style={[styles.card, { backgroundColor: cardBg, borderColor: borderColor, borderWidth: 1 }]}
           onPress={() => handleCardPress(request.id)}
           activeOpacity={0.9}
         >
           {/* Gradient Header */}
           <LinearGradient
-            colors={['#6366F1', '#A855F7']}
+            colors={['#4f46e5', '#9333ea']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.cardHeaderGradient}
@@ -445,28 +445,28 @@ export default function JobPostsScreen() {
               <View style={styles.detailRow}>
                 <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
                 <View>
-                  <Text style={styles.detailMainText}>{request.location || 'Location not specified'}</Text>
-                  <Text style={styles.detailSubText}>House 123, Street 4, Karachi</Text>
+                  <Text style={[styles.detailMainText, { color: textColor }]}>{request.location || 'Location not specified'}</Text>
+                  <Text style={[styles.detailSubText, { color: textMuted }]}>House 123, Street 4, Karachi</Text>
                 </View>
               </View>
 
               {/* Date */}
               <View style={styles.detailRow}>
                 <IconSymbol name="calendar" size={18} color="#F87171" />
-                <Text style={styles.detailMainText}>{formatDate(request.createdAt)}</Text>
+                <Text style={[styles.detailMainText, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
               </View>
             </View>
 
             {/* Special Requirements Box */}
-            <View style={styles.requirementsBox}>
-              <Text style={styles.requirementsTitle}>SPECIAL REQUIREMENTS</Text>
-              <Text style={styles.requirementsText} numberOfLines={2}>
+            <View style={[styles.requirementsBox, { backgroundColor: cardBg, borderColor: borderColor }]}>
+              <Text style={[styles.requirementsTitle, { color: textSecondary }]}>SPECIAL REQUIREMENTS</Text>
+              <Text style={[styles.requirementsText, { color: textMuted }]} numberOfLines={2}>
                 "{request.description || 'No special requirements specified'}"
               </Text>
             </View>
 
             {/* Divider */}
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
             {/* Footer */}
             <View style={styles.cardFooter}>
@@ -478,7 +478,7 @@ export default function JobPostsScreen() {
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: 'rgba(56, 189, 248, 0.1)', borderColor: '#0EA5E9' }]}
-                    onPress={() => Alert.alert('Edit', 'Edit functionality coming soon')}
+                    onPress={() => router.push(`/job/edit/${request.id}`)}
                   >
                     <IconSymbol name="pencil" size={14} color="#38BDF8" />
                     <Text style={[styles.actionButtonText, { color: '#38BDF8' }]}>Edit</Text>
@@ -1117,40 +1117,33 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   detailMainText: {
-    color: '#F8FAFC',
     fontSize: 15,
     fontWeight: '500',
     marginBottom: 2,
     flex: 1,
   },
   detailSubText: {
-    color: '#64748B',
     fontSize: 13,
   },
   requirementsBox: {
-    backgroundColor: '#1E293B',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
     marginBottom: 20,
   },
   requirementsTitle: {
-    color: '#E2E8F0',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   requirementsText: {
-    color: '#94A3B8',
     fontSize: 14,
     fontStyle: 'italic',
     lineHeight: 20,
   },
   divider: {
     height: 1,
-    backgroundColor: '#334155',
     marginBottom: 16,
   },
   cardFooter: {

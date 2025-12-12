@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { Colors } from '@/constants/theme';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -22,7 +23,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -109,7 +109,7 @@ export default function ExploreScreen() {
   const { user } = useAuth();
   const { getHelpers, serviceTypes = [] } = useApp();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
   const themeColors = Colors[isDark ? 'dark' : 'light'];
   const [mainTab, setMainTab] = useState<'helpers' | 'service-providers'>('service-providers');
@@ -2668,7 +2668,6 @@ const styles = StyleSheet.create({
   },
   // New Helper Card Styles
   helperCard: {
-    backgroundColor: '#1E293B',
     borderRadius: 24,
     marginBottom: 24,
     overflow: 'hidden',
@@ -2833,7 +2832,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: '#334155',
-    backgroundColor: '#1E293B',
   },
   helperActionButton: {
     width: 48,

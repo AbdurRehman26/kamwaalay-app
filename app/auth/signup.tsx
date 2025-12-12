@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useThemeColor } from '@/hooks/use-theme-color';
+
 const { width } = Dimensions.get('window');
 
 export default function SignupScreen() {
@@ -33,6 +35,16 @@ export default function SignupScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const errorColor = useThemeColor({}, 'error');
+  const iconColor = useThemeColor({}, 'icon');
 
   const handleSignup = async () => {
     if (!name.trim()) {
@@ -112,10 +124,10 @@ export default function SignupScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -129,46 +141,46 @@ export default function SignupScreen() {
           <View style={styles.content}>
             {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
-              <Text style={styles.welcomeText}>Create Account</Text>
-              <Text style={styles.subtitleText}>
+              <Text style={[styles.welcomeText, { color: textColor }]}>Create Account</Text>
+              <Text style={[styles.subtitleText, { color: textSecondary }]}>
                 Join us to find or provide household services
               </Text>
             </View>
 
             {/* Role Selection */}
             <View style={styles.section}>
-              <Text style={styles.label}>I want to join as a</Text>
+              <Text style={[styles.label, { color: textColor }]}>I want to join as a</Text>
               <View style={styles.roleContainer}>
                 <TouchableOpacity
-                  style={[styles.roleCard, role === 'user' && styles.roleCardActive]}
+                  style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'user' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
                   onPress={() => setRole('user')}
                 >
-                  <View style={[styles.roleIconContainer, role === 'user' && styles.roleIconContainerActive]}>
+                  <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'user' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
                     <Text style={styles.roleEmoji}>🏠</Text>
                   </View>
-                  <Text style={[styles.roleTitle, role === 'user' && styles.roleTitleActive]}>
+                  <Text style={[styles.roleTitle, { color: textSecondary }, role === 'user' && [styles.roleTitleActive, { color: primaryColor }]]}>
                     Customer
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.roleCard, role === 'helper' && styles.roleCardActive]}
+                  style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'helper' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
                   onPress={() => setRole('helper')}
                 >
-                  <View style={[styles.roleIconContainer, role === 'helper' && styles.roleIconContainerActive]}>
+                  <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'helper' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
                     <Text style={styles.roleEmoji}>👷</Text>
                   </View>
-                  <Text style={[styles.roleTitle, role === 'helper' && styles.roleTitleActive]}>
+                  <Text style={[styles.roleTitle, { color: textSecondary }, role === 'helper' && [styles.roleTitleActive, { color: primaryColor }]]}>
                     Worker
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.roleCard, role === 'business' && styles.roleCardActive]}
+                  style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'business' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
                   onPress={() => setRole('business')}
                 >
-                  <View style={[styles.roleIconContainer, role === 'business' && styles.roleIconContainerActive]}>
+                  <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'business' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
                     <Text style={styles.roleEmoji}>💼</Text>
                   </View>
-                  <Text style={[styles.roleTitle, role === 'business' && styles.roleTitleActive]}>
+                  <Text style={[styles.roleTitle, { color: textSecondary }, role === 'business' && [styles.roleTitleActive, { color: primaryColor }]]}>
                     Business
                   </Text>
                 </TouchableOpacity>
@@ -178,13 +190,13 @@ export default function SignupScreen() {
             {/* Form Fields */}
             <View style={styles.formSection}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Full Name</Text>
-                <View style={styles.inputWrapper}>
-                  <IconSymbol name="person.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: textColor }]}>Full Name</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                  <IconSymbol name="person.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     placeholder="Enter your full name"
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     value={name}
                     onChangeText={setName}
                     autoComplete="name"
@@ -193,17 +205,17 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Phone Number</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <View style={styles.prefixContainer}>
                     <Text style={styles.flag}>🇵🇰</Text>
-                    <Text style={styles.prefix}>+92</Text>
+                    <Text style={[styles.prefix, { color: textColor }]}>+92</Text>
                   </View>
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: borderColor }]} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     placeholder="300 1234567"
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     keyboardType="phone-pad"
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
@@ -214,13 +226,13 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Address (Optional)</Text>
-                <View style={styles.inputWrapper}>
-                  <IconSymbol name="mappin.and.ellipse" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: textColor }]}>Address (Optional)</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                  <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     placeholder="Your address"
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     value={address}
                     onChangeText={setAddress}
                     autoComplete="street-address"
@@ -229,13 +241,13 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <IconSymbol name="lock.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: textColor }]}>Password</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                  <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     placeholder="Create a password"
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={setPassword}
@@ -248,20 +260,20 @@ export default function SignupScreen() {
                     <IconSymbol
                       name={showPassword ? "eye.fill" : "eye.slash.fill"}
                       size={20}
-                      color="#A0A0A0"
+                      color={textSecondary}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm Password</Text>
-                <View style={styles.inputWrapper}>
-                  <IconSymbol name="lock.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: textColor }]}>Confirm Password</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                  <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     placeholder="Confirm your password"
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     secureTextEntry={!showConfirmPassword}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
@@ -274,7 +286,7 @@ export default function SignupScreen() {
                     <IconSymbol
                       name={showConfirmPassword ? "eye.fill" : "eye.slash.fill"}
                       size={20}
-                      color="#A0A0A0"
+                      color={textSecondary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -282,24 +294,25 @@ export default function SignupScreen() {
 
               {/* Success Message Display */}
               {successMessage && (
-                <View style={styles.successCard}>
+                <View style={[styles.successCard, { backgroundColor: '#F0FDF4' }]}>
                   <IconSymbol name="checkmark.circle.fill" size={16} color="#2E7D32" />
-                  <Text style={styles.successText}>{successMessage}</Text>
+                  <Text style={[styles.successText, { color: '#15803D' }]}>{successMessage}</Text>
                 </View>
               )}
 
               {/* Error Message Display */}
               {errorMessage && (
-                <View style={styles.errorCard}>
-                  <IconSymbol name="exclamationmark.circle.fill" size={16} color="#D32F2F" />
-                  <Text style={styles.errorText}>{errorMessage}</Text>
+                <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
+                  <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
+                  <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
                 </View>
               )}
 
               <TouchableOpacity
                 style={[
                   styles.submitButton,
-                  (!name.trim() || !password.trim() || password.length < 8 || isLoading) && styles.submitButtonDisabled
+                  { backgroundColor: primaryColor, shadowColor: primaryColor },
+                  (!name.trim() || !password.trim() || password.length < 8 || isLoading) && [styles.submitButtonDisabled, { backgroundColor: borderColor }]
                 ]}
                 onPress={handleSignup}
                 disabled={!name.trim() || !password.trim() || password.length < 8 || isLoading}
@@ -315,16 +328,16 @@ export default function SignupScreen() {
 
             {/* Footer */}
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account?</Text>
+              <Text style={[styles.footerText, { color: textSecondary }]}>Already have an account?</Text>
               <TouchableOpacity onPress={() => router.push('/auth/phone-login')}>
-                <Text style={styles.footerLink}>Login</Text>
+                <Text style={[styles.footerLink, { color: primaryColor }]}>Login</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.termsText}>
+            <Text style={[styles.termsText, { color: textSecondary }]}>
               By registering, you agree to our{' '}
-              <Text style={styles.linkText}>Terms</Text> and{' '}
-              <Text style={styles.linkText}>Privacy Policy</Text>
+              <Text style={[styles.linkText, { color: primaryColor }]}>Terms</Text> and{' '}
+              <Text style={[styles.linkText, { color: primaryColor }]}>Privacy Policy</Text>
             </Text>
           </View>
         </ScrollView>

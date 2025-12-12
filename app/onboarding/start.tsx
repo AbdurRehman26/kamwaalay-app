@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useThemeColor } from '@/hooks/use-theme-color';
+
 const { width } = Dimensions.get('window');
 
 export default function OnboardingStartScreen() {
@@ -28,6 +30,16 @@ export default function OnboardingStartScreen() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const primaryColor = useThemeColor({}, 'primary');
+  const primaryLight = useThemeColor({}, 'primaryLight');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const errorColor = useThemeColor({}, 'error');
+  const iconColor = useThemeColor({}, 'icon');
 
   // Prefill email if it exists in user context
   useEffect(() => {
@@ -167,10 +179,10 @@ export default function OnboardingStartScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      <View style={styles.topCircle} />
-      <View style={styles.bottomCircle} />
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -184,23 +196,23 @@ export default function OnboardingStartScreen() {
           <View style={styles.content}>
             {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
-              <Text style={styles.title}>Let's get started</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: textColor }]}>Let's get started</Text>
+              <Text style={[styles.subtitle, { color: textSecondary }]}>
                 Tell us a bit about yourself to personalize your experience
               </Text>
             </View>
 
             <View style={styles.form} nativeID="onboarding-form" data-form="onboarding">
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: textColor }]}>
                   {user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
                 </Text>
-                <View style={styles.inputWrapper}>
-                  <IconSymbol name="person.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                  <IconSymbol name="person.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: textColor }]}
                     placeholder={user?.userType === 'business' ? 'Enter owner name' : 'Enter your name'}
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     value={name}
                     onChangeText={setName}
                     autoComplete="name"
@@ -217,13 +229,13 @@ export default function OnboardingStartScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email (Optional)</Text>
-                <View style={[styles.inputWrapper, email && styles.inputWrapperDisabled]}>
-                  <IconSymbol name="envelope.fill" size={20} color={email ? "#6B7280" : "#A0A0A0"} style={styles.inputIcon} />
+                <Text style={[styles.label, { color: textColor }]}>Email (Optional)</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: email ? primaryLight : cardBg, borderColor }, email && styles.inputWrapperDisabled]}>
+                  <IconSymbol name="envelope.fill" size={20} color={email ? textSecondary : textSecondary} style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, email && styles.inputDisabled]}
+                    style={[styles.input, { color: email ? textSecondary : textColor }, email && styles.inputDisabled]}
                     placeholder="Enter your email"
-                    placeholderTextColor="#A0A0A0"
+                    placeholderTextColor={textSecondary}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={email}
@@ -241,21 +253,25 @@ export default function OnboardingStartScreen() {
                   />
                 </View>
                 {email ? (
-                  <Text style={styles.helperText}>Email is pre-filled from your account</Text>
+                  <Text style={[styles.helperText, { color: textSecondary }]}>Email is pre-filled from your account</Text>
                 ) : null}
               </View>
             </View>
 
             {/* Error Message Display */}
             {errorMessage && (
-              <View style={styles.errorCard}>
-                <IconSymbol name="exclamationmark.circle.fill" size={16} color="#D32F2F" />
-                <Text style={styles.errorText}>{errorMessage}</Text>
+              <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
+                <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
+                <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
               </View>
             )}
 
             <TouchableOpacity
-              style={[styles.button, (!name.trim() || isLoading) && styles.buttonDisabled]}
+              style={[
+                styles.button,
+                { backgroundColor: primaryColor, shadowColor: primaryColor },
+                (!name.trim() || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
+              ]}
               onPress={handleContinue}
               disabled={!name.trim() || isLoading}
             >

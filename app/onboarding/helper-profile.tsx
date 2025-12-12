@@ -50,7 +50,7 @@ export default function HelperProfileScreen() {
   const { user, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const primaryColor = useThemeColor({}, 'primary');
@@ -179,7 +179,9 @@ export default function HelperProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
       <View style={[styles.content, { paddingTop: insets.top }]}>
         <Stepper
           currentStep={currentStep}

@@ -1,21 +1,20 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function AboutScreen() {
   const router = useRouter();
-  
+
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -48,8 +47,12 @@ export default function AboutScreen() {
         <View style={styles.content}>
           {/* App Logo/Icon Section */}
           <View style={styles.logoSection}>
-            <View style={[styles.logo, { backgroundColor: primaryColor }]}>
-              <Text style={styles.logoText}>K</Text>
+            <View style={styles.logo}>
+              <Image
+                source={require('@/assets/images/icon.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
             <ThemedText type="title" style={[styles.appName, { color: textColor }]}>Kamwaalay</ThemedText>
             <ThemedText style={[styles.version, { color: textMuted }]}>Version 1.0.0</ThemedText>
@@ -221,6 +224,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 150,
+    height: 150,
   },
   logoText: {
     fontSize: 40,

@@ -25,14 +25,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-const SERVICES = [
-  { id: '1', name: 'Cleaning', icon: '✨', color: '#EEF2FF', darkColor: '#312E81', border: '#C7D2FE', darkBorder: '#4F46E5' },
-  { id: '2', name: 'Cooking', icon: '👨‍🍳', color: '#F0FDF4', darkColor: '#064E3B', border: '#BBF7D0', darkBorder: '#10B981' },
-  { id: '3', name: 'Babysitting', icon: '👶', color: '#FFF7ED', darkColor: '#78350F', border: '#FFEDD5', darkBorder: '#F59E0B' },
-  { id: '4', name: 'Elderly Care', icon: '👵', color: '#FAF5FF', darkColor: '#581C87', border: '#E9D5FF', darkBorder: '#A855F7' },
-  { id: '5', name: 'All-Rounder', icon: '🛠️', color: '#F8FAFC', darkColor: '#334155', border: '#E2E8F0', darkBorder: '#64748B' },
-  { id: '6', name: '24/7 Live-in', icon: '🏠', color: '#FFF1F2', darkColor: '#7F1D1D', border: '#FECDD3', darkBorder: '#EF4444' },
-];
+interface ServiceType {
+  id: number;
+  slug: string;
+  name: string;
+  icon: string;
+  sort_order: number;
+}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -41,8 +40,12 @@ export default function HomeScreen() {
   const { getJobs, applyToJob } = useApp();
   const [myJobs, setMyJobs] = useState<Job[]>([]);
   const [opportunities, setOpportunities] = useState<Job[]>([]);
+  const [featuredHelpers, setFeaturedHelpers] = useState<any[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
+  const [isLoadingFeaturedHelpers, setIsLoadingFeaturedHelpers] = useState(false);
+  const [isLoadingServiceTypes, setIsLoadingServiceTypes] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const jobs = getJobs();
@@ -189,6 +192,51 @@ export default function HomeScreen() {
     }
   }, [jobs]);
 
+  // Fetch service types
+  const loadServiceTypes = useCallback(async () => {
+    try {
+      setIsLoadingServiceTypes(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.SERVICE_TYPES.LIST,
+        undefined,
+        undefined,
+        false // Public endpoint
+      );
+
+      if (response.success && response.data) {
+        const types = Array.isArray(response.data)
+          ? response.data
+          : (response.data.data || []);
+        setServiceTypes(types);
+      }
+    } catch (error) {
+      console.error('Error loading service types:', error);
+    } finally {
+      setIsLoadingServiceTypes(false);
+    }
+  }, []);
+
+  // Fetch featured helpers for users
+  const loadFeaturedHelpers = useCallback(async () => {
+    try {
+      setIsLoadingFeaturedHelpers(true);
+      const response = await apiService.get(
+        API_ENDPOINTS.HOME.GET,
+        undefined,
+        undefined,
+        false // Public endpoint
+      );
+
+      if (response.success && response.data && response.data.featured_helpers) {
+        setFeaturedHelpers(response.data.featured_helpers);
+      }
+    } catch (error) {
+      console.error('Error loading featured helpers:', error);
+    } finally {
+      setIsLoadingFeaturedHelpers(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (user?.userType === 'user' && user?.id) {
       loadMyJobs();
@@ -201,11 +249,27 @@ export default function HomeScreen() {
     }
   }, [user?.id, loadOpportunities]);
 
+  useEffect(() => {
+    if (!user || user?.userType === 'user' || user?.userType === undefined) {
+      loadFeaturedHelpers();
+    }
+  }, [user?.userType, loadFeaturedHelpers]);
+
+  useEffect(() => {
+    loadServiceTypes();
+  }, [loadServiceTypes]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchUnreadCount(), loadMyJobs(), loadOpportunities()]);
+    const promises = [fetchUnreadCount(), loadServiceTypes()];
+    if (user?.userType === 'user') {
+      promises.push(loadMyJobs(), loadFeaturedHelpers());
+    } else if (user?.userType === 'helper' || user?.userType === 'business') {
+      promises.push(loadOpportunities());
+    }
+    await Promise.all(promises);
     setRefreshing(false);
-  }, [fetchUnreadCount, loadMyJobs, loadOpportunities]);
+  }, [fetchUnreadCount, loadMyJobs, loadOpportunities, loadFeaturedHelpers, loadServiceTypes, user?.userType]);
 
   if (isAuthLoading) {
     return (
@@ -222,9 +286,21 @@ export default function HomeScreen() {
     return 'Good Evening';
   };
 
-  const renderServiceCard = ({ item }: { item: typeof SERVICES[0] }) => {
-    const serviceColor = colorScheme === 'dark' ? item.darkColor : item.color;
-    const serviceBorder = colorScheme === 'dark' ? item.darkBorder : item.border;
+  const renderServiceCard = ({ item }: { item: ServiceType }) => {
+    // Generate colors based on service type ID for consistency
+    const colorPalettes = [
+      { color: '#EEF2FF', darkColor: '#312E81', border: '#C7D2FE', darkBorder: '#4F46E5' },
+      { color: '#F0FDF4', darkColor: '#064E3B', border: '#BBF7D0', darkBorder: '#10B981' },
+      { color: '#FFF7ED', darkColor: '#78350F', border: '#FFEDD5', darkBorder: '#F59E0B' },
+      { color: '#FAF5FF', darkColor: '#581C87', border: '#E9D5FF', darkBorder: '#A855F7' },
+      { color: '#F8FAFC', darkColor: '#334155', border: '#E2E8F0', darkBorder: '#64748B' },
+      { color: '#FFF1F2', darkColor: '#7F1D1D', border: '#FECDD3', darkBorder: '#EF4444' },
+      { color: '#ECFEFF', darkColor: '#164E63', border: '#A5F3FC', darkBorder: '#06B6D4' },
+      { color: '#FEF3C7', darkColor: '#78350F', border: '#FDE68A', darkBorder: '#F59E0B' },
+    ];
+    const palette = colorPalettes[(item.id - 1) % colorPalettes.length];
+    const serviceColor = colorScheme === 'dark' ? palette.darkColor : palette.color;
+    const serviceBorder = colorScheme === 'dark' ? palette.darkBorder : palette.border;
 
     return (
       <TouchableOpacity
@@ -232,7 +308,7 @@ export default function HomeScreen() {
         onPress={() => {
           router.push({
             pathname: '/(tabs)/explore',
-            params: { service: item.name }
+            params: { service: item.slug }
           });
         }}
       >
@@ -317,7 +393,7 @@ export default function HomeScreen() {
         >
           {/* Gradient Header */}
           <LinearGradient
-            colors={['#6366F1', '#A855F7']}
+            colors={['#4f46e5', '#9333ea']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.cardHeaderGradient}
@@ -498,12 +574,14 @@ export default function HomeScreen() {
               style={styles.quickActionButton}
               onPress={() => router.push('/job/create')}
             >
-              <View style={[styles.quickActionContent, { backgroundColor: primaryColor }]}>
-                <View style={styles.quickActionIcon}>
-                  <IconSymbol name="plus" size={24} color="#FFFFFF" />
-                </View>
+              <LinearGradient
+                colors={['#4f46e5', '#9333ea']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.quickActionContent}
+              >
                 <Text style={styles.quickActionText}>Post a Job</Text>
-              </View>
+              </LinearGradient>
             </TouchableOpacity>
 
             {/* Services */}
@@ -515,13 +593,104 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
               <FlatList
-                data={SERVICES}
+                data={serviceTypes}
                 renderItem={renderServiceCard}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.id.toString()}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.servicesContainer}
               />
+            </View>
+
+            {/* Featured Helpers */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Featured Helpers</Text>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/helpers')}>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              {isLoadingFeaturedHelpers ? (
+                <View style={styles.loadingState}>
+                  <ActivityIndicator size="small" color={primaryColor} />
+                </View>
+              ) : featuredHelpers.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingRight: 24 }}
+                >
+                  {featuredHelpers.slice(0, 6).map((helper) => {
+                    const primaryListing = helper.service_listings?.[0];
+                    const serviceType = primaryListing?.service_type_label || primaryListing?.service_type || 'Helper';
+                    const price = primaryListing?.monthly_rate || 0;
+                    const location = helper.area || helper.city || 'Karachi';
+                    const rating = parseFloat(helper.rating || '0');
+
+                    return (
+                      <TouchableOpacity
+                        key={helper.id}
+                        style={[styles.featuredHelperCard, { backgroundColor: cardBg, borderColor }]}
+                        onPress={() => router.push(`/profile/helper/${helper.id}` as any)}
+                      >
+                        {/* Avatar */}
+                        <View style={[styles.featuredHelperAvatar, { backgroundColor: primaryLight }]}>
+                          <Text style={[styles.featuredHelperAvatarText, { color: primaryColor }]}>
+                            {(helper.name || 'H').charAt(0).toUpperCase()}
+                          </Text>
+                          {helper.verification_status === 'verified' && (
+                            <View style={styles.featuredVerifiedBadge}>
+                              <IconSymbol name="checkmark.seal.fill" size={16} color="#10B981" />
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Name */}
+                        <Text style={[styles.featuredHelperName, { color: textColor }]} numberOfLines={1}>
+                          {helper.name}
+                        </Text>
+
+                        {/* Service Type */}
+                        <View style={[styles.featuredServiceBadge, { backgroundColor: primaryLight }]}>
+                          <Text style={[styles.featuredServiceText, { color: primaryColor }]} numberOfLines={1}>
+                            {serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}
+                          </Text>
+                        </View>
+
+                        {/* Rating */}
+                        <View style={styles.featuredRatingRow}>
+                          <IconSymbol name="star.fill" size={14} color="#F59E0B" />
+                          <Text style={[styles.featuredRatingText, { color: textColor }]}>
+                            {rating.toFixed(1)}
+                          </Text>
+                          <Text style={[styles.featuredReviewsText, { color: textMuted }]}>
+                            ({helper.total_reviews || 0})
+                          </Text>
+                        </View>
+
+                        {/* Location */}
+                        <View style={styles.featuredLocationRow}>
+                          <IconSymbol name="mappin.circle.fill" size={12} color={textMuted} />
+                          <Text style={[styles.featuredLocationText, { color: textMuted }]} numberOfLines={1}>
+                            {location}
+                          </Text>
+                        </View>
+
+                        {/* Price */}
+                        {price > 0 && (
+                          <View style={[styles.featuredPriceContainer, { backgroundColor: '#ECFDF5', borderColor: '#D1FAE5' }]}>
+                            <Text style={styles.featuredPriceText}>₨{Math.floor(price).toLocaleString()}/mo</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              ) : (
+                <View style={[styles.emptyCard, { backgroundColor: cardBg, borderColor }]}>
+                  <Text style={[styles.emptyCardText, { color: textSecondary }]}>No featured helpers available</Text>
+                </View>
+              )}
             </View>
 
             {/* My Postings */}
@@ -549,10 +718,17 @@ export default function HomeScreen() {
                     No active jobs found
                   </Text>
                   <TouchableOpacity
-                    style={[styles.createRequestButton, { backgroundColor: primaryColor }]}
+                    style={styles.createRequestButton}
                     onPress={() => router.push('/job/create')}
                   >
-                    <Text style={styles.createRequestButtonText}>Create Job</Text>
+                    <LinearGradient
+                      colors={['#4f46e5', '#9333ea']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.createRequestButtonGradient}
+                    >
+                      <Text style={styles.createRequestButtonText}>Create Job</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1021,22 +1197,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   createRequestButton: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
+  createRequestButtonGradient: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
   createRequestButtonText: {
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
   dashboardCard: {
     flexDirection: 'row',
@@ -1076,7 +1254,95 @@ const styles = StyleSheet.create({
     color: '#6366F1',
   },
   loadingState: {
-    padding: 24,
+    paddingVertical: 20,
     alignItems: 'center',
+  },
+  featuredHelperCard: {
+    width: 160,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  featuredHelperAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  featuredHelperAvatarText: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  featuredVerifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 2,
+  },
+  featuredHelperName: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  featuredServiceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  featuredServiceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  featuredRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginBottom: 6,
+  },
+  featuredRatingText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  featuredReviewsText: {
+    fontSize: 11,
+  },
+  featuredLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  featuredLocationText: {
+    fontSize: 11,
+  },
+  featuredPriceContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  featuredPriceText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+    textAlign: 'center',
   },
 });

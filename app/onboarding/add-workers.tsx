@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useThemeColor } from '@/hooks/use-theme-color';
+
 const { width } = Dimensions.get('window');
 
 interface Worker {
@@ -33,6 +35,16 @@ export default function AddWorkersOnboardingScreen() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [cnic, setCnic] = useState('');
     const [serviceType, setServiceType] = useState('');
+
+    const backgroundColor = useThemeColor({}, 'background');
+    const textColor = useThemeColor({}, 'text');
+    const textSecondary = useThemeColor({}, 'textSecondary');
+    const primaryColor = useThemeColor({}, 'primary');
+    const primaryLight = useThemeColor({}, 'primaryLight');
+    const cardBg = useThemeColor({}, 'card');
+    const borderColor = useThemeColor({}, 'border');
+    const errorColor = useThemeColor({}, 'error');
+    const iconColor = useThemeColor({}, 'icon');
 
     const handleAddWorker = () => {
         if (!name.trim()) {
@@ -83,10 +95,10 @@ export default function AddWorkersOnboardingScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor }]}>
             {/* Decorative Background Elements */}
-            <View style={styles.topCircle} />
-            <View style={styles.bottomCircle} />
+            <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+            <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -97,8 +109,8 @@ export default function AddWorkersOnboardingScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
-                        <Text style={styles.title}>Add Your Workers</Text>
-                        <Text style={styles.subtitle}>
+                        <Text style={[styles.title, { color: textColor }]}>Add Your Workers</Text>
+                        <Text style={[styles.subtitle, { color: textSecondary }]}>
                             Add workers to your agency roster (you can add more later)
                         </Text>
                     </View>
@@ -106,18 +118,18 @@ export default function AddWorkersOnboardingScreen() {
                     {/* Added Workers List */}
                     {workers.length > 0 && (
                         <View style={styles.workersList}>
-                            <Text style={styles.sectionTitle}>
+                            <Text style={[styles.sectionTitle, { color: textColor }]}>
                                 Added Workers ({workers.length})
                             </Text>
                             {workers.map((worker) => (
-                                <View key={worker.id} style={styles.workerCard}>
+                                <View key={worker.id} style={[styles.workerCard, { backgroundColor: cardBg, borderColor }]}>
                                     <View style={styles.workerInfo}>
-                                        <View style={styles.workerIconContainer}>
-                                            <IconSymbol name="person.fill" size={24} color="#6366F1" />
+                                        <View style={[styles.workerIconContainer, { backgroundColor: primaryLight }]}>
+                                            <IconSymbol name="person.fill" size={24} color={primaryColor} />
                                         </View>
                                         <View style={styles.workerDetails}>
-                                            <Text style={styles.workerName}>{worker.name}</Text>
-                                            <Text style={styles.workerPhone}>{worker.phoneNumber}</Text>
+                                            <Text style={[styles.workerName, { color: textColor }]}>{worker.name}</Text>
+                                            <Text style={[styles.workerPhone, { color: textSecondary }]}>{worker.phoneNumber}</Text>
                                         </View>
                                     </View>
                                     <TouchableOpacity
@@ -133,18 +145,18 @@ export default function AddWorkersOnboardingScreen() {
 
                     {/* Add Worker Form */}
                     <View style={styles.form}>
-                        <Text style={styles.sectionTitle}>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>
                             {workers.length > 0 ? 'Add Another Worker' : 'Add First Worker'}
                         </Text>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Full Name</Text>
-                            <View style={styles.inputWrapper}>
-                                <IconSymbol name="person.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                            <Text style={[styles.label, { color: textColor }]}>Full Name</Text>
+                            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                                <IconSymbol name="person.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { color: textColor }]}
                                     placeholder="Enter worker's full name"
-                                    placeholderTextColor="#A0A0A0"
+                                    placeholderTextColor={textSecondary}
                                     value={name}
                                     onChangeText={setName}
                                     autoComplete="name"
@@ -153,13 +165,13 @@ export default function AddWorkersOnboardingScreen() {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Phone Number</Text>
-                            <View style={styles.inputWrapper}>
-                                <IconSymbol name="phone.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                            <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                                <IconSymbol name="phone.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { color: textColor }]}
                                     placeholder="03XXXXXXXXX"
-                                    placeholderTextColor="#A0A0A0"
+                                    placeholderTextColor={textSecondary}
                                     value={phoneNumber}
                                     onChangeText={setPhoneNumber}
                                     keyboardType="phone-pad"
@@ -170,13 +182,13 @@ export default function AddWorkersOnboardingScreen() {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>CNIC Number</Text>
-                            <View style={styles.inputWrapper}>
-                                <IconSymbol name="creditcard.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                            <Text style={[styles.label, { color: textColor }]}>CNIC Number</Text>
+                            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                                <IconSymbol name="creditcard.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { color: textColor }]}
                                     placeholder="XXXXX-XXXXXXX-X"
-                                    placeholderTextColor="#A0A0A0"
+                                    placeholderTextColor={textSecondary}
                                     value={cnic}
                                     onChangeText={setCnic}
                                     keyboardType="number-pad"
@@ -186,13 +198,13 @@ export default function AddWorkersOnboardingScreen() {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Service Type (Optional)</Text>
-                            <View style={styles.inputWrapper}>
-                                <IconSymbol name="briefcase.fill" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                            <Text style={[styles.label, { color: textColor }]}>Service Type (Optional)</Text>
+                            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                                <IconSymbol name="briefcase.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { color: textColor }]}
                                     placeholder="e.g., Cleaning, Cooking"
-                                    placeholderTextColor="#A0A0A0"
+                                    placeholderTextColor={textSecondary}
                                     value={serviceType}
                                     onChangeText={setServiceType}
                                 />
@@ -200,7 +212,7 @@ export default function AddWorkersOnboardingScreen() {
                         </View>
 
                         <TouchableOpacity
-                            style={styles.addButton}
+                            style={[styles.addButton, { backgroundColor: primaryColor }]}
                             onPress={handleAddWorker}
                         >
                             <IconSymbol name="plus.circle.fill" size={20} color="#FFFFFF" />
@@ -212,7 +224,7 @@ export default function AddWorkersOnboardingScreen() {
                     <View style={styles.actions}>
                         {workers.length > 0 && (
                             <TouchableOpacity
-                                style={styles.completeButton}
+                                style={[styles.completeButton, { backgroundColor: primaryColor, shadowColor: primaryColor }]}
                                 onPress={handleComplete}
                             >
                                 <Text style={styles.completeButtonText}>
@@ -226,7 +238,7 @@ export default function AddWorkersOnboardingScreen() {
                             style={styles.skipButton}
                             onPress={handleSkip}
                         >
-                            <Text style={styles.skipButtonText}>
+                            <Text style={[styles.skipButtonText, { color: textSecondary }]}>
                                 {workers.length > 0 ? 'Done for now' : 'Skip for now'}
                             </Text>
                         </TouchableOpacity>

@@ -12,25 +12,25 @@ export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed';
  */
 function formatPhoneNumberWithCountryCode(phone: string): string {
   if (!phone) return phone;
-  
+
   // Remove all spaces, dashes, and other formatting
   let cleaned = phone.replace(/\s+/g, '').replace(/-/g, '').replace(/\(/g, '').replace(/\)/g, '');
-  
+
   // If already starts with +92, return as is
   if (cleaned.startsWith('+92')) {
     return cleaned;
   }
-  
+
   // If starts with 92 (without +), add +
   if (cleaned.startsWith('92')) {
     return '+' + cleaned;
   }
-  
+
   // If starts with 0, remove it and add +92
   if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
-  
+
   // Add +92 prefix
   return '+92' + cleaned;
 }
@@ -119,6 +119,12 @@ export interface Job {
   description: string;
   location: string;
   budget?: number;
+  workType?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  startDate?: string;
+  startTime?: string;
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   createdAt: string;
   applicants: string[];

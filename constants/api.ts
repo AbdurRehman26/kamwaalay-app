@@ -22,6 +22,11 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD_WITH_TOKEN: '/reset-password/:token',
   },
 
+  // Service Types
+  SERVICE_TYPES: {
+    LIST: '/service-types',
+  },
+
   // User Profile
   PROFILE: {
     GET: '/profile',

@@ -198,7 +198,6 @@ export default function ChatDetailScreen() {
           style={styles.messages}
           showsHorizontalScrollIndicator={false}
           horizontal={false}
-          contentContainerStyle={{ width: '100%' }}
           contentContainerStyle={styles.messagesContent}
           onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         >

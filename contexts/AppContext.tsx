@@ -7,6 +7,7 @@ import { Job, useAuth } from './AuthContext';
 interface AppContextType {
   jobs: Job[];
   helpers: any[];
+  serviceTypes: any[];
   addJob: (request: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => Promise<void>;
   applyToJob: (requestId: string, applicantId: string) => Promise<void>;
   getJobs: () => Job[];
@@ -19,6 +20,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [helpers, setHelpers] = useState<any[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
   const isRefreshingJobs = useRef(false);
   const { user } = useAuth(); // Get user from AuthContext
 
@@ -29,10 +31,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadData = async () => {
     try {
+      // Load service types (available for all users)
+      try {
+        const serviceTypesResponse = await apiService.get(
+          API_ENDPOINTS.SERVICE_TYPES.LIST,
+          undefined,
+          undefined,
+          false // Public endpoint
+        );
+
+        if (serviceTypesResponse.success && serviceTypesResponse.data) {
+          const types = Array.isArray(serviceTypesResponse.data)
+            ? serviceTypesResponse.data
+            : (serviceTypesResponse.data.data || []);
+          setServiceTypes(types);
+          await AsyncStorage.setItem('serviceTypes', JSON.stringify(types));
+        } else {
+          // Fallback to local storage
+          const storedTypes = await AsyncStorage.getItem('serviceTypes');
+          if (storedTypes) setServiceTypes(JSON.parse(storedTypes));
+        }
+      } catch (error) {
+        console.error('Error fetching service types:', error);
+        // Fallback to local storage
+        const storedTypes = await AsyncStorage.getItem('serviceTypes');
+        if (storedTypes) setServiceTypes(JSON.parse(storedTypes));
+      }
+
       // Only load jobs from API if user is not a business or helper
       // Service requests are only for regular users (customers)
       const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
-      
+
       if (!isHelperOrBusiness) {
         // Load jobs from API (available bookings for helpers/businesses)
         const requestsResponse = await apiService.get(
@@ -41,62 +70,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           undefined, // queryParams - can add filters like service_type, location_id, etc.
           false // Public endpoint - no auth required
         );
-      if (requestsResponse.success && requestsResponse.data) {
-        // API returns data in 'job_posts' or 'bookings' key
-        // Ensure data is an array
-        let rawRequests = [];
-        if (requestsResponse.data.job_posts) {
-          // Handle job_posts response (can be paginated or direct array)
-          rawRequests = Array.isArray(requestsResponse.data.job_posts.data)
-            ? requestsResponse.data.job_posts.data
-            : (Array.isArray(requestsResponse.data.job_posts) ? requestsResponse.data.job_posts : []);
-        } else if (requestsResponse.data.bookings) {
-          // Handle paginated response with bookings key
-          rawRequests = Array.isArray(requestsResponse.data.bookings.data)
-            ? requestsResponse.data.bookings.data
-            : (Array.isArray(requestsResponse.data.bookings) ? requestsResponse.data.bookings : []);
+        if (requestsResponse.success && requestsResponse.data) {
+          // API returns data in 'job_posts' or 'bookings' key
+          // Ensure data is an array
+          let rawRequests = [];
+          if (requestsResponse.data.job_posts) {
+            // Handle job_posts response (can be paginated or direct array)
+            rawRequests = Array.isArray(requestsResponse.data.job_posts.data)
+              ? requestsResponse.data.job_posts.data
+              : (Array.isArray(requestsResponse.data.job_posts) ? requestsResponse.data.job_posts : []);
+          } else if (requestsResponse.data.bookings) {
+            // Handle paginated response with bookings key
+            rawRequests = Array.isArray(requestsResponse.data.bookings.data)
+              ? requestsResponse.data.bookings.data
+              : (Array.isArray(requestsResponse.data.bookings) ? requestsResponse.data.bookings : []);
+          } else {
+            rawRequests = Array.isArray(requestsResponse.data)
+              ? requestsResponse.data
+              : (requestsResponse.data.requests || requestsResponse.data.data || []);
+          }
+
+          // Map API booking format to app Job format
+          const requests = rawRequests.map((booking: any) => ({
+            id: booking.id?.toString() || booking.booking_id?.toString() || Date.now().toString(),
+            userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
+            userName: booking.user?.name || booking.name || 'Unknown',
+            serviceName: booking.service_type
+              ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
+              : booking.service_name || 'Service',
+            description: booking.special_requirements || booking.description || '',
+            location: booking.area || booking.location || '',
+            budget: booking.monthly_rate || booking.budget || booking.price,
+            status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
+            createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
+            applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
+              booking.applicants ||
+              [],
+            // Keep original data for reference
+            _original: booking,
+          }));
+
+          setJobs(requests);
+          await AsyncStorage.setItem('jobs', JSON.stringify(requests));
         } else {
-          rawRequests = Array.isArray(requestsResponse.data)
-            ? requestsResponse.data
-            : (requestsResponse.data.requests || requestsResponse.data.data || []);
-        }
-
-        // Map API booking format to app Job format
-        const requests = rawRequests.map((booking: any) => ({
-          id: booking.id?.toString() || booking.booking_id?.toString() || Date.now().toString(),
-          userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
-          userName: booking.user?.name || booking.name || 'Unknown',
-          serviceName: booking.service_type
-            ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
-            : booking.service_name || 'Service',
-          description: booking.special_requirements || booking.description || '',
-          location: booking.area || booking.location || '',
-          budget: booking.monthly_rate || booking.budget || booking.price,
-          status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
-          createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
-          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
-            booking.applicants ||
-            [],
-          // Keep original data for reference
-          _original: booking,
-        }));
-
-        setJobs(requests);
-        await AsyncStorage.setItem('jobs', JSON.stringify(requests));
-      } else {
-        // Fallback to local storage
-        const requests = await AsyncStorage.getItem('jobs');
-        if (requests) {
-          try {
-            const parsed = JSON.parse(requests);
-            setJobs(Array.isArray(parsed) ? parsed : []);
-          } catch (e) {
+          // Fallback to local storage
+          const requests = await AsyncStorage.getItem('jobs');
+          if (requests) {
+            try {
+              const parsed = JSON.parse(requests);
+              setJobs(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+              setJobs([]);
+            }
+          } else {
             setJobs([]);
           }
-        } else {
-          setJobs([]);
         }
-      }
       } else {
         // For business/helper users, don't load service requests
         // Set empty jobs array
@@ -254,6 +283,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
                   // Remove duplicates and filter out empty values
                   return [...new Set(locationsList.filter(Boolean))];
+                })(),
+
+                // Demo graphics mapping
+                religion: user.profileData?.religion || user.religion,
+                gender: user.profileData?.gender || user.gender,
+                age: user.profileData?.age || user.age,
+                languages: (() => {
+                  const langs = user.profileData?.languages || user.languages;
+                  if (Array.isArray(langs)) return langs;
+                  if (typeof langs === 'string') return [langs];
+                  return [];
                 })()
               };
             });
@@ -502,6 +542,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         jobs,
         helpers,
+        serviceTypes,
         addJob,
         applyToJob,
         getJobs: () => Array.isArray(jobs) ? jobs : [],
@@ -521,6 +562,7 @@ export function useApp() {
     return {
       jobs: [],
       helpers: [],
+      serviceTypes: [],
       addJob: async () => { },
       applyToJob: async () => { },
       getJobs: () => [],

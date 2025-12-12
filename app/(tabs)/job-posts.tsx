@@ -4,6 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -370,120 +371,142 @@ export default function JobPostsScreen() {
     const isOpen = request.status === 'open';
     const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
 
+    // Format date
+    const formatDate = (dateString: string) => {
+      if (!dateString) return 'Date not specified';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    };
+
+    // Format posted date
+    const formatPostedDate = (dateString: string) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return `Posted ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    };
+
     return (
       <View key={request.id} style={styles.cardWrapper}>
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: cardBg, borderColor }]}
+          style={[styles.card, { backgroundColor: '#1E293B', borderColor: '#334155', borderWidth: 1 }]} // Dark card background like screenshot
           onPress={() => handleCardPress(request.id)}
-          activeOpacity={0.7}
+          activeOpacity={0.9}
         >
-          <View style={styles.cardHeader}>
-            <View style={styles.cardInfo}>
-              <Text style={[styles.cardTitle, { color: textColor }]} numberOfLines={1}>
-                {request.serviceName}
-              </Text>
-              {isHelperOrBusiness && (
-                <View style={styles.userInfo}>
-                  <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
-                    <Text style={[styles.avatarText, { color: primaryColor }]}>{(request.userName || 'U').charAt(0).toUpperCase()}</Text>
-                  </View>
-                  <Text style={[styles.cardUser, { color: textSecondary }]}>{request.userName || 'Unknown'}</Text>
-                </View>
-              )}
-              {user?.userType === 'user' && (
-                <Text style={[styles.cardUser, { color: textSecondary }]}>by {request.userName || 'Unknown'}</Text>
-              )}
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-              <Text style={styles.statusText}>{request.status}</Text>
-            </View>
-          </View>
-
-          <Text style={[styles.cardDescription, { color: textSecondary }]} numberOfLines={3}>
-            {request.description}
-          </Text>
-
-          {isHelperOrBusiness && (
-            <View style={styles.cardDetails}>
-              <View style={styles.detailRow}>
-                <IconSymbol name="location.fill" size={16} color={primaryColor} />
-                <Text style={[styles.detailText, { color: textSecondary }]}>{request.location}</Text>
+          {/* Gradient Header */}
+          <LinearGradient
+            colors={['#6366F1', '#A855F7']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.cardHeaderGradient}
+          >
+            <View style={styles.headerContent}>
+              <View style={styles.serviceTag}>
+                <Text style={styles.serviceTagText}>{request.serviceName?.toUpperCase()}</Text>
               </View>
-              {request.budget && (
-                <View style={styles.detailRow}>
-                  <IconSymbol name="dollarsign.circle.fill" size={16} color={primaryColor} />
-                  <Text style={[styles.detailText, { color: textSecondary }]}>₨{request.budget}</Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {!isHelperOrBusiness && (
-            <View style={[styles.cardFooter, { borderTopColor: borderColor }]}>
-              <View style={styles.locationContainer}>
-                <IconSymbol name="location.fill" size={14} color={textMuted} />
-                <Text style={[styles.location, { color: textSecondary }]}>{request.location}</Text>
-              </View>
-              {request.budget && (
-                <Text style={[styles.budget, { color: textColor }]}>₨{request.budget}</Text>
-              )}
-            </View>
-          )}
-
-          {request.applicants && request.applicants.length > 0 && (
-            <View style={[styles.applicantsTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
-              <IconSymbol name="person.2.fill" size={12} color={primaryColor} />
-              <Text style={[styles.applicantsTagText, { color: primaryColor }]}>
-                {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {/* Actions for users (who own the request) */}
-        {user?.userType === 'user' && request.userId === user?.id && (
-          <View style={styles.cardActions}>
-            {request.applicants && request.applicants.length > 0 ? (
-              <TouchableOpacity
-                style={[styles.contactButton, { borderColor: primaryColor }]}
-                onPress={() => handleContactApplicants(request)}
-              >
-                <IconSymbol name="message.fill" size={18} color={primaryColor} />
-                <Text style={[styles.contactButtonText, { color: primaryColor }]}>
-                  Contact Applicant{request.applicants.length > 1 ? 's' : ''}
+              <View style={[styles.statusTag, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+                <Text style={[styles.statusTagText, { color: '#FCD34D' }]}>
+                  {request.status?.toUpperCase() || 'PENDING'}
                 </Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={[styles.noApplicantsBadge, { backgroundColor: cardBg, borderColor }]}>
-                <Text style={[styles.noApplicantsText, { color: textMuted }]}>No applicants yet</Text>
               </View>
-            )}
-          </View>
-        )}
+            </View>
+          </LinearGradient>
 
-        {/* Actions for helpers/businesses */}
-        {isHelperOrBusiness && (
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={[styles.viewDetailsButton, { backgroundColor: primaryColor }]}
-              onPress={() => handleCardPress(request.id)}
-            >
-              <Text style={[styles.viewDetailsButtonText, { color: '#FFFFFF' }]}>View Details</Text>
-              <IconSymbol name="chevron.right" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-            {hasApplied && (
-              <View style={[styles.appliedBadge, { backgroundColor: cardBg, borderColor: successColor }]}>
-                <IconSymbol name="checkmark.circle.fill" size={18} color={successColor} />
-                <Text style={[styles.appliedText, { color: successColor }]}>Applied</Text>
+          {/* Card Body */}
+          <View style={styles.cardBody}>
+            {/* User Info */}
+            <View style={styles.userInfoRow}>
+              <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
+                <Text style={[styles.avatarText, { color: primaryColor }]}>
+                  {(request.userName || 'U').charAt(0).toUpperCase()}
+                </Text>
               </View>
-            )}
-            {!isOpen && !hasApplied && (
-              <View style={[styles.closedBadge, { backgroundColor: cardBg, borderColor: textMuted }]}>
-                <Text style={[styles.closedText, { color: textMuted }]}>Closed</Text>
+              <View style={styles.userMeta}>
+                <Text style={styles.userNameText}>{request.userName || 'Unknown User'}</Text>
+                <Text style={styles.postedDateText}>{formatPostedDate(request.createdAt)}</Text>
               </View>
-            )}
+            </View>
+
+            {/* Job Details */}
+            <View style={styles.detailsContainer}>
+              {/* Job Type (Placeholder if not available) */}
+              <View style={styles.detailRow}>
+                <IconSymbol name="briefcase.fill" size={18} color="#94A3B8" />
+                <View style={styles.jobTypeTag}>
+                  <Text style={styles.jobTypeText}>Part Time</Text>
+                </View>
+              </View>
+
+              {/* Location */}
+              <View style={styles.detailRow}>
+                <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
+                <View>
+                  <Text style={styles.detailMainText}>{request.location || 'Location not specified'}</Text>
+                  <Text style={styles.detailSubText}>House 123, Street 4, Karachi</Text>
+                </View>
+              </View>
+
+              {/* Date */}
+              <View style={styles.detailRow}>
+                <IconSymbol name="calendar" size={18} color="#F87171" />
+                <Text style={styles.detailMainText}>{formatDate(request.createdAt)}</Text>
+              </View>
+            </View>
+
+            {/* Special Requirements Box */}
+            <View style={styles.requirementsBox}>
+              <Text style={styles.requirementsTitle}>SPECIAL REQUIREMENTS</Text>
+              <Text style={styles.requirementsText} numberOfLines={2}>
+                "{request.description || 'No special requirements specified'}"
+              </Text>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Footer */}
+            <View style={styles.cardFooter}>
+              <Text style={styles.applicantsText}>
+                {request.applicants?.length || 0} Applicants
+              </Text>
+
+              {user?.userType === 'user' && request.userId === user?.id ? (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: 'rgba(56, 189, 248, 0.1)', borderColor: '#0EA5E9' }]}
+                    onPress={() => Alert.alert('Edit', 'Edit functionality coming soon')}
+                  >
+                    <IconSymbol name="pencil" size={14} color="#38BDF8" />
+                    <Text style={[styles.actionButtonText, { color: '#38BDF8' }]}>Edit</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleContactApplicants(request)}
+                  >
+                    <Text style={styles.actionButtonText}>Applicants</Text>
+                    <IconSymbol name="arrow.right" size={16} color="#818CF8" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => isHelperOrBusiness ? handleCardPress(request.id) : null}
+                  disabled={!isHelperOrBusiness && !!user}
+                >
+                  <Text style={styles.actionButtonText}>
+                    {!user ? 'Login to Apply' : (isHelperOrBusiness ? (hasApplied ? 'Applied' : 'Apply Now') : 'Helpers Only')}
+                  </Text>
+                  {(!user || isHelperOrBusiness) && <IconSymbol name="arrow.right" size={16} color="#818CF8" />}
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        )}
+        </TouchableOpacity>
       </View>
     );
   };
@@ -512,7 +535,7 @@ export default function JobPostsScreen() {
           {user?.userType === 'user' && (
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => router.push('/job-posts/create')}
+              onPress={() => router.push('/job/create')}
             >
               <IconSymbol name="plus.circle.fill" size={32} color={primaryColor} />
             </TouchableOpacity>
@@ -672,7 +695,7 @@ export default function JobPostsScreen() {
               {user?.userType === 'user' && (
                 <TouchableOpacity
                   style={[styles.createButton, { backgroundColor: primaryColor }]}
-                  onPress={() => router.push('/job-posts/create')}
+                  onPress={() => router.push('/job/create')}
                 >
                   <Text style={styles.createButtonText}>Create Your First Job</Text>
                 </TouchableOpacity>
@@ -998,150 +1021,163 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   cardWrapper: {
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  cardHeader: {
+  card: {
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  cardHeaderGradient: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  cardInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  userInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
   },
-  avatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+  serviceTag: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 100,
   },
-  avatarText: {
-    fontSize: 10,
+  serviceTagText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '700',
-    color: '#6366F1',
-  },
-  cardUser: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  cardDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-    marginBottom: 16,
+  statusTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
   },
-  cardDetails: {
+  statusTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  cardBody: {
+    padding: 20,
+  },
+  userInfoRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  userMeta: {
+    justifyContent: 'center',
+  },
+  userNameText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  postedDateText: {
+    color: '#94A3B8',
+    fontSize: 14,
+  },
+  detailsContainer: {
+    marginBottom: 20,
     gap: 16,
-    marginBottom: 16,
   },
   detailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    alignItems: 'flex-start',
+    gap: 12,
   },
-  detailText: {
-    fontSize: 13,
-    color: '#6B7280',
+  jobTypeTag: {
+    backgroundColor: '#334155',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  jobTypeText: {
+    color: '#E2E8F0',
+    fontSize: 14,
     fontWeight: '500',
+  },
+  detailMainText: {
+    color: '#F8FAFC',
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 2,
+    flex: 1,
+  },
+  detailSubText: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  requirementsBox: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 20,
+  },
+  requirementsTitle: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  requirementsText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#334155',
+    marginBottom: 16,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F9FAFB',
-    marginBottom: 12,
+    marginTop: 4,
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  location: {
+  applicantsText: {
+    color: '#94A3B8',
     fontSize: 13,
-    color: '#6B7280',
     fontWeight: '500',
   },
-  budget: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#6366F1',
-  },
-  applicantsTag: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: '#312E81', // Dark Indigo background for button
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 100, // Pill shape
     borderWidth: 1,
-    marginTop: 8,
+    borderColor: '#4338CA',
   },
-  applicantsTagText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  contactButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  contactButtonText: {
-    color: '#6366F1',
-    fontSize: 14,
+  actionButtonText: {
+    color: '#C7D2FE', // Lighter Indigo text
+    fontSize: 13,
     fontWeight: '600',
   },
   viewDetailsButton: {

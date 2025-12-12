@@ -1,7 +1,6 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -20,14 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const { width } = Dimensions.get('window');
 
-const SERVICE_TYPES = [
-  { id: 'maid', name: 'Maid', emoji: '🧹' },
-  { id: 'cook', name: 'Cook', emoji: '👨‍🍳' },
-  { id: 'babysitter', name: 'Babysitter', emoji: '👶' },
-  { id: 'caregiver', name: 'Caregiver', emoji: '👩' },
-  { id: 'cleaner', name: 'Cleaner', emoji: '✨' },
-  { id: 'all_rounder', name: 'All Rounder', emoji: '⭐' },
-];
+import { useApp } from '@/contexts/AppContext';
 
 const WORK_TYPES = [
   { id: 'full_time', name: 'Full Time' },
@@ -40,9 +32,16 @@ interface Location {
   area?: string;
 }
 
+interface ServiceType {
+  id: string | number;
+  name: string;
+  emoji?: string;
+}
+
 export default function AddServiceOfferingScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const { serviceTypes } = useApp();
   const insets = useSafeAreaInsets();
   const isEditMode = !!id;
 
@@ -91,7 +90,6 @@ export default function AddServiceOfferingScreen() {
 
     return () => clearTimeout(searchTimeout);
   }, [locationSearch]);
-
   const loadServiceListing = async () => {
     try {
       setIsLoading(true);
@@ -104,27 +102,19 @@ export default function AddServiceOfferingScreen() {
 
       if (response.success && response.data) {
         const listing = response.data.listing || response.data.service_listing || response.data;
-        
+
         // Set service types
         if (listing.service_types && Array.isArray(listing.service_types)) {
-          setSelectedServiceTypes(listing.service_types);
+          // Map service type names to IDs if possible, or use as is
+          const mappedTypes = listing.service_types.map((type: string) => {
+            const found = serviceTypes.find(t => t.name === type || t.id.toString() === type);
+            return found ? found.id.toString() : type;
+          });
+          setSelectedServiceTypes(mappedTypes);
         } else if (listing.service_type) {
-          setSelectedServiceTypes([listing.service_type]);
-        }
-
-        // Set work type
-        if (listing.work_type) {
-          setWorkType(listing.work_type);
-        }
-
-        // Set monthly rate
-        if (listing.monthly_rate) {
-          setMonthlyRate(listing.monthly_rate.toString());
-        }
-
-        // Set description
-        if (listing.description) {
-          setDescription(listing.description);
+          const type = listing.service_type;
+          const found = serviceTypes.find(t => t.name === type || t.id.toString() === type);
+          setSelectedServiceTypes([found ? found.id.toString() : type]);
         }
 
         // Set locations
@@ -142,6 +132,10 @@ export default function AddServiceOfferingScreen() {
             area: listing.location.area || listing.location.name || '',
           }]);
         }
+
+        if (listing.work_type) setWorkType(listing.work_type);
+        if (listing.monthly_rate) setMonthlyRate(listing.monthly_rate.toString());
+        if (listing.description) setDescription(listing.description);
       }
     } catch (error) {
       console.error('Error loading service listing:', error);
@@ -297,8 +291,8 @@ export default function AddServiceOfferingScreen() {
           <View style={styles.placeholder} />
         </View>
 
-        <ScrollView 
-          style={[styles.scrollView, { backgroundColor }]} 
+        <ScrollView
+          style={[styles.scrollView, { backgroundColor }]}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           horizontal={false}
@@ -318,205 +312,206 @@ export default function AddServiceOfferingScreen() {
             </View>
           ) : (
             <View style={styles.form}>
-            {/* Service Types */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>
-                Select Service Types <Text style={styles.required}>*</Text>
-              </Text>
-              <Text style={[styles.instruction, { color: textSecondary }]}>
-                Choose the services for this offer. You can select multiple.
-              </Text>
-              <View style={styles.serviceTypesContainer}>
-                {SERVICE_TYPES.map((service) => {
-                  const isSelected = selectedServiceTypes.includes(service.id);
-                  return (
-                    <TouchableOpacity
-                      key={service.id}
-                      style={[
-                        styles.serviceTypeCard,
-                        { backgroundColor: cardBg, borderColor },
-                        isSelected && { borderColor: primaryColor, backgroundColor: primaryLight },
-                      ]}
-                      onPress={() => toggleServiceType(service.id)}
-                    >
-                      <Text style={styles.serviceEmoji}>{service.emoji}</Text>
-                      <Text
-                        style={[
-                          styles.serviceTypeName,
-                          { color: textSecondary },
-                          isSelected && { color: primaryColor },
-                        ]}
-                      >
-                        {service.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Locations */}
-            <View style={[styles.inputGroup, { zIndex: 10 }]}>
-              <Text style={[styles.label, { color: textColor }]}>
-                Select Locations <Text style={styles.required}>*</Text>
-              </Text>
-              <Text style={[styles.instruction, { color: textSecondary }]}>
-                Add locations for this offer. You can add multiple locations.
-              </Text>
-
-              {/* Selected Locations */}
-              {selectedLocations.length > 0 && (
-                <View style={styles.selectedLocationsContainer}>
-                  {selectedLocations.map((loc, index) => (
-                    <View key={loc.id || `location-${index}`} style={[styles.selectedLocationTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
-                      <Text style={[styles.selectedLocationTagText, { color: primaryColor }]}>
-                        {loc.area || loc.name}
-                      </Text>
+              {/* Service Types */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>
+                  Select Service Types <Text style={styles.required}>*</Text>
+                </Text>
+                <Text style={[styles.instruction, { color: textSecondary }]}>
+                  Choose the services for this offer. You can select multiple.
+                </Text>
+                <View style={styles.serviceTypesContainer}>
+                  {serviceTypes.map((service: ServiceType) => {
+                    const serviceId = service.id.toString();
+                    const isSelected = selectedServiceTypes.includes(serviceId);
+                    return (
                       <TouchableOpacity
-                        onPress={() => handleLocationRemove(loc.id)}
-                        style={styles.removeTagButton}
+                        key={serviceId}
+                        style={[
+                          styles.serviceTypeCard,
+                          { backgroundColor: cardBg, borderColor },
+                          isSelected && { borderColor: primaryColor, backgroundColor: primaryLight },
+                        ]}
+                        onPress={() => toggleServiceType(serviceId)}
                       >
-                        <IconSymbol name="xmark.circle.fill" size={16} color="#EF4444" />
+                        <Text style={styles.serviceEmoji}>{service.emoji || '🔧'}</Text>
+                        <Text
+                          style={[
+                            styles.serviceTypeName,
+                            { color: textSecondary },
+                            isSelected && { color: primaryColor },
+                          ]}
+                        >
+                          {service.name}
+                        </Text>
                       </TouchableOpacity>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
-              )}
+              </View>
 
-              {/* Location Search */}
-              <View style={[styles.locationSearchContainer, { backgroundColor: cardBg, borderColor }]}>
-                <IconSymbol name="magnifyingglass" size={20} color={textMuted} style={styles.searchIcon} />
-                <TextInput
-                  style={[styles.locationInput, { color: textColor }]}
-                  placeholder="Search location..."
-                  placeholderTextColor={textMuted}
-                  value={locationSearch}
-                  onChangeText={setLocationSearch}
-                />
-                {isLoadingLocations && (
-                  <ActivityIndicator size="small" color={primaryColor} style={styles.loader} />
+              {/* Locations */}
+              <View style={[styles.inputGroup, { zIndex: 10 }]}>
+                <Text style={[styles.label, { color: textColor }]}>
+                  Select Locations <Text style={styles.required}>*</Text>
+                </Text>
+                <Text style={[styles.instruction, { color: textSecondary }]}>
+                  Add locations for this offer. You can add multiple locations.
+                </Text>
+
+                {/* Selected Locations */}
+                {selectedLocations.length > 0 && (
+                  <View style={styles.selectedLocationsContainer}>
+                    {selectedLocations.map((loc, index) => (
+                      <View key={loc.id || `location-${index}`} style={[styles.selectedLocationTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
+                        <Text style={[styles.selectedLocationTagText, { color: primaryColor }]}>
+                          {loc.area || loc.name}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => handleLocationRemove(loc.id)}
+                          style={styles.removeTagButton}
+                        >
+                          <IconSymbol name="xmark.circle.fill" size={16} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Location Search */}
+                <View style={[styles.locationSearchContainer, { backgroundColor: cardBg, borderColor }]}>
+                  <IconSymbol name="magnifyingglass" size={20} color={textMuted} style={styles.searchIcon} />
+                  <TextInput
+                    style={[styles.locationInput, { color: textColor }]}
+                    placeholder="Search location..."
+                    placeholderTextColor={textMuted}
+                    value={locationSearch}
+                    onChangeText={setLocationSearch}
+                  />
+                  {isLoadingLocations && (
+                    <ActivityIndicator size="small" color={primaryColor} style={styles.loader} />
+                  )}
+                </View>
+
+                {/* Location Dropdown */}
+                {showLocationDropdown && filteredLocations.length > 0 && (
+                  <View style={[styles.locationDropdown, { backgroundColor: cardBg, borderColor }]}>
+                    <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
+                      {filteredLocations.map((loc, index) => (
+                        <TouchableOpacity
+                          key={loc.id || `filtered-location-${index}`}
+                          style={[styles.locationDropdownItem, { borderBottomColor: borderColor }]}
+                          onPress={() => handleLocationSelect(loc)}
+                        >
+                          <IconSymbol name="mappin.circle.fill" size={20} color={primaryColor} />
+                          <Text style={[styles.locationDropdownText, { color: textColor }]}>
+                            {loc.area || loc.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
                 )}
               </View>
 
-              {/* Location Dropdown */}
-              {showLocationDropdown && filteredLocations.length > 0 && (
-                <View style={[styles.locationDropdown, { backgroundColor: cardBg, borderColor }]}>
-                  <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
-                    {filteredLocations.map((loc, index) => (
-                      <TouchableOpacity
-                        key={loc.id || `filtered-location-${index}`}
-                        style={[styles.locationDropdownItem, { borderBottomColor: borderColor }]}
-                        onPress={() => handleLocationSelect(loc)}
-                      >
-                        <IconSymbol name="mappin.circle.fill" size={20} color={primaryColor} />
-                        <Text style={[styles.locationDropdownText, { color: textColor }]}>
-                          {loc.area || loc.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-
-            {/* Work Type */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>
-                Work Type <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.workTypeContainer}>
-                {WORK_TYPES.map((type) => (
-                  <TouchableOpacity
-                    key={type.id}
-                    style={[
-                      styles.workTypeButton,
-                      { backgroundColor: cardBg, borderColor },
-                      workType === type.id && { borderColor: primaryColor, backgroundColor: primaryLight },
-                    ]}
-                    onPress={() => setWorkType(type.id)}
-                  >
-                    <Text
+              {/* Work Type */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>
+                  Work Type <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={styles.workTypeContainer}>
+                  {WORK_TYPES.map((type) => (
+                    <TouchableOpacity
+                      key={type.id}
                       style={[
-                        styles.workTypeText,
-                        { color: textSecondary },
-                        workType === type.id && { color: primaryColor },
+                        styles.workTypeButton,
+                        { backgroundColor: cardBg, borderColor },
+                        workType === type.id && { borderColor: primaryColor, backgroundColor: primaryLight },
                       ]}
+                      onPress={() => setWorkType(type.id)}
                     >
-                      {type.name}
-                    </Text>
-                    {workType === type.id && (
-                      <IconSymbol name="checkmark.circle.fill" size={20} color={primaryColor} />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.workTypeText,
+                          { color: textSecondary },
+                          workType === type.id && { color: primaryColor },
+                        ]}
+                      >
+                        {type.name}
+                      </Text>
+                      {workType === type.id && (
+                        <IconSymbol name="checkmark.circle.fill" size={20} color={primaryColor} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Monthly Rate */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Monthly Rate (PKR)</Text>
-              <View style={[styles.inputContainer, { backgroundColor: cardBg, borderColor }]}>
-                <Text style={[styles.currencyPrefix, { color: textSecondary }]}>₨</Text>
+              {/* Monthly Rate */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>Monthly Rate (PKR)</Text>
+                <View style={[styles.inputContainer, { backgroundColor: cardBg, borderColor }]}>
+                  <Text style={[styles.currencyPrefix, { color: textSecondary }]}>₨</Text>
+                  <TextInput
+                    style={[styles.inputWithPrefix, { color: textColor }]}
+                    placeholder="e.g., 15000"
+                    placeholderTextColor={textMuted}
+                    value={monthlyRate}
+                    onChangeText={setMonthlyRate}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              {/* Description */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>Description</Text>
                 <TextInput
-                  style={[styles.inputWithPrefix, { color: textColor }]}
-                  placeholder="e.g., 15000"
+                  style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor, color: textColor }]}
+                  placeholder="Describe this service offer..."
                   placeholderTextColor={textMuted}
-                  value={monthlyRate}
-                  onChangeText={setMonthlyRate}
-                  keyboardType="numeric"
+                  multiline
+                  numberOfLines={4}
+                  value={description}
+                  onChangeText={setDescription}
                 />
               </View>
-            </View>
 
-            {/* Description */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor, color: textColor }]}
-                placeholder="Describe this service offer..."
-                placeholderTextColor={textMuted}
-                multiline
-                numberOfLines={4}
-                value={description}
-                onChangeText={setDescription}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.addButton,
-                (selectedServiceTypes.length === 0 || selectedLocations.length === 0) 
-                  ? { 
-                      backgroundColor: borderColor, 
+              <TouchableOpacity
+                style={[
+                  styles.addButton,
+                  (selectedServiceTypes.length === 0 || selectedLocations.length === 0)
+                    ? {
+                      backgroundColor: borderColor,
                       opacity: 0.5,
                       shadowOpacity: 0,
                     }
-                  : { 
+                    : {
                       backgroundColor: primaryColor,
                       shadowColor: primaryColor,
                       shadowOpacity: 0.3,
                     },
-              ]}
-              onPress={handleAddService}
-              disabled={selectedServiceTypes.length === 0 || selectedLocations.length === 0 || isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Text style={[
-                    styles.addButtonText,
-                    (selectedServiceTypes.length === 0 || selectedLocations.length === 0) && { opacity: 0.7 }
-                  ]}>{isEditMode ? 'Update Service' : 'Add Service'}</Text>
-                  <IconSymbol 
-                    name="plus" 
-                    size={20} 
-                    color={(selectedServiceTypes.length === 0 || selectedLocations.length === 0) ? textMuted : "#FFFFFF"} 
-                  />
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+                ]}
+                onPress={handleAddService}
+                disabled={selectedServiceTypes.length === 0 || selectedLocations.length === 0 || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={[
+                      styles.addButtonText,
+                      (selectedServiceTypes.length === 0 || selectedLocations.length === 0) && { opacity: 0.7 }
+                    ]}>{isEditMode ? 'Update Service' : 'Add Service'}</Text>
+                    <IconSymbol
+                      name="plus"
+                      size={20}
+                      color={(selectedServiceTypes.length === 0 || selectedLocations.length === 0) ? textMuted : "#FFFFFF"}
+                    />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           )}
         </ScrollView>
       </SafeAreaView>

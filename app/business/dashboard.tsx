@@ -72,7 +72,7 @@ export default function BusinessDashboardScreen() {
                     bounces={false}
                     alwaysBounceHorizontal={false}
                     alwaysBounceVertical={false}
-                    contentContainerStyle={{ 
+                    contentContainerStyle={{
                         paddingBottom: insets.bottom + 20,
                         width: width,
                         maxWidth: width,
@@ -157,7 +157,7 @@ export default function BusinessDashboardScreen() {
                             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
                                 {activeTab === 'workers' ? 'Recent Workers' : 'Recent Bookings'}
                             </ThemedText>
-                            <TouchableOpacity onPress={() => router.push(activeTab === 'workers' ? '/workers' : '/bookings')}>
+                            <TouchableOpacity onPress={() => router.push(activeTab === 'workers' ? '/workers' : '/profile/bookings')}>
                                 <Text style={[styles.viewAllText, { color: primaryColor }]}>View All</Text>
                             </TouchableOpacity>
                         </View>

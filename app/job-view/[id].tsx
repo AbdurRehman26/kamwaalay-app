@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -31,6 +32,15 @@ interface Job {
   status: string;
   createdAt: string;
   applicants?: string[];
+  applicantsDetails?: {
+    id: string;
+    name: string;
+    role: string;
+    profileImage?: string;
+    phoneNumber?: string;
+    rating?: number;
+    jobsCount?: number;
+  }[];
 }
 
 export default function JobViewScreen() {
@@ -40,7 +50,7 @@ export default function JobViewScreen() {
   const { getJobs, applyToJob } = useApp();
   const insets = useSafeAreaInsets();
   const jobs = getJobs();
-  
+
   const [request, setRequest] = useState<Job | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -70,7 +80,7 @@ export default function JobViewScreen() {
       // If not found locally, fetch from API
       try {
         setIsLoading(true);
-        
+
         // Try job-posts endpoint first
         let response = await apiService.get(
           API_ENDPOINTS.JOB_POSTS.GET,
@@ -91,7 +101,7 @@ export default function JobViewScreen() {
 
         if (response.success && response.data) {
           const jobData = response.data.job_post || response.data.booking || response.data;
-          
+
           const mappedJob: Job = {
             id: jobData.id?.toString() || id,
             userId: jobData.user_id?.toString() || jobData.user?.id?.toString() || '',
@@ -107,6 +117,15 @@ export default function JobViewScreen() {
             applicants: jobData.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
               jobData.applicants ||
               [],
+            applicantsDetails: jobData.job_applications?.map((app: any) => ({
+              id: app.user?.id?.toString() || app.user_id?.toString() || app.applicant_id?.toString(),
+              name: app.user?.name || app.applicant_name || 'Helper',
+              role: app.user?.role || 'Helper',
+              profileImage: app.user?.profile_image,
+              phoneNumber: app.user?.phone_number || app.user?.phone,
+              rating: app.user?.average_rating,
+              jobsCount: app.user?.completed_jobs_count,
+            })) || [],
           };
 
           setRequest(mappedJob);
@@ -289,7 +308,7 @@ export default function JobViewScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
-      
+
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header with Back Button */}
         <View style={styles.header}>
@@ -301,8 +320,8 @@ export default function JobViewScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
-          style={styles.scrollView} 
+        <ScrollView
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         >
@@ -426,23 +445,88 @@ export default function JobViewScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Contact applicants */}
-                {request.applicants && request.applicants.length > 0 ? (
-                  <TouchableOpacity
-                    style={[styles.contactButton, { backgroundColor: primaryColor }]}
-                    onPress={handleContactApplicants}
-                  >
-                    <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
-                    <Text style={styles.contactButtonText}>
-                      Contact Applicant{request.applicants.length > 1 ? 's' : ''}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={[styles.noApplicantsBadge, { backgroundColor: cardBg, borderColor }]}>
-                    <IconSymbol name="person.fill" size={20} color={textMuted} />
-                    <Text style={[styles.noApplicantsText, { color: textMuted }]}>No applicants yet</Text>
-                  </View>
-                )}
+                {/* Applicants List */}
+                <View style={styles.section}>
+                  <Text style={[styles.sectionTitle, { color: textColor, fontSize: 16, marginTop: 16 }]}>
+                    Applicants ({request.applicantsDetails?.length || request.applicants?.length || 0})
+                  </Text>
+
+                  {request.applicantsDetails && request.applicantsDetails.length > 0 ? (
+                    <View style={styles.applicantsList}>
+                      {request.applicantsDetails.map((applicant, index) => (
+                        <View key={applicant.id || index} style={[styles.applicantCard, { backgroundColor: cardBg, borderColor }]}>
+                          <View style={styles.applicantInfo}>
+                            <View style={[styles.applicantAvatar, { backgroundColor: primaryLight }]}>
+                              <Text style={[styles.applicantAvatarText, { color: primaryColor }]}>
+                                {(applicant.name || 'H').charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                            <View>
+                              <Text style={[styles.applicantName, { color: textColor }]}>
+                                {applicant.name || 'Helper'}
+                              </Text>
+                              <View style={styles.applicantMeta}>
+                                <Text style={[styles.applicantRole, { color: textMuted }]}>
+                                  {applicant.role || 'Helper'}
+                                </Text>
+                                {applicant.rating && (
+                                  <>
+                                    <Text style={[styles.metaDot, { color: textMuted }]}>•</Text>
+                                    <IconSymbol name="star.fill" size={12} color="#F59E0B" />
+                                    <Text style={[styles.metaText, { color: textColor }]}>{applicant.rating}</Text>
+                                  </>
+                                )}
+                              </View>
+                            </View>
+                          </View>
+
+                          <View style={styles.applicantActions}>
+                            {applicant.phoneNumber && (
+                              <>
+                                <TouchableOpacity
+                                  style={[styles.actionIconButton, { backgroundColor: '#DCFCE7' }]}
+                                  onPress={() => Linking.openURL(`whatsapp://send?phone=${applicant.phoneNumber}`)}
+                                >
+                                  <IconSymbol name="phone.bubble.fill" size={18} color="#16A34A" />
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                  style={[styles.actionIconButton, { backgroundColor: '#DBEAFE' }]}
+                                  onPress={() => Linking.openURL(`tel:${applicant.phoneNumber}`)}
+                                >
+                                  <IconSymbol name="phone.fill" size={18} color="#2563EB" />
+                                </TouchableOpacity>
+                              </>
+                            )}
+
+                            <TouchableOpacity
+                              style={[styles.actionIconButton, { backgroundColor: primaryLight }]}
+                              onPress={() => router.push(`/chat/${applicant.id}?name=${encodeURIComponent(applicant.name || 'Helper')}`)}
+                            >
+                              <IconSymbol name="bubble.left.fill" size={18} color={primaryColor} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : request.applicants && request.applicants.length > 0 ? (
+                    // Fallback if we only have IDs but no details (shouldn't happen with updated logic, but safe fallback)
+                    <TouchableOpacity
+                      style={[styles.contactButton, { backgroundColor: primaryColor }]}
+                      onPress={handleContactApplicants}
+                    >
+                      <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
+                      <Text style={styles.contactButtonText}>
+                        Contact Applicant{request.applicants.length > 1 ? 's' : ''}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={[styles.noApplicantsBadge, { backgroundColor: cardBg, borderColor }]}>
+                      <IconSymbol name="person.fill" size={20} color={textMuted} />
+                      <Text style={[styles.noApplicantsText, { color: textMuted }]}>No applicants yet</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             )}
 
@@ -798,6 +882,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  applicantsList: {
+    gap: 12,
+    marginTop: 8,
+  },
+  applicantCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  applicantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  applicantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  applicantAvatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  applicantName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  applicantRole: {
+    fontSize: 12,
+  },
+  applicantMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  metaDot: {
+    fontSize: 12,
+  },
+  metaText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  applicantActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
-
-

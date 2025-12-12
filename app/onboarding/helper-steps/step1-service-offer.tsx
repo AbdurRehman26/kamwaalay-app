@@ -35,14 +35,13 @@ interface Step1ServiceOfferProps {
   onNext: () => void;
 }
 
-const SERVICE_TYPES = [
-  { id: 'maid', name: 'Maid', emoji: '🧹' },
-  { id: 'cook', name: 'Cook', emoji: '👨‍🍳' },
-  { id: 'babysitter', name: 'Babysitter', emoji: '👶' },
-  { id: 'caregiver', name: 'Caregiver', emoji: '👩' },
-  { id: 'cleaner', name: 'Cleaner', emoji: '✨' },
-  { id: 'all_rounder', name: 'All Rounder', emoji: '⭐' },
-];
+import { useApp } from '@/contexts/AppContext';
+
+interface ServiceType {
+  id: string | number;
+  name: string;
+  emoji?: string;
+}
 
 const WORK_TYPES = [
   { id: 'full_time', name: 'Full Time' },
@@ -54,11 +53,12 @@ export default function Step1ServiceOffer({
   onChange,
   onNext,
 }: Step1ServiceOfferProps) {
+  const { serviceTypes } = useApp();
   const [locationSearch, setLocationSearch] = useState('');
   const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  
+
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -102,8 +102,8 @@ export default function Step1ServiceOffer({
           locationsData = Array.isArray(response.data.locations.data)
             ? response.data.locations.data
             : Array.isArray(response.data.locations)
-            ? response.data.locations
-            : [];
+              ? response.data.locations
+              : [];
         } else if (Array.isArray(response.data)) {
           locationsData = response.data;
         } else if (response.data.data) {
@@ -190,19 +190,20 @@ export default function Step1ServiceOffer({
               Choose the services for this offer. You can select multiple.
             </ThemedText>
             <View style={styles.serviceTypesContainer}>
-              {SERVICE_TYPES.map((service) => {
-                const isSelected = data.serviceTypes.includes(service.id);
+              {serviceTypes.map((service: ServiceType) => {
+                const serviceId = service.id.toString();
+                const isSelected = data.serviceTypes.includes(serviceId);
                 return (
                   <TouchableOpacity
-                    key={service.id}
+                    key={serviceId}
                     style={[
                       styles.serviceCard,
                       { backgroundColor: cardBg, borderColor },
                       isSelected && { borderColor: primaryColor, backgroundColor: primaryLight },
                     ]}
-                    onPress={() => toggleServiceType(service.id)}
+                    onPress={() => toggleServiceType(serviceId)}
                   >
-                    <Text style={styles.serviceEmoji}>{service.emoji}</Text>
+                    <Text style={styles.serviceEmoji}>{service.emoji || '🔧'}</Text>
                     <Text
                       style={[
                         styles.serviceName,
@@ -345,7 +346,7 @@ export default function Step1ServiceOffer({
             (data.serviceTypes.length === 0 ||
               data.locations.length === 0 ||
               !data.workType) &&
-              { backgroundColor: textMuted, opacity: 0.5 },
+            { backgroundColor: textMuted, opacity: 0.5 },
           ]}
           onPress={handleNext}
           disabled={

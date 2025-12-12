@@ -22,6 +22,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -84,6 +85,10 @@ interface Helper {
   user_type?: string;
   verified?: boolean;
   is_verified?: boolean;
+  gender?: string;
+  religion?: string;
+  age?: number;
+  languages?: string[];
 }
 
 interface Location {
@@ -102,8 +107,11 @@ interface FilterState {
 export default function ExploreScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { getHelpers } = useApp();
+  const { getHelpers, serviceTypes = [] } = useApp();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
+  const themeColors = Colors[isDark ? 'dark' : 'light'];
   const [mainTab, setMainTab] = useState<'helpers' | 'service-providers'>('service-providers');
 
   // Tab-specific search queries
@@ -209,8 +217,14 @@ export default function ExploreScreen() {
   // Get current data source based on main tab
   const currentData = mainTab === 'helpers' ? helpersFromAPI : serviceProviders;
 
-  // Extract unique services from current data
+  // Extract unique services from current data, but prefer using the Master List from AppContext
   const availableServices = useMemo(() => {
+    // If we have master list of services from API (via context), use their names
+    if (serviceTypes && serviceTypes.length > 0) {
+      return serviceTypes.map((s: { name: string }) => s.name).sort();
+    }
+
+    // Fallback to extracting from current loaded data if context is empty
     const serviceSet = new Set<string>();
     currentData.forEach((helper: Helper) => {
       if (helper.services && helper.services.length > 0) {
@@ -223,7 +237,7 @@ export default function ExploreScreen() {
       }
     });
     return Array.from(serviceSet).sort();
-  }, [currentData]);
+  }, [currentData, serviceTypes]);
 
   // Extract unique locations from current data
   const availableLocationsFromHelpers = useMemo(() => {
@@ -612,7 +626,14 @@ export default function ExploreScreen() {
       return (
         <TouchableOpacity
           key={providerId}
-          style={styles.serviceListingCard}
+          style={[
+            styles.helperCard,
+            {
+              backgroundColor: isDark ? '#1E293B' : themeColors.card,
+              borderColor: isDark ? '#334155' : themeColors.border,
+              padding: 16, // Added padding for internal spacing
+            }
+          ]}
           onPress={() => {
             const serviceId = getPrimaryServiceId(item);
             if (serviceId) {
@@ -624,424 +645,470 @@ export default function ExploreScreen() {
           }}
           activeOpacity={0.9}
         >
-          <View style={styles.serviceListingHeader}>
-            <View style={styles.serviceIconContainer}>
-              {item.profile_image ? (
-                <Image source={{ uri: item.profile_image }} style={styles.serviceAvatarImage} />
-              ) : (
-                <Text style={styles.serviceAvatarText}>{providerName.charAt(0).toUpperCase()}</Text>
+          {/* Top Tags: Service Type & Availability */}
+          <View style={{ alignItems: 'flex-start', marginBottom: 16, gap: 8 }}>
+            <View style={{
+              backgroundColor: '#6366F1', // Purple
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20
+            }}>
+              <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>
+                {service || 'Service Provider'}
+              </Text>
+            </View>
+
+            {/* Availability Placeholder - Assuming Full Time for design match or checking data if available */}
+            <View style={{
+              backgroundColor: isDark ? '#334155' : '#F3F4F6',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16
+            }}>
+              <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 12, fontWeight: '500' }}>
+                Full Time
+              </Text>
+            </View>
+          </View>
+
+          {/* Skills Section */}
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+              <IconSymbol name="bolt.fill" size={14} color="#FBBF24" />
+              <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 12, fontWeight: '600', letterSpacing: 1 }}>SKILLS</Text>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {(() => {
+                const srvs = getAllServices(item);
+                return srvs.slice(0, 3).map((s, i) => (
+                  <View key={i} style={{
+                    borderWidth: 1,
+                    borderColor: '#4F46E5', // Indigo border
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    backgroundColor: isDark ? 'rgba(79, 70, 229, 0.1)' : 'transparent'
+                  }}>
+                    <Text style={{ color: isDark ? '#E2E8F0' : '#374151', fontSize: 13, fontWeight: '500' }}>{s}</Text>
+                  </View>
+                ));
+              })()}
+              {getAllServices(item).length > 3 && (
+                <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 13, alignSelf: 'center' }}>
+                  +{getAllServices(item).length - 3} more
+                </Text>
               )}
             </View>
-            <View style={styles.serviceHeaderInfo}>
-              <Text style={styles.serviceListingTitle}>{service}</Text>
-              <Text style={styles.serviceListingProvider}>{providerName}</Text>
+          </View>
+
+          {/* Price */}
+          {price > 0 && (
+            <View style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'baseline' }}>
+              <Text style={{ color: '#22C55E', fontSize: 20, fontWeight: '700' }}>PKR {Math.floor(price).toLocaleString()}.00</Text>
+              <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 14 }}>/month</Text>
             </View>
-            {price > 0 && (
-              <View style={styles.serviceListingPrice}>
-                <Text style={styles.servicePriceText}>₨{Math.floor(price).toLocaleString()}</Text>
-                <Text style={styles.servicePricePeriod}>/mo</Text>
+          )}
+
+          {/* Nested Profile Card */}
+          <View style={{
+            backgroundColor: isDark ? '#334155' : '#F8FAFC',
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12
+          }}>
+            <View style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: isDark ? '#475569' : '#E2E8F0',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              {item.profile_image ? (
+                <Image source={{ uri: item.profile_image }} style={{ width: 48, height: 48 }} />
+              ) : (
+                <Text style={{ fontSize: 18, fontWeight: '600', color: isDark ? '#E2E8F0' : '#475569' }}>
+                  {providerName.charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <View>
+              <Text style={{ color: isDark ? '#F8FAFC' : '#1E293B', fontSize: 16, fontWeight: '600' }}>{providerName}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <IconSymbol name="star.fill" size={12} color="#FBBF24" />
+                <Text style={{ color: isDark ? '#94A3B8' : '#64748B', fontSize: 13 }}>{rating.toFixed(2)}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Location */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+            <IconSymbol name="mappin.and.ellipse" size={16} color="#EF4444" />
+            <Text style={{ color: isDark ? '#E2E8F0' : '#334151', fontSize: 15 }}>
+              {locations.length > 0 ? locations[0] : 'Location N/A'}
+            </Text>
+          </View>
+
+          {/* Description */}
+          <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 15, marginBottom: 16 }}>
+            {bio || 'Complete assistance for your needs.'}
+          </Text>
+
+          {/* Demographics List */}
+          <View style={{ gap: 10, marginBottom: 16 }}>
+            {/* Gender */}
+            {(item.gender || (item.user as any)?.gender) && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <FontAwesome name="user" size={16} color={isDark ? '#64748B' : '#94A3B8'} style={{ width: 20, textAlign: 'center' }} />
+                <Text style={{ color: isDark ? '#E2E8F0' : '#334151', fontSize: 15 }}>{item.gender || (item.user as any)?.gender}</Text>
+              </View>
+            )}
+
+            {/* Religion */}
+            {item.religion && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <FontAwesome name="moon-o" size={16} color={isDark ? '#EAB308' : '#D97706'} style={{ width: 20, textAlign: 'center' }} />
+                <Text style={{ color: isDark ? '#E2E8F0' : '#334151', fontSize: 15 }}>{item.religion}</Text>
+              </View>
+            )}
+
+            {/* Languages */}
+            {(Array.isArray(item.languages) && item.languages.length > 0) && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <MaterialIcons name="chat" size={16} color={isDark ? '#64748B' : '#94A3B8'} />
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {item.languages.slice(0, 3).map((lang: any, idx) => {
+                    const langLabel = typeof lang === 'object' && lang?.name ? lang.name : lang;
+                    return (
+                      <View key={idx} style={{
+                        backgroundColor: isDark ? '#334155' : '#E5E7EB',
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 4
+                      }}>
+                        <Text style={{ color: isDark ? '#E2E8F0' : '#374151', fontSize: 13 }}>{langLabel}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             )}
           </View>
 
-          <View style={styles.serviceListingBody}>
-            <View style={styles.serviceMetaRow}>
-              <View style={styles.serviceMetaItem}>
-                <IconSymbol name="location.fill" size={14} color="#6B7280" />
-                <Text style={styles.serviceMetaText} numberOfLines={1}>
-                  {locations.length > 0 ? locations[0] : 'Location not specified'}
-                  {locations.length > 1 ? ` +${locations.length - 1}` : ''}
-                </Text>
-              </View>
-              {servicesCount > 1 && (
-                <>
-                  <View style={styles.serviceMetaDivider} />
-                  <View style={styles.serviceMetaItem}>
-                    <IconSymbol name="square.stack.3d.up.fill" size={14} color="#6B7280" />
-                    <Text style={styles.serviceMetaText}>
-                      {servicesCount} Services
-                    </Text>
-                  </View>
-                </>
-              )}
-            </View>
-          </View>
-
-          {/* Service Tags */}
-          {(item.service_listings || item.services) && (() => {
-            // Get unique service types
-            const uniqueServices: string[] = [];
-            const seenServices = new Set<string>();
-
-            // Check service_listings first
-            if (item.service_listings && Array.isArray(item.service_listings) && item.service_listings.length > 0) {
-              for (let i = 0; i < item.service_listings.length; i++) {
-                const serviceListing = item.service_listings[i];
-                if (serviceListing.service_type) {
-                  const serviceType = serviceListing.service_type.toLowerCase();
-                  if (!seenServices.has(serviceType)) {
-                    seenServices.add(serviceType);
-                    const serviceName = serviceListing.service_type.charAt(0).toUpperCase() + serviceListing.service_type.slice(1).replace('_', ' ');
-                    uniqueServices.push(serviceName);
-                  }
-                }
+          {/* View Details Link */}
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}
+            onPress={() => {
+              const serviceId = getPrimaryServiceId(item);
+              if (serviceId) {
+                router.push(`/service/${serviceId}`);
+              } else {
+                const profileType = apiRole === 'business' ? 'business' : 'helper';
+                router.push(`/profile/${profileType}/${providerId}` as any);
               }
-            }
+            }}
+          >
+            <Text style={{ color: '#6366F1', fontSize: 15, fontWeight: '600', marginRight: 4 }}>View Details</Text>
+            <IconSymbol name="arrow.right" size={16} color="#6366F1" />
+          </TouchableOpacity>
 
-            // Fallback to services array
-            if (uniqueServices.length === 0 && item.services && Array.isArray(item.services) && item.services.length > 0) {
-              for (let i = 0; i < item.services.length; i++) {
-                const service = item.services[i];
-                if (service.service_type) {
-                  const serviceType = service.service_type.toLowerCase();
-                  if (!seenServices.has(serviceType)) {
-                    seenServices.add(serviceType);
-                    const serviceName = service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ');
-                    uniqueServices.push(serviceName);
-                  }
-                }
-              }
-            }
-
-            return uniqueServices.length > 0 ? (
-              <View style={styles.serviceListingTags}>
-                {uniqueServices.slice(0, 3).map((serviceName, index) => (
-                  <View key={index} style={styles.serviceListingTag}>
-                    <Text style={styles.serviceListingTagText}>{serviceName}</Text>
-                  </View>
-                ))}
-                {uniqueServices.length > 3 && (
-                  <View style={styles.serviceListingTagMore}>
-                    <Text style={styles.serviceListingTagMoreText}>+{uniqueServices.length - 3}</Text>
-                  </View>
-                )}
-              </View>
-            ) : null;
-          })()}
-
-          <View style={styles.serviceListingFooter}>
-            <View style={styles.contactOptionsContainer}>
-              <View style={styles.contactButtonsRow}>
-                <TouchableOpacity
-                  style={styles.contactOptionIconButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleCall(phoneNumber, e);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol name="phone.fill" size={16} color="#10B981" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.contactOptionIconButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleWhatsApp(phoneNumber, e);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <FontAwesome name="whatsapp" size={16} color="#25D366" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.contactOptionIconButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleInAppMessage(providerId, providerName, e);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="message" size={16} color="#6366F1" />
-                </TouchableOpacity>
-              </View>
-            </View>
+          {/* Action Buttons (Floating look) */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 8 }}>
+            {/* Message */}
             <TouchableOpacity
-              style={styles.viewDetailsButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                const serviceId = getPrimaryServiceId(item);
-                if (serviceId) {
-                  router.push(`/service/${serviceId}`);
-                } else {
-                  const profileType = apiRole === 'business' ? 'business' : 'helper';
-                  router.push(`/profile/${profileType}/${providerId}` as any);
-                }
+              style={{
+                width: 56, height: 56, borderRadius: 28,
+                backgroundColor: '#6366F1',
+                alignItems: 'center', justifyContent: 'center',
+                shadowColor: '#6366F1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6
               }}
-              activeOpacity={0.7}
+              onPress={(e) => handleInAppMessage(providerId, providerName, e)}
             >
-              <Text style={styles.viewDetailsText}>View Details</Text>
-              <IconSymbol name="chevron.right" size={16} color={Colors.light.primary} />
+              <MaterialIcons name="message" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {/* Phone */}
+            <TouchableOpacity
+              style={{
+                width: 56, height: 56, borderRadius: 28,
+                backgroundColor: '#22C55E',
+                alignItems: 'center', justifyContent: 'center',
+                shadowColor: '#22C55E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6
+              }}
+              onPress={(e) => handleCall(phoneNumber, e)}
+            >
+              <IconSymbol name="phone.fill" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {/* WhatsApp */}
+            <TouchableOpacity
+              style={{
+                width: 56, height: 56, borderRadius: 28,
+                backgroundColor: '#25D366',
+                alignItems: 'center', justifyContent: 'center',
+                shadowColor: '#25D366', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6
+              }}
+              onPress={(e) => handleWhatsApp(phoneNumber, e)}
+            >
+              <FontAwesome name="whatsapp" size={28} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       );
     }
 
+    // Default design for Helpers
     return (
       <TouchableOpacity
         key={providerId}
-        style={styles.card}
+        style={[
+          styles.helperCard,
+          {
+            backgroundColor: themeColors.card,
+            borderColor: themeColors.border,
+            shadowColor: themeColors.shadow
+          }
+        ]}
         onPress={() => {
           const profileType = apiRole === 'business' ? 'business' : 'helper';
           router.push(`/profile/${profileType}/${providerId}` as any);
         }}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
       >
-        {/* Card Header with Gradient Background */}
-        <View style={styles.cardHeaderWrapper}>
-          <View style={styles.cardHeader}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                {item.profile_image ? (
-                  <Image source={{ uri: item.profile_image }} style={styles.avatarImage} />
-                ) : (
-                  <Text style={styles.avatarText}>{providerName.charAt(0).toUpperCase()}</Text>
-                )}
-              </View>
-              {isVerified && (
-                <View style={styles.verifiedBadge}>
-                  <IconSymbol name="checkmark.seal.fill" size={12} color="#FFFFFF" />
-                </View>
-              )}
+        {/* Header Badges */}
+        <View style={styles.helperCardHeader}>
+          {isVerified ? (
+            <View style={styles.helperCardVerified}>
+              <IconSymbol name="checkmark.seal.fill" size={12} color="#FFFFFF" />
+              <Text style={styles.helperCardVerifiedText}>Verified</Text>
             </View>
-            <View style={styles.cardInfo}>
-              <View style={styles.nameRow}>
-                <ThemedText type="subtitle" style={styles.cardName}>
-                  {providerName}
-                </ThemedText>
-                {experience && (
-                  <View style={styles.experienceBadge}>
-                    <IconSymbol name="clock.fill" size={12} color="#6366F1" />
-                    <Text style={styles.experienceText}>{experience}</Text>
-                  </View>
-                )}
-              </View>
-              {apiRole && (
-                <View style={[styles.roleBadge, apiRole === 'business' && styles.roleBadgeBusiness]}>
-                  <Text style={styles.roleBadgeText}>
-                    {apiRole === 'business' ? 'Business' : 'Helper'}
-                  </Text>
-                </View>
-              )}
+          ) : <View />}
 
-              {/* Price Row */}
-              {price > 0 && (
-                <View style={styles.priceRow}>
-                  <View style={styles.priceBadge}>
-                    <Text style={styles.priceLabelSmall}>Starting from</Text>
-                    <Text style={styles.priceAmount}>₨{Math.floor(price).toLocaleString()}/mo</Text>
-                  </View>
-                </View>
-              )}
+          <View style={[
+            styles.helperCardRating,
+            {
+              backgroundColor: isDark ? '#0F172A' : '#FFFBEB',
+              borderColor: isDark ? '#334155' : '#FEF3C7'
+            }
+          ]}>
+            <IconSymbol name="star.fill" size={12} color="#FCD34D" />
+            <Text style={[
+              styles.helperCardRatingText,
+              { color: isDark ? '#FCD34D' : '#B45309' }
+            ]}>{rating.toFixed(1)}</Text>
+          </View>
+        </View>
+
+        {/* Profile Section */}
+        <View style={styles.helperProfileSection}>
+          <View style={[
+            styles.helperAvatarContainer,
+            {
+              backgroundColor: themeColors.backgroundTertiary,
+              borderColor: themeColors.card
+            }
+          ]}>
+            {item.profile_image ? (
+              <Image source={{ uri: item.profile_image }} style={styles.helperAvatarImage} />
+            ) : (
+              <IconSymbol name="person.fill" size={40} color={themeColors.textSecondary} />
+            )}
+          </View>
+
+          <View style={[
+            styles.helperRoleTag,
+            {
+              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : themeColors.primaryLight,
+              borderColor: isDark ? 'rgba(99, 102, 241, 0.4)' : themeColors.primaryLight
+            }
+          ]}>
+            <Text style={[
+              styles.helperRoleText,
+              { color: isDark ? '#A5B4FC' : themeColors.primary }
+            ]}>{service.toUpperCase()}</Text>
+          </View>
+
+          <Text style={[styles.helperName, { color: themeColors.text }]}>{providerName}</Text>
+
+          <View style={styles.helperLocationRow}>
+            <IconSymbol name="mappin.and.ellipse" size={14} color={themeColors.error} />
+            <View style={[
+              styles.locationBadge,
+              { backgroundColor: themeColors.backgroundTertiary }
+            ]}>
+              <Text style={[styles.helperLocationText, { color: themeColors.textSecondary }]}>
+                {locations.length > 0 ? locations[0] : 'Location N/A'}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Bio Section */}
-        <ThemedText style={styles.cardBio} numberOfLines={2}>
-          {bio}
-        </ThemedText>
-
-        {/* Services Tags for Businesses */}
-        {!isHelper && (item.service_listings || item.services) && (() => {
-          // Get unique service types
-          const uniqueServices: string[] = [];
-          const seenServices = new Set<string>();
-
-          // Check service_listings first (similar to helpers)
-          if (item.service_listings && Array.isArray(item.service_listings) && item.service_listings.length > 0) {
-            for (let i = 0; i < item.service_listings.length; i++) {
-              const serviceListing = item.service_listings[i];
-              if (serviceListing.service_type) {
-                const serviceType = serviceListing.service_type.toLowerCase();
-                if (!seenServices.has(serviceType)) {
-                  seenServices.add(serviceType);
-                  const serviceName = serviceListing.service_type.charAt(0).toUpperCase() + serviceListing.service_type.slice(1).replace('_', ' ');
-                  uniqueServices.push(serviceName);
-                }
-              }
-            }
-          }
-
-          // Fallback to services array
-          if (uniqueServices.length === 0 && item.services && Array.isArray(item.services) && item.services.length > 0) {
-            for (let i = 0; i < item.services.length; i++) {
-              const service = item.services[i];
-              if (service.service_type) {
-                const serviceType = service.service_type.toLowerCase();
-                if (!seenServices.has(serviceType)) {
-                  seenServices.add(serviceType);
-                  const serviceName = service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ');
-                  uniqueServices.push(serviceName);
-                }
-              }
-            }
-          }
-
-          return uniqueServices.length > 0 ? (
-            <View style={styles.cardServicesContainer}>
-              {uniqueServices.slice(0, 2).map((serviceName, index) => (
-                <View key={index} style={styles.cardServiceTag}>
-                  <Text style={styles.cardServiceTagText}>{serviceName}</Text>
-                </View>
-              ))}
-              {uniqueServices.length > 2 && (
-                <View style={styles.cardServiceTagMore}>
-                  <Text style={styles.cardServiceTagMoreText}>+{uniqueServices.length - 2} more</Text>
-                </View>
-              )}
-            </View>
-          ) : null;
-        })()}
-
-        {/* Services Tags for Helpers */}
-        {isHelper && item.service_listings && item.service_listings.length > 0 && (() => {
-          // Get unique service types
-          const uniqueServices: string[] = [];
-          const seenServices = new Set<string>();
-
-          for (let i = 0; i < item.service_listings.length; i++) {
-            const serviceListing = item.service_listings[i];
-            if (serviceListing.service_type) {
-              const serviceType = serviceListing.service_type.toLowerCase();
-              if (!seenServices.has(serviceType)) {
-                seenServices.add(serviceType);
-                const serviceName = serviceListing.service_type.charAt(0).toUpperCase() + serviceListing.service_type.slice(1).replace('_', ' ');
-                uniqueServices.push(serviceName);
-              }
-            }
-          }
-
-          return uniqueServices.length > 0 ? (
-            <View style={styles.cardServicesContainer}>
-              {uniqueServices.slice(0, 2).map((serviceName, index) => (
-                <View key={index} style={styles.cardServiceTag}>
-                  <Text style={styles.cardServiceTagText}>{serviceName}</Text>
-                </View>
-              ))}
-              {uniqueServices.length > 2 && (
-                <View style={styles.cardServiceTagMore}>
-                  <Text style={styles.cardServiceTagMoreText}>+{uniqueServices.length - 2} more</Text>
-                </View>
-              )}
-            </View>
-          ) : null;
-        })()}
-
-        {/* Areas Tags for Helpers - From service_listings location_details */}
-        {isHelper && item.service_listings && item.service_listings.length > 0 && (() => {
-          // Get unique areas
-          const uniqueAreas: string[] = [];
-          const seenAreas = new Set<string>();
-
-          for (let i = 0; i < item.service_listings.length; i++) {
-            const serviceListing = item.service_listings[i];
-            if (serviceListing.location_details && Array.isArray(serviceListing.location_details)) {
-              for (let j = 0; j < serviceListing.location_details.length; j++) {
-                const locationDetail = serviceListing.location_details[j];
-                const area = locationDetail.area || locationDetail.area_name || '';
-                if (area) {
-                  const areaLower = area.toLowerCase().trim();
-                  if (!seenAreas.has(areaLower)) {
-                    seenAreas.add(areaLower);
-                    uniqueAreas.push(area);
-                  }
-                }
-              }
-            }
-          }
-
-          return uniqueAreas.length > 0 ? (
-            <View style={styles.locationTagsContainer}>
-              <IconSymbol name="location.fill" size={14} color="#8B5CF6" />
-              <View style={styles.locationTags}>
-                {uniqueAreas.slice(0, 2).map((area, index) => (
-                  <View key={index} style={styles.locationTag}>
-                    <Text style={styles.locationTagText}>{area}</Text>
-                  </View>
-                ))}
-                {uniqueAreas.length > 2 && (
-                  <View style={styles.locationTagMore}>
-                    <Text style={styles.locationTagMoreText}>+{uniqueAreas.length - 2} more</Text>
-                  </View>
-                )}
+        {/* Demographics & Languages Grid */}
+        <View style={styles.helperDetailsContainer}>
+          {/* Left Column: Demographics */}
+          <View style={styles.helperDemographicsColumn}>
+            {/* Age */}
+            {item.age !== undefined && (
+              <View style={styles.helperDetailRow}>
+                <FontAwesome name="birthday-cake" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
+                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
+                  {item.age} years
+                </Text>
               </View>
-            </View>
-          ) : null;
-        })()}
+            )}
 
-        {/* Location Tags for Businesses */}
-        {!isHelper && locations.length > 0 && (() => {
-          // Get unique locations
-          const uniqueLocations: string[] = [];
-          const seenLocations = new Set<string>();
-
-          for (let i = 0; i < locations.length; i++) {
-            const location = locations[i];
-            if (location) {
-              const locationLower = location.toLowerCase().trim();
-              if (!seenLocations.has(locationLower)) {
-                seenLocations.add(locationLower);
-                uniqueLocations.push(location);
-              }
-            }
-          }
-
-          return uniqueLocations.length > 0 ? (
-            <View style={styles.locationTagsContainer}>
-              <IconSymbol name="location.fill" size={14} color="#8B5CF6" />
-              <View style={styles.locationTags}>
-                {uniqueLocations.slice(0, 2).map((location, index) => (
-                  <View key={index} style={styles.locationTag}>
-                    <Text style={styles.locationTagText}>{location}</Text>
-                  </View>
-                ))}
-                {uniqueLocations.length > 2 && (
-                  <View style={styles.locationTagMore}>
-                    <Text style={styles.locationTagMoreText}>+{uniqueLocations.length - 2} more</Text>
-                  </View>
-                )}
+            {/* Gender */}
+            {(item.gender || (item.user as any)?.gender) && (
+              <View style={styles.helperDetailRow}>
+                <FontAwesome name="user" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
+                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
+                  {item.gender || (item.user as any)?.gender}
+                </Text>
               </View>
-            </View>
-          ) : null;
-        })()}
+            )}
 
-        {/* Footer with Contact Options and Action */}
-        <View style={styles.cardFooter}>
-          <View style={styles.contactOptionsContainer}>
-            <View style={styles.contactButtonsRow}>
-              <TouchableOpacity
-                style={styles.contactOptionIconButton}
-                onPress={(e) => handleCall(phoneNumber, e)}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="phone.fill" size={16} color="#10B981" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.contactOptionIconButton}
-                onPress={(e) => handleWhatsApp(phoneNumber, e)}
-                activeOpacity={0.7}
-              >
-                <FontAwesome name="whatsapp" size={16} color="#25D366" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.contactOptionIconButton}
-                onPress={(e) => handleInAppMessage(providerId, providerName, e)}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="message" size={16} color="#6366F1" />
-              </TouchableOpacity>
-            </View>
+            {/* Religion */}
+            {item.religion && (
+              <View style={styles.helperDetailRow}>
+                <FontAwesome name="moon-o" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
+                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
+                  {item.religion}
+                </Text>
+              </View>
+            )}
+
+            {/* Experience */}
+            {experience ? (
+              <View style={styles.helperDetailRow}>
+                <FontAwesome name="briefcase" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
+                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
+                  {experience}
+                </Text>
+              </View>
+            ) : null}
           </View>
+
+          {/* Right Column: Languages */}
+          <View style={styles.helperLanguagesColumn}>
+            {(Array.isArray(item.languages) && item.languages.length > 0) && (
+              <View>
+                <View style={[styles.helperSectionHeader, { marginBottom: 8 }]}>
+                  <MaterialIcons name="chat" size={14} color={themeColors.textSecondary} />
+                  <Text style={[styles.helperSectionTitle, { color: themeColors.textSecondary, fontSize: 13 }]}>Languages</Text>
+                </View>
+                <View style={styles.languageChipsContainer}>
+                  {item.languages.slice(0, 2).map((lang: any, idx) => {
+                    const langLabel = typeof lang === 'object' && lang?.name ? lang.name : lang;
+                    return (
+                      <View key={idx} style={[
+                        styles.languageChip,
+                        { backgroundColor: themeColors.backgroundSecondary, borderColor: themeColors.border }
+                      ]}>
+                        <Text style={[styles.languageChipText, { color: themeColors.textSecondary }]}>{langLabel}</Text>
+                      </View>
+                    );
+                  })}
+                  {item.languages.length > 2 && (
+                    <View style={[
+                      styles.languageChip,
+                      { backgroundColor: themeColors.backgroundSecondary, borderColor: themeColors.border }
+                    ]}>
+                      <Text style={[styles.languageChipText, { color: themeColors.textSecondary }]}>+{item.languages.length - 2}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Price Row (if available) */}
+        {price > 0 && (
+          <View style={[
+            styles.helperPriceRow,
+            { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5' }
+          ]}>
+            <Text style={{ color: isDark ? '#34D399' : '#059669', fontWeight: '500', fontSize: 13 }}>Monthly Rate</Text>
+            <Text style={[styles.helperPriceText, { color: isDark ? '#34D399' : '#059669' }]}>
+              ₨{Math.floor(price).toLocaleString()}
+            </Text>
+          </View>
+        )}
+
+        {/* Skills / Services Section */}
+        {(() => {
+          const srvs = getAllServices(item);
+          return srvs.length > 0 ? (
+            <View style={styles.helperTagsContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                <IconSymbol name="bolt.fill" size={14} color={isDark ? "#FCD34D" : themeColors.warning} />
+                <Text style={[styles.helperSectionTitle, { color: isDark ? "#FCD34D" : themeColors.warning }]}>Skills</Text>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {srvs.slice(0, 3).map((s, i) => (
+                  <View key={i} style={[
+                    styles.helperTag,
+                    {
+                      backgroundColor: isDark ? 'rgba(99, 102, 241, 0.1)' : themeColors.backgroundSecondary,
+                      borderColor: isDark ? 'rgba(99, 102, 241, 0.2)' : themeColors.border
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.helperTagText,
+                      { color: isDark ? '#C7D2FE' : themeColors.textSecondary }
+                    ]}>{s}</Text>
+                  </View>
+                ))}
+                {srvs.length > 3 && (
+                  <View style={[
+                    styles.helperTag,
+                    {
+                      backgroundColor: isDark ? 'rgba(99, 102, 241, 0.1)' : themeColors.backgroundSecondary,
+                      borderColor: isDark ? 'rgba(99, 102, 241, 0.2)' : themeColors.border
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.helperTagText,
+                      { color: isDark ? '#C7D2FE' : themeColors.textSecondary }
+                    ]}>+{srvs.length - 3}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ) : null;
+        })()}
+
+        {/* Footer Actions */}
+        <View style={[
+          styles.helperFooter,
+          {
+            backgroundColor: themeColors.card,
+            borderTopColor: themeColors.border
+          }
+        ]}>
           <TouchableOpacity
-            style={styles.viewProfileButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              const profileType = apiRole === 'business' ? 'business' : 'helper';
-              router.push(`/profile/${profileType}/${providerId}` as any);
-            }}
+            style={[styles.helperActionButton, { backgroundColor: '#22C55E' }]}
+            onPress={(e) => handleCall(phoneNumber, e)}
           >
-            <Text style={styles.viewProfileButtonText}>View Profile</Text>
-            <IconSymbol name="chevron.right" size={14} color="#FFFFFF" />
+            <IconSymbol name="phone.fill" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.helperActionButton, { backgroundColor: '#22C55E' }]}
+            onPress={(e) => handleWhatsApp(phoneNumber, e)}
+          >
+            <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.helperActionButton, { backgroundColor: '#6366F1' }]}
+            onPress={(e) => handleInAppMessage(providerId, providerName, e)}
+          >
+            <MaterialIcons name="message" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -1051,14 +1118,14 @@ export default function ExploreScreen() {
   // Helper function to get all services for a helper
   const getAllServices = (helper: Helper): string[] => {
     // Check service_listings first (for helpers)
-    if (helper.service_listings && helper.service_listings.length > 0) {
+    if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
       return helper.service_listings.map((s) => {
         const serviceType = s.service_type || '';
         return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
       });
     }
     // Fallback to services
-    if (helper.services && helper.services.length > 0) {
+    if (helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
       return helper.services.map((s) => {
         const serviceType = s.service_type || '';
         return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
@@ -1127,7 +1194,7 @@ export default function ExploreScreen() {
     }
 
     // Fallback to services locations
-    if (locationList.length === 0 && helper.services && helper.services.length > 0) {
+    if (locationList.length === 0 && helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
       helper.services.forEach((service) => {
         if (service.location?.name) {
           addUniqueLocation(service.location.name);
@@ -1247,6 +1314,7 @@ export default function ExploreScreen() {
       services: [],
       locations: [],
       minExperience: null,
+      minRating: null,
     });
     setSelectedFilter('all');
   };
@@ -1258,8 +1326,8 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         horizontal={false}
-        contentContainerStyle={{ width: '100%' }}
         contentContainerStyle={{
+          width: '100%',
           paddingTop: insets.top,
           paddingBottom: insets.bottom + 20
         }}
@@ -1275,21 +1343,27 @@ export default function ExploreScreen() {
           </ThemedText>
           {serviceFilter && (
             <TouchableOpacity
-              style={styles.clearFilterButton}
+              style={[
+                styles.clearFilterButton,
+                { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#EEF2FF' }
+              ]}
               onPress={() => router.push('/(tabs)/explore')}
             >
-              <ThemedText style={styles.clearFilterText}>Clear Filter</ThemedText>
+              <ThemedText style={[
+                styles.clearFilterText,
+                { color: themeColors.primary }
+              ]}>Clear Filter</ThemedText>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={20} color="#999" />
+        <View style={[styles.searchContainer, { backgroundColor: themeColors.backgroundSecondary }]}>
+          <IconSymbol name="magnifyingglass" size={20} color={themeColors.textSecondary} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: themeColors.text }]}
             placeholder={mainTab === 'helpers' ? "Search helpers..." : "Search services..."}
-            placeholderTextColor="#999"
+            placeholderTextColor={themeColors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -1297,9 +1371,9 @@ export default function ExploreScreen() {
             style={styles.filterIconButton}
             onPress={() => setShowFilterModal(true)}
           >
-            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? "#6366F1" : "#999"} />
+            <IconSymbol name="slider.horizontal.3" size={20} color={activeFiltersCount > 0 ? themeColors.primary : themeColors.textSecondary} />
             {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
+              <View style={[styles.filterBadge, { backgroundColor: themeColors.error }]}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
               </View>
             )}
@@ -1307,24 +1381,32 @@ export default function ExploreScreen() {
         </View>
 
         {/* Main Tabs */}
-        <View style={styles.mainTabs}>
+        <View style={[styles.mainTabs, { borderBottomColor: themeColors.border }]}>
           <TouchableOpacity
             style={[styles.mainTabButton, mainTab === 'helpers' && styles.mainTabButtonActive]}
             onPress={() => setMainTab('helpers')}
           >
-            <Text style={[styles.mainTabText, mainTab === 'helpers' && styles.mainTabTextActive]}>
+            <Text style={[
+              styles.mainTabText,
+              { color: isDark ? '#94A3B8' : '#8E8E93' },
+              mainTab === 'helpers' && { color: themeColors.primary, fontWeight: '600' }
+            ]}>
               Helpers
             </Text>
-            {mainTab === 'helpers' && <View style={styles.tabIndicator} />}
+            {mainTab === 'helpers' && <View style={[styles.tabIndicator, { backgroundColor: themeColors.primary }]} />}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.mainTabButton, mainTab === 'service-providers' && styles.mainTabButtonActive]}
             onPress={() => setMainTab('service-providers')}
           >
-            <Text style={[styles.mainTabText, mainTab === 'service-providers' && styles.mainTabTextActive]}>
+            <Text style={[
+              styles.mainTabText,
+              { color: isDark ? '#94A3B8' : '#8E8E93' },
+              mainTab === 'service-providers' && { color: themeColors.primary, fontWeight: '600' }
+            ]}>
               Services
             </Text>
-            {mainTab === 'service-providers' && <View style={styles.tabIndicator} />}
+            {mainTab === 'service-providers' && <View style={[styles.tabIndicator, { backgroundColor: themeColors.primary }]} />}
           </TouchableOpacity>
         </View>
 
@@ -1363,74 +1445,71 @@ export default function ExploreScreen() {
         onRequestClose={() => setShowFilterModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <ThemedText type="title" style={styles.modalTitle}>Filters</ThemedText>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
+              <ThemedText type="title" style={[styles.modalTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Filters</ThemedText>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <IconSymbol name="xmark" size={24} color="#000" />
+                <IconSymbol name="xmark" size={24} color={isDark ? '#F8FAFC' : '#000000'} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               {/* Type/Role Filter */}
-              <View style={styles.filterSection}>
-                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Type</ThemedText>
+              <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
+                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Type</ThemedText>
                 <View style={styles.chipContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.chip,
-                      selectedFilter === 'all' && styles.chipActive
-                    ]}
-                    onPress={() => setSelectedFilter('all')}
-                  >
-                    <Text style={[
-                      styles.chipText,
-                      selectedFilter === 'all' && styles.chipTextActive
-                    ]}>
-                      All
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.chip,
-                      selectedFilter === 'helper' && styles.chipActive
-                    ]}
-                    onPress={() => setSelectedFilter('helper')}
-                  >
-                    <Text style={[
-                      styles.chipText,
-                      selectedFilter === 'helper' && styles.chipTextActive
-                    ]}>
-                      Helpers
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.chip,
-                      selectedFilter === 'business' && styles.chipActive
-                    ]}
-                    onPress={() => setSelectedFilter('business')}
-                  >
-                    <Text style={[
-                      styles.chipText,
-                      selectedFilter === 'business' && styles.chipTextActive
-                    ]}>
-                      Businesses
-                    </Text>
-                  </TouchableOpacity>
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'helper', label: 'Helpers' },
+                    { id: 'business', label: 'Businesses' }
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: selectedFilter === option.id
+                            ? themeColors.primary
+                            : (isDark ? '#334155' : '#F5F5F5'),
+                          borderColor: selectedFilter === option.id
+                            ? themeColors.primary
+                            : (isDark ? '#475569' : '#E0E0E0')
+                        }
+                      ]}
+                      onPress={() => setSelectedFilter(option.id as any)}
+                    >
+                      <Text style={[
+                        styles.chipText,
+                        {
+                          color: selectedFilter === option.id
+                            ? '#FFFFFF'
+                            : (isDark ? '#CBD5E1' : '#666666')
+                        }
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
 
               {/* Services Filter */}
-              <View style={styles.filterSection}>
-                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Services</ThemedText>
+              <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
+                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Services</ThemedText>
                 <View style={styles.chipContainer}>
                   {availableServices.map((service) => (
                     <TouchableOpacity
                       key={service}
                       style={[
                         styles.chip,
-                        filters.services.includes(service) && styles.chipActive
+                        {
+                          backgroundColor: filters.services.includes(service)
+                            ? themeColors.primary
+                            : (isDark ? '#334155' : '#F5F5F5'),
+                          borderColor: filters.services.includes(service)
+                            ? themeColors.primary
+                            : (isDark ? '#475569' : '#E0E0E0')
+                        }
                       ]}
                       onPress={() => {
                         setFilters((prev) => ({
@@ -1443,7 +1522,11 @@ export default function ExploreScreen() {
                     >
                       <Text style={[
                         styles.chipText,
-                        filters.services.includes(service) && styles.chipTextActive
+                        {
+                          color: filters.services.includes(service)
+                            ? '#FFFFFF'
+                            : (isDark ? '#CBD5E1' : '#666666')
+                        }
                       ]}>
                         {service}
                       </Text>
@@ -1453,17 +1536,23 @@ export default function ExploreScreen() {
               </View>
 
               {/* Locations Filter */}
-              <View style={styles.filterSection}>
-                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Locations</ThemedText>
+              <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
+                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Locations</ThemedText>
                 <TextInput
-                  style={styles.locationSearchInput}
+                  style={[
+                    styles.locationSearchInput,
+                    {
+                      backgroundColor: isDark ? '#334155' : '#F5F5F5',
+                      color: isDark ? '#F8FAFC' : '#000000'
+                    }
+                  ]}
                   placeholder="Search locations..."
-                  placeholderTextColor="#999"
+                  placeholderTextColor={isDark ? '#94A3B8' : '#999999'}
                   value={locationSearch}
                   onChangeText={setLocationSearch}
                 />
                 {isLoadingLocations && (
-                  <ActivityIndicator size="small" color="#6366F1" style={styles.loadingIndicator} />
+                  <ActivityIndicator size="small" color={themeColors.primary} style={styles.loadingIndicator} />
                 )}
                 <View style={styles.chipContainer}>
                   {/* Show available locations from helpers */}
@@ -1472,7 +1561,14 @@ export default function ExploreScreen() {
                       key={location}
                       style={[
                         styles.chip,
-                        filters.locations.includes(location) && styles.chipActive
+                        {
+                          backgroundColor: filters.locations.includes(location)
+                            ? themeColors.primary
+                            : (isDark ? '#334155' : '#F5F5F5'),
+                          borderColor: filters.locations.includes(location)
+                            ? themeColors.primary
+                            : (isDark ? '#475569' : '#E0E0E0')
+                        }
                       ]}
                       onPress={() => {
                         setFilters((prev) => ({
@@ -1485,7 +1581,11 @@ export default function ExploreScreen() {
                     >
                       <Text style={[
                         styles.chipText,
-                        filters.locations.includes(location) && styles.chipTextActive
+                        {
+                          color: filters.locations.includes(location)
+                            ? '#FFFFFF'
+                            : (isDark ? '#CBD5E1' : '#666666')
+                        }
                       ]}>
                         {location}
                       </Text>
@@ -1502,7 +1602,14 @@ export default function ExploreScreen() {
                         key={locationKey}
                         style={[
                           styles.chip,
-                          filters.locations.includes(locationDisplayName) && styles.chipActive
+                          {
+                            backgroundColor: filters.locations.includes(locationDisplayName)
+                              ? themeColors.primary
+                              : (isDark ? '#334155' : '#F5F5F5'),
+                            borderColor: filters.locations.includes(locationDisplayName)
+                              ? themeColors.primary
+                              : (isDark ? '#475569' : '#E0E0E0')
+                          }
                         ]}
                         onPress={() => {
                           setFilters((prev) => ({
@@ -1515,7 +1622,11 @@ export default function ExploreScreen() {
                       >
                         <Text style={[
                           styles.chipText,
-                          filters.locations.includes(locationDisplayName) && styles.chipTextActive
+                          {
+                            color: filters.locations.includes(locationDisplayName)
+                              ? '#FFFFFF'
+                              : (isDark ? '#CBD5E1' : '#666666')
+                          }
                         ]}>
                           {locationDisplayName}
                         </Text>
@@ -1526,15 +1637,22 @@ export default function ExploreScreen() {
               </View>
 
               {/* Experience Filter */}
-              <View style={styles.filterSection}>
-                <ThemedText type="subtitle" style={styles.filterSectionTitle}>Minimum Experience (Years)</ThemedText>
+              <View style={[styles.filterSection, { borderBottomColor: 'transparent' }]}>
+                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Minimum Experience (Years)</ThemedText>
                 <View style={styles.experienceContainer}>
                   {[0, 1, 2, 3, 5, 10].map((years) => (
                     <TouchableOpacity
                       key={years}
                       style={[
                         styles.experienceChip,
-                        filters.minExperience === years && styles.experienceChipActive
+                        {
+                          backgroundColor: filters.minExperience === years
+                            ? themeColors.primary
+                            : (isDark ? '#334155' : '#F5F5F5'),
+                          borderColor: filters.minExperience === years
+                            ? themeColors.primary
+                            : (isDark ? '#475569' : '#E0E0E0')
+                        }
                       ]}
                       onPress={() => {
                         setFilters((prev) => ({
@@ -1545,7 +1663,11 @@ export default function ExploreScreen() {
                     >
                       <Text style={[
                         styles.experienceChipText,
-                        filters.minExperience === years && styles.experienceChipTextActive
+                        {
+                          color: filters.minExperience === years
+                            ? '#FFFFFF'
+                            : (isDark ? '#CBD5E1' : '#666666')
+                        }
                       ]}>
                         {years === 0 ? 'Any' : `${years}+`}
                       </Text>
@@ -1556,15 +1678,24 @@ export default function ExploreScreen() {
 
             </ScrollView>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { borderTopColor: isDark ? '#334155' : '#F0F0F0' }]}>
               <TouchableOpacity
-                style={styles.clearFiltersButton}
+                style={[
+                  styles.clearFiltersButton,
+                  { backgroundColor: isDark ? '#334155' : '#F5F5F5' }
+                ]}
                 onPress={clearFilters}
               >
-                <ThemedText style={styles.clearFiltersText}>Clear All</ThemedText>
+                <ThemedText style={[
+                  styles.clearFiltersText,
+                  { color: isDark ? '#CBD5E1' : '#666666' }
+                ]}>Clear All</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.applyFiltersButton}
+                style={[
+                  styles.applyFiltersButton,
+                  { backgroundColor: themeColors.primary }
+                ]}
                 onPress={() => setShowFilterModal(false)}
               >
                 <ThemedText style={styles.applyFiltersText}>Apply Filters</ThemedText>
@@ -1810,7 +1941,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 0,
     marginBottom: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
   },
@@ -1828,10 +1959,8 @@ const styles = StyleSheet.create({
   mainTabText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#8E8E93',
   },
   mainTabTextActive: {
-    color: '#6366F1',
     fontWeight: '600',
   },
   tabIndicator: {
@@ -2134,22 +2263,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '600',
   },
-  helperInfoContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
-  helperInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  helperInfoText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-    flex: 1,
-  },
+
   infoGrid: {
     flexDirection: 'row',
     gap: 12,
@@ -2551,6 +2665,251 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#6366F1',
+  },
+  // New Helper Card Styles
+  helperCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 24,
+    marginBottom: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  helperCardHeader: {
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    zIndex: 1,
+  },
+  helperCardVerified: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    gap: 4,
+  },
+  helperCardVerifiedText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  helperCardRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  helperCardRatingText: {
+    color: '#FCD34D',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  helperProfileSection: {
+    alignItems: 'center',
+    marginTop: -20,
+    marginBottom: 20,
+  },
+  helperAvatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#334155',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderWidth: 4,
+    borderColor: '#1E293B',
+  },
+  helperAvatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  helperRoleTag: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.4)',
+  },
+  helperRoleText: {
+    color: '#A5B4FC',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  helperName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  helperLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 16,
+  },
+  locationBadge: {
+    backgroundColor: '#334155',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  helperLocationText: {
+    color: '#E2E8F0',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  helperInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 24,
+    gap: 16,
+    marginBottom: 24,
+    justifyContent: 'center',
+  },
+  helperInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#334155',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  helperInfoText: {
+    color: '#F1F5F9',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  helperSectionTitle: {
+    color: '#FCD34D',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  helperTagsContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  helperTag: {
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+  },
+  helperTagText: {
+    color: '#C7D2FE',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  helperFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    paddingBottom: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+    backgroundColor: '#1E293B',
+  },
+  helperActionButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  helperAvatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  // New Styles for Helper Card Detail Update
+  helperDetailsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    gap: 16,
+  },
+  helperDemographicsColumn: {
+    flex: 1,
+    gap: 8,
+  },
+  helperLanguagesColumn: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  helperDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  helperDetailText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  helperSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  languageChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  languageChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  languageChipText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  helperPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  helperPriceText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

@@ -62,7 +62,7 @@ if (typeof window !== 'undefined' && typeof window.onerror !== 'undefined') {
       }
       // Call original handler if it exists
       if (originalUnhandledRejection) {
-        return originalUnhandledRejection.call(this, event);
+        return originalUnhandledRejection.call(this as any, event);
       }
     };
   }
@@ -195,14 +195,14 @@ function RootLayoutNav() {
       <Stack.Screen name="terms" options={{ headerShown: false }} />
       <Stack.Screen name="privacy" options={{ headerShown: false }} />
       <Stack.Screen name="about" options={{ headerShown: false }} />
-      <Stack.Screen name="job-posts/create" options={{ headerShown: false }} />
+      <Stack.Screen name="job/create" options={{ headerShown: false }} />
       <Stack.Screen name="job-view/[id]" options={{ headerShown: false }} />
       <Stack.Screen
         name="business/dashboard"
         options={{
           headerShown: true,
           title: 'Business Dashboard',
-          headerBackTitleVisible: false,
+          headerBackTitle: "",
         }}
       />
       <Stack.Screen
@@ -210,7 +210,7 @@ function RootLayoutNav() {
         options={{
           headerShown: true,
           title: 'All Workers',
-          headerBackTitleVisible: false,
+          headerBackTitle: "",
         }}
       />
       <Stack.Screen
@@ -218,7 +218,7 @@ function RootLayoutNav() {
         options={{
           headerShown: true,
           title: 'Add New Worker',
-          headerBackTitleVisible: false,
+          headerBackTitle: "",
         }}
       />
       <Stack.Screen
@@ -226,7 +226,7 @@ function RootLayoutNav() {
         options={{
           headerShown: true,
           title: 'Chat',
-          headerBackTitleVisible: false,
+          headerBackTitle: "",
         }}
       />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

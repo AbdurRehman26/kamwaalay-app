@@ -153,9 +153,6 @@ export default function PhoneLoginScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -166,6 +163,10 @@ export default function PhoneLoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Decorative Background Elements */}
+          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
           <View style={styles.content}>
             {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 40 }]}>
@@ -339,22 +340,16 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    width: 100,
+    height: 100,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
   },
   logoImage: {
-    width: 50,
-    height: 50,
+    width: 200,
+    height: 200,
   },
   welcomeText: {
     fontSize: 28,

@@ -125,10 +125,6 @@ export default function SignupScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -138,6 +134,10 @@ export default function SignupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Decorative Background Elements */}
+          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
           <View style={styles.content}>
             {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>

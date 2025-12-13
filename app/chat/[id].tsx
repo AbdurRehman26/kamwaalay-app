@@ -2,9 +2,10 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -29,7 +30,16 @@ export default function ChatDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [recipientId, setRecipientId] = useState<string | null>(null);
-  const scrollViewRef = React.useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+  const primaryColor = useThemeColor({}, 'primary');
+  const cardBg = useThemeColor({}, 'card'); // For other user's message bubble
+  const borderColor = useThemeColor({}, 'border');
+  const placeholderColor = useThemeColor({}, 'tabIconDefault'); // Using a muted color for placeholder
 
   // Initialize chat
   useEffect(() => {
@@ -120,16 +130,18 @@ export default function ChatDetailScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       title: chatUserName !== 'Loading...' ? chatUserName : 'Chat',
+      headerStyle: { backgroundColor },
+      headerTintColor: textColor,
       headerRight: () => (
         <TouchableOpacity
           onPress={() => { }}
           style={{ marginRight: 16 }}
         >
-          <IconSymbol name="phone.fill" size={24} color="#6366F1" />
+          <IconSymbol name="phone.fill" size={24} color={primaryColor} />
         </TouchableOpacity>
       ),
     });
-  }, [chatUserName, navigation]);
+  }, [chatUserName, navigation, backgroundColor, textColor, primaryColor]);
 
   const handleSend = async () => {
     if (!message.trim() || !recipientId) return;
@@ -214,29 +226,29 @@ export default function ChatDetailScreen() {
                   isMe ? styles.messageMe : styles.messageOther,
                 ]}
               >
-                <Text style={[styles.messageSender, isMe ? styles.messageSenderMe : styles.messageSenderOther]}>
+                <Text style={[styles.messageSender, isMe ? { color: primaryColor, textAlign: 'right' } : { color: textSecondary, textAlign: 'left' }]}>
                   {senderName}
                 </Text>
                 <Text
                   style={[
                     styles.messageText,
-                    isMe ? styles.messageTextMe : styles.messageTextOther,
+                    isMe ? { backgroundColor: primaryColor, color: '#FFFFFF', borderBottomRightRadius: 4 } : { backgroundColor: cardBg, color: textColor, borderBottomLeftRadius: 4 },
                   ]}
                 >
                   {msg.text}
                 </Text>
-                <Text style={styles.messageTime}>{msg.time}</Text>
+                <Text style={[styles.messageTime, { color: textSecondary }]}>{msg.time}</Text>
               </View>
             );
           })}
         </ScrollView>
 
         {/* Input */}
-        <View style={[styles.inputContainer, { paddingBottom: Math.max(16, insets.bottom) }]}>
+        <View style={[styles.inputContainer, { backgroundColor, borderTopColor: borderColor, paddingBottom: Math.max(16, insets.bottom) }]}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: cardBg, borderColor, color: textColor }]}
             placeholder="Type a message..."
-            placeholderTextColor="#999"
+            placeholderTextColor={placeholderColor}
             value={message}
             onChangeText={setMessage}
             multiline
@@ -251,7 +263,7 @@ export default function ChatDetailScreen() {
             <IconSymbol
               name="arrow.up.circle.fill"
               size={32}
-              color={message.trim() ? "#6366F1" : "#CCCCCC"}
+              color={message.trim() ? primaryColor : placeholderColor}
             />
           </TouchableOpacity>
         </View>

@@ -1,0 +1,416 @@
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { apiService } from '@/services/api';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface JobSummary {
+    id: string;
+    serviceName: string;
+    location: string;
+    description: string;
+    budget?: number;
+    workType?: string; // e.g. "Full Time" - might not be in API yet but placeholder
+    specialRequirements?: string;
+}
+
+export default function JobApplyScreen() {
+    const router = useRouter();
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const { user } = useAuth();
+
+    const [job, setJob] = useState<JobSummary | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [message, setMessage] = useState('');
+    const [proposedRate, setProposedRate] = useState('');
+
+    // Theme colors
+    const backgroundColor = useThemeColor({}, 'background');
+    const textColor = useThemeColor({}, 'text');
+    const textSecondary = useThemeColor({}, 'textSecondary');
+    const textMuted = useThemeColor({}, 'textMuted');
+    const primaryColor = useThemeColor({}, 'primary');
+    const primaryLight = useThemeColor({}, 'primaryLight');
+    const cardBg = useThemeColor({}, 'card');
+    const borderColor = useThemeColor({}, 'border');
+    const errorColor = useThemeColor({}, 'error');
+
+    useEffect(() => {
+        const fetchJobDetails = async () => {
+            try {
+                setIsLoading(true);
+                // Reuse the fetching logic pattern from index.tsx roughly
+                let response = await apiService.get(
+                    API_ENDPOINTS.JOB_POSTS.GET,
+                    { id: id as string },
+                    undefined,
+                    true
+                );
+
+                if (!response.success || !response.data) {
+                    response = await apiService.get(
+                        API_ENDPOINTS.BOOKINGS.GET,
+                        { id: id as string },
+                        undefined,
+                        true
+                    );
+                }
+
+                if (response.success && response.data) {
+                    const jobData = response.data.job_post || response.data.booking || response.data;
+                    setJob({
+                        id: jobData.id?.toString() || id,
+                        serviceName: jobData.service_type
+                            ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
+                            : jobData.service_name || 'Service',
+                        location: jobData.area || jobData.location || jobData.location_name || '',
+                        description: jobData.description || '',
+                        budget: jobData.monthly_rate || jobData.budget || jobData.price,
+                        specialRequirements: jobData.special_requirements,
+                        workType: jobData.work_type || 'Full Time', // Fallback/Placeholder
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching job details:', error);
+                Alert.alert('Error', 'Failed to load job details');
+                router.back();
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchJobDetails();
+        }
+    }, [id]);
+
+    const handleSubmit = async () => {
+        if (!message.trim()) {
+            Alert.alert('Required', 'Please enter an application message.');
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+
+            const payload = {
+                message: message,
+                monthly_rate: proposedRate ? parseFloat(proposedRate) : undefined,
+            };
+
+            const response = await apiService.post(
+                `/job-posts/${id}/apply`, // Using the direct path as per user request/docs implication
+                payload
+            );
+
+            if (response.success) {
+                Alert.alert('Success', 'Your application has been submitted!', [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Navigate back to the specific job view page
+                            router.replace(`/job-view/${id}`);
+                        },
+                    },
+                ]);
+            } else {
+                throw new Error(response.message || 'Failed to submit application');
+            }
+        } catch (error: any) {
+            console.error('Application error:', error);
+            Alert.alert('Error', error.message || 'Failed to submit application. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <View style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={primaryColor} />
+            </View>
+        );
+    }
+
+    if (!job) return null;
+
+    return (
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+            <View style={[styles.container, { backgroundColor }]}>
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <TouchableOpacity
+                            style={[styles.backButton, { backgroundColor: cardBg, borderColor }]}
+                            onPress={() => router.back()}
+                        >
+                            <IconSymbol name="xmark" size={20} color={textColor} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: textColor }]}>Apply</Text>
+                        <View style={{ width: 40 }} />
+                    </View>
+
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.content}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {/* Job Details Card */}
+                        <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+                            <View style={styles.cardHeader}>
+                                <IconSymbol name="doc.text.fill" size={20} color={textMuted} />
+                                <Text style={[styles.cardTitle, { color: textColor }]}>Job Details</Text>
+                            </View>
+
+                            <View style={styles.detailsGrid}>
+                                <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
+                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>SERVICE TYPE</Text>
+                                    <Text style={[styles.detailValue, { color: textColor }]}>{job.serviceName}</Text>
+                                </View>
+
+                                <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
+                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>WORK TYPE</Text>
+                                    <Text style={[styles.detailValue, { color: textColor }]}>{job.workType}</Text>
+                                </View>
+
+                                <View style={[styles.detailBox, { backgroundColor: primaryLight, width: '100%' }]}>
+                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>LOCATION</Text>
+                                    <Text style={[styles.detailValue, { color: textColor }]}>{job.location}</Text>
+                                </View>
+                            </View>
+
+                            {job.specialRequirements && (
+                                <View style={[styles.specialReqBox, { backgroundColor: '#F3E8FF' }]}>
+                                    <IconSymbol name="exclamationmark.circle" size={16} color="#7C3AED" />
+                                    <View style={{ marginLeft: 8, flex: 1 }}>
+                                        <Text style={[styles.detailLabel, { color: '#7C3AED', marginBottom: 2 }]}>SPECIAL REQUIREMENTS</Text>
+                                        <Text style={[styles.detailValue, { color: '#4C1D95' }]}>{job.specialRequirements}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Application Form */}
+                        <View style={[styles.card, { backgroundColor: cardBg, borderColor, marginTop: 24 }]}>
+                            <View style={styles.cardHeader}>
+                                <IconSymbol name="pencil.and.outline" size={20} color="#F59E0B" />
+                                <Text style={[styles.cardTitle, { color: textColor }]}>Your Application</Text>
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={[styles.label, { color: textSecondary }]}>
+                                    APPLICATION MESSAGE <Text style={{ color: errorColor }}>*</Text>
+                                </Text>
+                                <TextInput
+                                    style={[styles.textArea, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
+                                    multiline
+                                    numberOfLines={6}
+                                    placeholder="Tell the client why you're perfect for this job. Mention your experience, skills, and availability..."
+                                    placeholderTextColor={textMuted}
+                                    value={message}
+                                    onChangeText={setMessage}
+                                    textAlignVertical="top"
+                                />
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={[styles.label, { color: textSecondary }]}>PROPOSED MONTHLY RATE (PKR) (OPTIONAL)</Text>
+                                <TextInput
+                                    style={[styles.input, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
+                                    placeholder={job.budget ? `e.g., ${job.budget}` : "e.g., 50000"}
+                                    placeholderTextColor={textMuted}
+                                    keyboardType="numeric"
+                                    value={proposedRate}
+                                    onChangeText={setProposedRate}
+                                />
+                            </View>
+                        </View>
+
+                    </ScrollView>
+
+                    {/* Footer Actions */}
+                    <View style={[styles.footer, { backgroundColor: cardBg, borderTopColor: borderColor }]}>
+                        <View style={styles.footerButtons}>
+                            <TouchableOpacity
+                                style={[styles.cancelButton, { backgroundColor: '#F3F4F6' }]}
+                                onPress={() => router.back()}
+                                disabled={isSubmitting}
+                            >
+                                <Text style={[styles.cancelButtonText, { color: textSecondary }]}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.submitButton,
+                                    { backgroundColor: primaryColor, opacity: isSubmitting ? 0.7 : 1 }
+                                ]}
+                                onPress={handleSubmit}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <Text style={styles.submitButtonText}>Submit Application</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                </SafeAreaView >
+            </View >
+        </KeyboardAvoidingView >
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    content: {
+        padding: 20,
+        paddingBottom: 100,
+    },
+    card: {
+        borderRadius: 16,
+        padding: 20,
+        borderWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    cardTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        marginLeft: 12,
+    },
+    detailsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    detailBox: {
+        width: '48%',
+        padding: 12,
+        borderRadius: 12,
+    },
+    specialReqBox: {
+        flexDirection: 'row',
+        marginTop: 12,
+        padding: 12,
+        borderRadius: 12,
+    },
+    detailLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    detailValue: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    formGroup: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    textArea: {
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 16,
+        height: 150,
+        fontSize: 16,
+    },
+    input: {
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 16,
+        fontSize: 16,
+    },
+    footer: {
+        padding: 20,
+        borderTopWidth: 1,
+    },
+    footerButtons: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    cancelButton: {
+        flex: 1,
+        height: 56,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    submitButton: {
+        flex: 2,
+        height: 56,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    submitButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+});

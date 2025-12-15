@@ -1,5 +1,6 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { useApp } from '@/contexts/AppContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
@@ -33,14 +34,12 @@ interface Language {
 
 const { width } = Dimensions.get('window');
 
-const SERVICE_TYPES = [
-    { id: 'maid', label: 'Maid', emoji: '🧹' },
-    { id: 'cook', label: 'Cook', emoji: '👨‍🍳' },
-    { id: 'babysitter', label: 'Babysitter', emoji: '👶' },
-    { id: 'caregiver', label: 'Caregiver', emoji: '👴' },
-    { id: 'cleaner', label: 'Cleaner', emoji: '✨' },
-    { id: 'all_rounder', label: 'All Rounder', emoji: '⭐' },
-];
+interface ServiceType {
+    id: string | number;
+    slug: string;
+    name: string;
+    icon?: string;
+}
 
 const AVAILABILITY_OPTIONS = [
     { value: 'full_time', label: 'Full Time' },
@@ -57,6 +56,7 @@ interface Location {
 export default function AddWorkerScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { serviceTypes } = useApp();
 
     // Theme colors
     const backgroundColor = useThemeColor({}, 'background');
@@ -383,24 +383,27 @@ export default function AddWorkerScreen() {
                         <View style={styles.inputGroup}>
                             <Text style={[styles.label, { color: textColor }]}>Service Types <Text style={styles.required}>*</Text></Text>
                             <View style={styles.serviceGrid}>
-                                {SERVICE_TYPES.map((service) => (
-                                    <TouchableOpacity
-                                        key={service.id}
-                                        style={[
-                                            styles.serviceCard,
-                                            { backgroundColor: cardBg, borderColor },
-                                            selectedServices.includes(service.id) && { borderColor: primaryColor, backgroundColor: primaryLight },
-                                        ]}
-                                        onPress={() => toggleService(service.id)}
-                                    >
-                                        <Text style={styles.serviceEmoji}>{service.emoji}</Text>
-                                        <Text style={[
-                                            styles.serviceLabel,
-                                            { color: textSecondary },
-                                            selectedServices.includes(service.id) && { color: primaryColor }
-                                        ]}>{service.label}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                                {serviceTypes.map((service: any) => {
+                                    const serviceId = service.slug?.toString() || service.id?.toString();
+                                    return (
+                                        <TouchableOpacity
+                                            key={serviceId}
+                                            style={[
+                                                styles.serviceCard,
+                                                { backgroundColor: cardBg, borderColor },
+                                                selectedServices.includes(serviceId) && { borderColor: primaryColor, backgroundColor: primaryLight },
+                                            ]}
+                                            onPress={() => toggleService(serviceId)}
+                                        >
+                                            <Text style={styles.serviceEmoji}>{service.icon || '🛠️'}</Text>
+                                            <Text style={[
+                                                styles.serviceLabel,
+                                                { color: textSecondary },
+                                                selectedServices.includes(serviceId) && { color: primaryColor }
+                                            ]}>{service.name}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
                         </View>
 

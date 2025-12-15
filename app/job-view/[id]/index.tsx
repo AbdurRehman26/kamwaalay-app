@@ -218,28 +218,7 @@ export default function JobViewScreen() {
       return;
     }
 
-    Alert.alert(
-      'Confirm Application',
-      `Are you sure you want to apply for "${request.serviceName}"?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Apply',
-          style: 'default',
-          onPress: async () => {
-            try {
-              await applyToJob(request.id, user.id);
-              Alert.alert('Success', 'You have successfully applied to this job!');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to apply. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+    router.push(`/job-view/${id}/apply`);
   };
 
   const handleContact = () => {
@@ -337,16 +316,6 @@ export default function JobViewScreen() {
       {/* Decorative Background Elements */}
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header with Back Button */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={[styles.backButtonHeader, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.back()}
-          >
-            <IconSymbol name="chevron.left" size={20} color={textColor} />
-          </TouchableOpacity>
-        </View>
-
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -705,19 +674,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  backButtonHeader: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
   },
   scrollView: {
     flex: 1,

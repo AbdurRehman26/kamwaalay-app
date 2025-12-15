@@ -57,6 +57,11 @@ const MAPPING = {
   'person': 'person-outline',
   'mappin.circle.fill': 'location-on',
   'phone': 'phone',
+  'briefcase.fill': 'work',
+  'person.2.fill': 'people',
+  'globe': 'public',
+  'checkmark': 'check',
+  'arrow.right': 'arrow-forward',
 } as IconMapping;
 
 /**

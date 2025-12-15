@@ -110,13 +110,17 @@ export default function ChatDetailScreen() {
       );
 
       if (response.success && response.data?.messages?.data) {
-        const apiMessages = response.data.messages.data.reverse().map((msg: any) => ({
-          id: msg.id.toString(),
-          text: msg.message,
-          sender: msg.sender_id === user?.id ? 'me' : 'other',
-          time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          senderName: msg.sender?.name || 'Unknown',
-        }));
+        // Initial sort: Newest first (from API) -> Reverse to Oldest first
+        // But to be safe, let's explicit sort by created_at
+        const apiMessages = response.data.messages.data
+          .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          .map((msg: any) => ({
+            id: msg.id.toString(),
+            text: msg.message,
+            sender: msg.sender_id?.toString() === user?.id?.toString() ? 'me' : 'other',
+            time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            senderName: msg.sender?.name || 'Unknown',
+          }));
         setMessages(apiMessages);
       }
     } catch (error) {

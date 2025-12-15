@@ -1,6 +1,8 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -19,6 +21,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
+
+const RELIGION_OPTIONS = [
+  { id: 'sunni_nazar_niyaz', label: 'Sunni (Nazar/Niyaz)' },
+  { id: 'sunni_no_nazar_niyaz', label: 'Sunni (No Nazar/Niyaz)' },
+  { id: 'shia', label: 'Shia' },
+  { id: 'christian', label: 'Christian' },
+];
+
+const GENDER_OPTIONS = ['Male', 'Female'];
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -64,6 +75,80 @@ export default function EditProfileScreen() {
     user?.userType === 'business' ? (user?.profileData as any)?.ownerName || '' : ''
   );
 
+  // New Helper Fields
+  const [age, setAge] = useState(
+    user?.userType === 'helper' ? (user?.profileData as any)?.age || '' : ''
+  );
+  const [gender, setGender] = useState(
+    user?.userType === 'helper' ? (user?.profileData as any)?.gender || '' : ''
+  );
+  const [religion, setReligion] = useState(
+    user?.userType === 'helper' ? (user?.profileData as any)?.religion || '' : ''
+  );
+  const [languages, setLanguages] = useState(
+    user?.userType === 'helper'
+      ? Array.isArray((user?.profileData as any)?.languages)
+        ? (user?.profileData as any)?.languages.join(', ')
+        : (user?.profileData as any)?.languages || ''
+      : ''
+  );
+
+  // Language fetching/handling
+  const [availableLanguages, setAvailableLanguages] = useState<any[]>([]);
+  const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+  const [showReligionDropdown, setShowReligionDropdown] = useState(false);
+
+  React.useEffect(() => {
+    if (user?.userType === 'helper') {
+      fetchLanguages();
+    }
+  }, [user?.userType]);
+
+  const fetchLanguages = async () => {
+    try {
+      setIsLoadingLanguages(true);
+      const response = await apiService.get(API_ENDPOINTS.LANGUAGES.LIST, undefined, undefined, false);
+
+      if (response.success && response.data) {
+        let langs: any[] = [];
+        if (Array.isArray(response.data)) {
+          langs = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          langs = response.data.data;
+        } else if (response.data.languages) {
+          langs = Array.isArray(response.data.languages) ? response.data.languages : (response.data.languages.data || []);
+        }
+
+        // Ensure standard format
+        const formattedLangs = langs.map((l: any) => ({
+          id: l.id || l.name,
+          name: l.name || l
+        }));
+
+        setAvailableLanguages(formattedLangs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch languages:', error);
+    } finally {
+      setIsLoadingLanguages(false);
+    }
+  };
+
+  const toggleLanguage = (languageName: string) => {
+    const currentLanguages = languages ? languages.split(',').map((l: string) => l.trim()).filter((l: string) => l) : [];
+
+    let updatedLanguages: string[];
+    if (currentLanguages.includes(languageName)) {
+      updatedLanguages = currentLanguages.filter((l: string) => l !== languageName);
+    } else {
+      updatedLanguages = [...currentLanguages, languageName];
+    }
+
+    setLanguages(updatedLanguages.join(', '));
+  };
+
   const handleSave = async () => {
     const finalName = user?.userType === 'business' ? ownerName : name;
     if (!finalName.trim()) {
@@ -89,6 +174,10 @@ export default function EditProfileScreen() {
           name: finalName.trim(),
           bio: bio.trim() || undefined,
           experience: experience.trim() || undefined,
+          age: age.trim() || undefined,
+          gender: gender || undefined,
+          religion: religion || undefined,
+          languages: languages ? languages.split(',').map((l: string) => l.trim()).filter((l: string) => l) : [],
         };
       } else if (user?.userType === 'business' && user.profileData) {
         updatedUser.profileData = {
@@ -147,7 +236,7 @@ export default function EditProfileScreen() {
           bounces={false}
           alwaysBounceHorizontal={false}
           alwaysBounceVertical={false}
-          contentContainerStyle={{ 
+          contentContainerStyle={{
             paddingBottom: insets.bottom + 40,
             width: width,
             maxWidth: width,
@@ -247,6 +336,144 @@ export default function EditProfileScreen() {
               <>
                 <View style={[styles.divider, { backgroundColor: borderColor }]} />
                 <Text style={[styles.sectionTitle, { color: textColor }]}>Profile Details</Text>
+
+                {user?.userType === 'helper' && (
+                  <>
+                    {/* Age */}
+                    <View style={styles.inputGroup}>
+                      <Text style={[styles.label, { color: textColor }]}>Age</Text>
+                      <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+                        <IconSymbol name="calendar" size={20} color={iconMuted} style={styles.inputIcon} />
+                        <TextInput
+                          style={[styles.input, { color: textColor }]}
+                          value={age}
+                          onChangeText={setAge}
+                          placeholder="Enter your age"
+                          placeholderTextColor={textMuted}
+                          keyboardType="numeric"
+                          maxLength={3}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Gender */}
+                    <View style={styles.inputGroup}>
+                      <Text style={[styles.label, { color: textColor }]}>Gender</Text>
+                      <TouchableOpacity
+                        style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+                        onPress={() => setShowGenderDropdown(!showGenderDropdown)}
+                      >
+                        <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
+                        <Text style={[styles.input, { color: gender ? textColor : textMuted, paddingVertical: 16 }]}>
+                          {gender || 'Select Gender'}
+                        </Text>
+                        <IconSymbol name="chevron.down" size={20} color={iconMuted} />
+                      </TouchableOpacity>
+                      {showGenderDropdown && (
+                        <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor }]}>
+                          {GENDER_OPTIONS.map((g) => (
+                            <TouchableOpacity
+                              key={g}
+                              style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
+                              onPress={() => {
+                                setGender(g);
+                                setShowGenderDropdown(false);
+                              }}
+                            >
+                              <Text style={[styles.dropdownText, { color: textColor }]}>{g}</Text>
+                              {gender === g && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Religion */}
+                    <View style={styles.inputGroup}>
+                      <Text style={[styles.label, { color: textColor }]}>Religion</Text>
+                      <TouchableOpacity
+                        style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+                        onPress={() => setShowReligionDropdown(!showReligionDropdown)}
+                      >
+                        <IconSymbol name="star.fill" size={20} color={iconMuted} style={styles.inputIcon} />
+                        <Text style={[styles.input, { color: religion ? textColor : textMuted, paddingVertical: 16 }]}>
+                          {RELIGION_OPTIONS.find(r => r.id === religion)?.label || 'Select Religion'}
+                        </Text>
+                        <IconSymbol name="chevron.down" size={20} color={iconMuted} />
+                      </TouchableOpacity>
+                      {showReligionDropdown && (
+                        <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor }]}>
+                          {RELIGION_OPTIONS.map((r) => (
+                            <TouchableOpacity
+                              key={r.id}
+                              style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
+                              onPress={() => {
+                                setReligion(r.id);
+                                setShowReligionDropdown(false);
+                              }}
+                            >
+                              <Text style={[styles.dropdownText, { color: textColor }]}>{r.label}</Text>
+                              {religion === r.id && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Languages */}
+                    <View style={styles.inputGroup}>
+                      <Text style={[styles.label, { color: textColor }]}>Languages</Text>
+
+                      {/* Selected Chips */}
+                      <View style={styles.chipsContainer}>
+                        {languages ? languages.split(',').map((l: string) => l.trim()).filter((l: string) => l).map((lang: string, index: number) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={[styles.chip, { backgroundColor: primaryColor }]}
+                            onPress={() => toggleLanguage(lang)}
+                          >
+                            <Text style={styles.chipText}>{lang} ✕</Text>
+                          </TouchableOpacity>
+                        )) : null}
+                      </View>
+
+                      <TouchableOpacity
+                        style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+                        onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                      >
+                        <IconSymbol name="globe" size={20} color={iconMuted} style={styles.inputIcon} />
+                        <Text style={[styles.input, { color: textMuted, paddingVertical: 16 }]}>
+                          Select Languages
+                        </Text>
+                        <IconSymbol name="chevron.down" size={20} color={iconMuted} />
+                      </TouchableOpacity>
+
+                      {showLanguageDropdown && (
+                        <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor, maxHeight: 200 }]}>
+                          <ScrollView nestedScrollEnabled>
+                            {isLoadingLanguages ? (
+                              <ActivityIndicator size="small" color={primaryColor} style={{ padding: 20 }} />
+                            ) : (
+                              availableLanguages.map((lang: any) => {
+                                const isSelected = languages?.split(',').map((l: string) => l.trim()).includes(lang.name);
+                                return (
+                                  <TouchableOpacity
+                                    key={lang.id}
+                                    style={[styles.dropdownItem, { borderBottomColor: borderColor }, isSelected && { backgroundColor: primaryLight + '40' }]}
+                                    onPress={() => toggleLanguage(lang.name)}
+                                  >
+                                    <Text style={[styles.dropdownText, { color: textColor }]}>{lang.name}</Text>
+                                    {isSelected && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                                  </TouchableOpacity>
+                                );
+                              })
+                            )}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
 
                 <View style={styles.inputGroup}>
                   <Text style={[styles.label, { color: textColor }]}>Bio</Text>
@@ -478,5 +705,38 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 24,
+  },
+  dropdownList: {
+    borderWidth: 1,
+    borderRadius: 12,
+    marginTop: 8,
+    overflow: 'hidden',
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  dropdownText: {
+    fontSize: 16,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  chipText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

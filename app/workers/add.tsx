@@ -19,6 +19,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const RELIGION_OPTIONS = [
+    { id: 'sunni_nazar_niyaz', label: 'Sunni (Nazar/Niyaz)' },
+    { id: 'sunni_no_nazar_niyaz', label: 'Sunni (No Nazar/Niyaz)' },
+    { id: 'shia', label: 'Shia' },
+    { id: 'christian', label: 'Christian' },
+];
+
+interface Language {
+    id: string | number;
+    name: string;
+}
+
 const { width } = Dimensions.get('window');
 
 const SERVICE_TYPES = [
@@ -72,6 +84,14 @@ export default function AddWorkerScreen() {
 
     // Professional Details
     const [experienceYears, setExperienceYears] = useState('');
+    const [age, setAge] = useState('');
+    const [gender, setGender] = useState('');
+    const [religion, setReligion] = useState('');
+    const [languages, setLanguages] = useState<string[]>([]);
+    const [availableLanguages, setAvailableLanguages] = useState<Language[]>([]);
+    const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
+    const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+
     const [availability, setAvailability] = useState('full_time');
     const [showAvailabilityPicker, setShowAvailabilityPicker] = useState(false);
     const [skills, setSkills] = useState('');
@@ -92,6 +112,48 @@ export default function AddWorkerScreen() {
 
         return () => clearTimeout(timeoutId);
     }, [locationSearch]);
+
+    useEffect(() => {
+        fetchLanguages();
+    }, []);
+
+    const fetchLanguages = async () => {
+        try {
+            setIsLoadingLanguages(true);
+            const response = await apiService.get(API_ENDPOINTS.LANGUAGES.LIST, undefined, undefined, false);
+
+            if (response.success && response.data) {
+                let langs: Language[] = [];
+                if (Array.isArray(response.data)) {
+                    langs = response.data;
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    langs = response.data.data;
+                } else if (response.data.languages) {
+                    langs = Array.isArray(response.data.languages) ? response.data.languages : (response.data.languages.data || []);
+                }
+
+                // Ensure standard format
+                const formattedLangs = langs.map((l: any) => ({
+                    id: l.id || l.name,
+                    name: l.name || l
+                }));
+
+                setAvailableLanguages(formattedLangs);
+            }
+        } catch (error) {
+            console.error('Failed to fetch languages:', error);
+        } finally {
+            setIsLoadingLanguages(false);
+        }
+    };
+
+    const toggleLanguage = (languageName: string) => {
+        if (languages.includes(languageName)) {
+            setLanguages(languages.filter(l => l !== languageName));
+        } else {
+            setLanguages([...languages, languageName]);
+        }
+    };
 
     const searchLocations = async (query: string) => {
         setIsSearchingLocations(true);
@@ -176,13 +238,28 @@ export default function AddWorkerScreen() {
             return;
         }
 
-        if (selectedLocations.length === 0) {
-            Alert.alert('Required', 'Please select at least one location');
+        if (!experienceYears.trim()) {
+            Alert.alert('Required', 'Experience is required');
             return;
         }
 
-        if (!experienceYears.trim()) {
-            Alert.alert('Required', 'Experience is required');
+        if (!age.trim()) {
+            Alert.alert('Required', 'Age is required');
+            return;
+        }
+
+        if (!gender) {
+            Alert.alert('Required', 'Gender is required');
+            return;
+        }
+
+        if (!religion) {
+            Alert.alert('Required', 'Religion is required');
+            return;
+        }
+
+        if (languages.length === 0) {
+            Alert.alert('Required', 'Please select at least one language');
             return;
         }
 
@@ -195,15 +272,16 @@ export default function AddWorkerScreen() {
                 service_types: selectedServices,
                 locations: selectedLocations.map(l => ({ id: l.id, name: l.name, area: l.area })),
                 experience_years: parseInt(experienceYears),
+                age: parseInt(age),
+                gender,
+                religion,
+                languages,
                 availability,
                 skills: skills.trim() || null,
                 bio: bio.trim() || null,
             };
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay if needed, though real API call is likely preferred but 'apiService.post' for this might be missing in original file, let's assume 'apiService.post' or similar would exist. 
-            // Original code didn't actually call an API to save, it just logged. I'll keep the log behavior but structure it to be ready for API. 
-            // Wait, looking at the original 'handleSubmit', it just logs 'Worker Data' and alerts success. 
-            // I will maintain that behavior but fix the UI.
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             console.log('Worker Data:', workerData);
 
@@ -216,6 +294,10 @@ export default function AddWorkerScreen() {
                         setSelectedServices([]);
                         setSelectedLocations([]);
                         setExperienceYears('');
+                        setAge('');
+                        setGender('');
+                        setReligion('');
+                        setLanguages([]);
                         setAvailability('full_time');
                         setSkills('');
                         setBio('');
@@ -235,9 +317,6 @@ export default function AddWorkerScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
-            {/* Decorative Background Elements */}
-            <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-            <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -255,6 +334,10 @@ export default function AddWorkerScreen() {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingBottom: insets.bottom + 40, width: width, maxWidth: width }}
                 >
+                    {/* Decorative Background Elements */}
+                    <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+                    <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
                     <View style={styles.formContainer}>
                         {/* Basic Information */}
                         <Text style={[styles.sectionTitle, { color: textColor }]}>Basic Information</Text>
@@ -392,6 +475,142 @@ export default function AddWorkerScreen() {
                                     keyboardType="numeric"
                                 />
                             </View>
+                        </View>
+
+                        {/* Age and Gender Row */}
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                                <Text style={[styles.label, { color: textColor }]}>Age <Text style={styles.required}>*</Text></Text>
+                                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                                    <TextInput
+                                        style={[styles.input, { color: textColor }]}
+                                        placeholder="e.g. 25"
+                                        placeholderTextColor={textMuted}
+                                        value={age}
+                                        onChangeText={setAge}
+                                        keyboardType="numeric"
+                                        maxLength={3}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                                <Text style={[styles.label, { color: textColor }]}>Gender <Text style={styles.required}>*</Text></Text>
+                                <View style={styles.genderContainer}>
+                                    {['Male', 'Female'].map((genderOption) => (
+                                        <TouchableOpacity
+                                            key={genderOption}
+                                            style={[
+                                                styles.genderButton,
+                                                { backgroundColor: cardBg, borderColor },
+                                                gender === genderOption.toLowerCase() && { backgroundColor: primaryColor, borderColor: primaryColor }
+                                            ]}
+                                            onPress={() => setGender(genderOption.toLowerCase())}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.genderText,
+                                                    { color: textSecondary },
+                                                    gender === genderOption.toLowerCase() && { color: '#FFFFFF' }
+                                                ]}
+                                            >
+                                                {genderOption}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Religion */}
+                        <View style={styles.inputGroup}>
+                            <Text style={[styles.label, { color: textColor }]}>Religion <Text style={styles.required}>*</Text></Text>
+                            <View style={styles.religionContainer}>
+                                {RELIGION_OPTIONS.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.id}
+                                        style={[
+                                            styles.religionButton,
+                                            { backgroundColor: cardBg, borderColor },
+                                            religion === option.id && { backgroundColor: primaryColor, borderColor: primaryColor }
+                                        ]}
+                                        onPress={() => setReligion(option.id)}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.religionText,
+                                                { color: textSecondary },
+                                                religion === option.id && { color: '#FFFFFF' }
+                                            ]}
+                                        >
+                                            {option.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Languages */}
+                        <View style={styles.inputGroup}>
+                            <Text style={[styles.label, { color: textColor }]}>Languages <Text style={styles.required}>*</Text></Text>
+
+                            {/* Selected Languages Chips */}
+                            {languages.length > 0 && (
+                                <View style={styles.tagContainer}>
+                                    {languages.map((lang, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={[styles.tag, { backgroundColor: primaryLight, borderColor: primaryColor }]}
+                                            onPress={() => toggleLanguage(lang)}
+                                        >
+                                            <Text style={[styles.tagText, { color: primaryColor }]}>{lang}</Text>
+                                            <IconSymbol name="xmark.circle.fill" size={16} color={primaryColor} />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+
+                            {/* Language Dropdown Selector */}
+                            <TouchableOpacity
+                                style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, justifyContent: 'space-between' }]}
+                                onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                            >
+                                <Text style={[styles.inputText, { color: languages.length > 0 ? textColor : textMuted }]}>
+                                    {languages.length > 0 ? `${languages.length} selected` : 'Select languages'}
+                                </Text>
+                                <IconSymbol name="chevron.down" size={20} color={textMuted} />
+                            </TouchableOpacity>
+
+                            {/* Dropdown Content */}
+                            {showLanguageDropdown && (
+                                <View style={[styles.locationDropdown, { backgroundColor: cardBg, borderColor }]}>
+                                    {isLoadingLanguages ? (
+                                        <View style={{ padding: 20, alignItems: 'center' }}>
+                                            <ActivityIndicator size="small" color={primaryColor} />
+                                        </View>
+                                    ) : (
+                                        <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
+                                            {availableLanguages.map((lang) => {
+                                                const isSelected = languages.includes(lang.name);
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={lang.id}
+                                                        style={[
+                                                            styles.locationDropdownItem,
+                                                            { borderBottomColor: borderColor },
+                                                            isSelected && { backgroundColor: primaryLight }
+                                                        ]}
+                                                        onPress={() => toggleLanguage(lang.name)}
+                                                    >
+                                                        <Text style={[styles.locationDropdownText, { color: textColor }]}>{lang.name}</Text>
+                                                        {isSelected && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </ScrollView>
+                                    )}
+                                </View>
+                            )}
                         </View>
 
                         <View style={[styles.inputGroup, { zIndex: 10 }]}>
@@ -685,5 +904,38 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '700',
+    },
+    row: {
+        flexDirection: 'row',
+        marginBottom: 0,
+    },
+    genderContainer: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    genderButton: {
+        flex: 1,
+        paddingVertical: 14, // Matched input height mostly
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderRadius: 16,
+    },
+    genderText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    religionContainer: {
+        gap: 8,
+    },
+    religionButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    religionText: {
+        fontSize: 15,
+        fontWeight: '500',
     },
 });

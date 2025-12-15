@@ -7,6 +7,7 @@ import { apiService } from '@/services/api';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -41,6 +42,10 @@ interface ServiceType {
   id: string | number;
   name: string;
   emoji?: string;
+  image?: string;
+  icon?: string;
+  icon_url?: string;
+  image_url?: string;
 }
 
 const WORK_TYPES = [
@@ -203,7 +208,8 @@ export default function Step1ServiceOffer({
                     ]}
                     onPress={() => toggleServiceType(serviceId)}
                   >
-                    <Text style={styles.serviceEmoji}>{service.emoji || '🔧'}</Text>
+                    {/* Use API icon/image if available, otherwise fallback to emoji */}
+                      <Text style={styles.serviceEmoji}>{service.icon || '🔧'}</Text>
                     <Text
                       style={[
                         styles.serviceName,
@@ -409,6 +415,11 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   serviceCardSelected: {
+  },
+  serviceImage: {
+    width: 40,
+    height: 40,
+    marginBottom: 8,
   },
   serviceEmoji: {
     fontSize: 32,

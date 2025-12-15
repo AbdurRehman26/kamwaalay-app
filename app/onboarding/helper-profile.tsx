@@ -40,6 +40,10 @@ interface ProfileVerificationData {
 interface CompleteProfileData {
   experience: string;
   bio: string;
+  age: string;
+  gender: string;
+  religion: string;
+  languages: string;
 }
 
 const STEP_LABELS = ['Service Offer', 'Verification', 'Complete Profile'];
@@ -76,6 +80,10 @@ export default function HelperProfileScreen() {
   const [profileData, setProfileData] = useState<CompleteProfileData>({
     experience: '',
     bio: '',
+    age: '',
+    gender: '',
+    religion: '',
+    languages: '',
   });
 
   const handleNext = () => {
@@ -117,6 +125,10 @@ export default function HelperProfileScreen() {
         experience: profileData.experience,
         serviceOfferings,
         locations: serviceOfferData.locations.map((loc) => loc.area || loc.name),
+        age: profileData.age,
+        gender: profileData.gender,
+        religion: profileData.religion,
+        languages: profileData.languages ? profileData.languages.split(',').map(l => l.trim()).filter(l => l) : [],
       };
 
       // Store verification and service offer data in a way that completeOnboarding can access
@@ -127,6 +139,8 @@ export default function HelperProfileScreen() {
       // Navigate to tabs
       router.replace('/(tabs)');
     } catch (error) {
+      console.error('Onboarding error:', error);
+      // Stay on the same screen so user can retry
       Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -178,9 +192,6 @@ export default function HelperProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
       <View style={[styles.content, { paddingTop: insets.top }]}>
         <Stepper

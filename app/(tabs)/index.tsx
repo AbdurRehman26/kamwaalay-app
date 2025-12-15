@@ -387,13 +387,13 @@ export default function HomeScreen() {
     return (
       <View key={request.id} style={styles.cardWrapper}>
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: '#1E293B', borderColor: '#334155', borderWidth: 1 }]}
+          style={[styles.card, { backgroundColor: cardBg, borderColor: borderColor, borderWidth: 1 }]}
           onPress={() => handleCardPress(request.id)}
           activeOpacity={0.9}
         >
           {/* Gradient Header */}
           <LinearGradient
-            colors={['#4f46e5', '#9333ea']}
+            colors={[primaryColor, '#9333ea']} // Keeping purple as brand but using primary for start
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.cardHeaderGradient}
@@ -402,7 +402,7 @@ export default function HomeScreen() {
               <View style={styles.serviceTag}>
                 <Text style={styles.serviceTagText}>{request.serviceName?.toUpperCase()}</Text>
               </View>
-              <View style={[styles.statusTag, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+              <View style={[styles.statusTag, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Text style={[styles.statusTagText, { color: '#FCD34D' }]}>
                   {request.status?.toUpperCase() || 'PENDING'}
                 </Text>
@@ -420,8 +420,8 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <View style={styles.userMeta}>
-                <Text style={styles.userNameText}>{request.userName || 'Unknown User'}</Text>
-                <Text style={styles.postedDateText}>{formatPostedDate(request.createdAt)}</Text>
+                <Text style={[styles.userNameText, { color: textColor }]}>{request.userName || 'Unknown User'}</Text>
+                <Text style={[styles.postedDateText, { color: textSecondary }]}>{formatPostedDate(request.createdAt)}</Text>
               </View>
             </View>
 
@@ -429,9 +429,9 @@ export default function HomeScreen() {
             <View style={styles.detailsContainer}>
               {/* Job Type (Placeholder if not available) */}
               <View style={styles.detailRow}>
-                <IconSymbol name="briefcase.fill" size={18} color="#94A3B8" />
-                <View style={styles.jobTypeTag}>
-                  <Text style={styles.jobTypeText}>Part Time</Text>
+                <IconSymbol name="briefcase.fill" size={18} color={textMuted} />
+                <View style={[styles.jobTypeTag, { backgroundColor: secondaryLight }]}>
+                  <Text style={[styles.jobTypeText, { color: textSecondary }]}>Part Time</Text>
                 </View>
               </View>
 
@@ -439,52 +439,54 @@ export default function HomeScreen() {
               <View style={styles.detailRow}>
                 <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
                 <View>
-                  <Text style={styles.detailMainText}>{request.location || 'Location not specified'}</Text>
-                  <Text style={styles.detailSubText}>House 123, Street 4, Karachi</Text>
+                  <Text style={[styles.detailMainText, { color: textColor }]}>{request.location || 'Location not specified'}</Text>
+                  <Text style={[styles.detailSubText, { color: textSecondary }]}>House 123, Street 4, Karachi</Text>
                 </View>
               </View>
 
               {/* Date */}
               <View style={styles.detailRow}>
                 <IconSymbol name="calendar" size={18} color="#F87171" />
-                <Text style={styles.detailMainText}>{formatDate(request.createdAt)}</Text>
+                <Text style={[styles.detailMainText, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
               </View>
             </View>
 
             {/* Special Requirements Box */}
-            <View style={styles.requirementsBox}>
-              <Text style={styles.requirementsTitle}>SPECIAL REQUIREMENTS</Text>
-              <Text style={styles.requirementsText} numberOfLines={2}>
+            <View style={[styles.requirementsBox, { backgroundColor: backgroundColor, borderColor: borderColor }]}>
+              <Text style={[styles.requirementsTitle, { color: textSecondary }]}>SPECIAL REQUIREMENTS</Text>
+              <Text style={[styles.requirementsText, { color: textMuted }]} numberOfLines={2}>
                 "{request.description || 'No special requirements specified'}"
               </Text>
             </View>
 
             {/* Divider */}
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
             {/* Footer */}
             <View style={styles.cardFooter}>
-              <Text style={styles.applicantsText}>
+              <Text style={[styles.applicantsText, { color: textMuted }]}>
                 {request.applicants?.length || 0} Applicants
               </Text>
 
               {user?.userType === 'user' && request.userId === user?.id ? (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
                   onPress={() => handleContactApplicants(request)}
                 >
-                  <Text style={styles.actionButtonText}>View Applicants</Text>
-                  <IconSymbol name="arrow.right" size={16} color="#818CF8" />
+                  <Text style={[styles.actionButtonText, { color: primaryColor }]}>View Applicants</Text>
+                  <IconSymbol name="arrow.right" size={16} color={primaryColor} />
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
                   onPress={() => isHelperOrBusiness ? handleCardPress(request.id) : null}
                 >
-                  <Text style={styles.actionButtonText}>
-                    {isHelperOrBusiness ? (hasApplied ? 'Applied' : 'Login to Apply') : 'Login to Apply'}
+                  <Text style={[styles.actionButtonText, { color: primaryColor }]}>
+                    {isHelperOrBusiness
+                      ? (hasApplied ? 'Applied' : 'Apply Now')
+                      : (user ? 'Helpers Only' : 'Login to Apply')}
                   </Text>
-                  <IconSymbol name="arrow.right" size={16} color="#818CF8" />
+                  <IconSymbol name="arrow.right" size={16} color={primaryColor} />
                 </TouchableOpacity>
               )}
             </View>
@@ -993,7 +995,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    paddingHorizontal: 24, // Added because index.tsx cards are in a flatlist/view that might not have padding
+    borderRadius: 24,
   },
   card: {
     borderRadius: 24,

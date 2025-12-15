@@ -46,7 +46,6 @@ export const API_ENDPOINTS = {
   // Jobs (for helpers/businesses to browse)
   JOBS: {
     BROWSE: '/bookings/browse', // Browse available job posts (public access)
-    LIST: '/service-requests', // Legacy endpoint
   },
 
   // Job Posts (service requests created by users)
@@ -161,9 +160,8 @@ export const API_ENDPOINTS = {
   },
 
   // Locale
-  LOCALE: {
-    SET: '/locale/:locale',
-    TRANSLATIONS: '/translations/:locale?',
+  LANGUAGES: {
+    LIST: '/languages',
   },
 };
 

@@ -34,8 +34,9 @@ interface Location {
 
 interface ServiceType {
   id: string | number;
+  slug: string;
   name: string;
-  emoji?: string;
+  icon?: string;
 }
 
 export default function AddServiceOfferingScreen() {
@@ -235,6 +236,7 @@ export default function AddServiceOfferingScreen() {
             work_type: workType,
             monthly_rate: monthlyRate ? parseFloat(monthlyRate) : null,
             description: description || null,
+            status: "active",
           },
           { id: id },
           true
@@ -259,11 +261,16 @@ export default function AddServiceOfferingScreen() {
         Alert.alert('Success', isEditMode ? 'Service offering updated successfully' : 'Service offering added successfully', [
           {
             text: 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              // wrapper to ensure navigation works after alert closes
+              setTimeout(() => {
+                router.back();
+              }, 500);
+            },
           },
         ]);
       } else {
-        Alert.alert('Error', response.message || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
+        Alert.alert('Error', response.message || response.error || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
       }
     } catch (error: any) {
       console.error('Error saving service offering:', error);
@@ -322,7 +329,7 @@ export default function AddServiceOfferingScreen() {
                 </Text>
                 <View style={styles.serviceTypesContainer}>
                   {serviceTypes.map((service: ServiceType) => {
-                    const serviceId = service.id.toString();
+                    const serviceId = service.slug.toString();
                     const isSelected = selectedServiceTypes.includes(serviceId);
                     return (
                       <TouchableOpacity
@@ -334,7 +341,7 @@ export default function AddServiceOfferingScreen() {
                         ]}
                         onPress={() => toggleServiceType(serviceId)}
                       >
-                        <Text style={styles.serviceEmoji}>{service.emoji || '🔧'}</Text>
+                        <Text style={styles.serviceEmoji}>{service.icon || '🔧'}</Text>
                         <Text
                           style={[
                             styles.serviceTypeName,

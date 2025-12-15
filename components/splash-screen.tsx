@@ -79,7 +79,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
         >
           <View style={styles.logoCircle}>
             <Image
-              source={require('@/assets/images/icon.png')}
+              source={require('@/assets/images/icon-text.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

@@ -631,7 +631,7 @@ export default function ProfileViewScreen() {
       <ScrollView
         style={[styles.scrollView]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
       >
         {/* Decorative Background Elements */}
         <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
@@ -879,47 +879,49 @@ export default function ProfileViewScreen() {
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      {(() => {
-        const isHelper = type === 'helper';
-        const isBusiness = type === 'business';
-        // Always show contact options
-        const shouldShowContact = true;
+      {
+        (() => {
+          const isHelper = type === 'helper';
+          const isBusiness = type === 'business';
+          // Always show contact options
+          const shouldShowContact = true;
 
-        if (!displayProfile) {
-          return null;
-        }
+          if (!displayProfile) {
+            return null;
+          }
 
-        return (
-          <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor, paddingBottom: insets.bottom + 16 }]}>
-            <View style={styles.bottomActions}>
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB', borderWidth: 1 }]}
-                onPress={() => handleCall(displayProfile.phone_number)}
-              >
-                <IconSymbol name="phone.fill" size={24} color="#374151" />
-                <Text style={[styles.actionBtnText, { color: '#374151' }]}>Call</Text>
-              </TouchableOpacity>
+          return (
+            <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor, paddingBottom: insets.bottom + 16 }]}>
+              <View style={styles.bottomActions}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB', borderWidth: 1 }]}
+                  onPress={() => handleCall(displayProfile.phone_number)}
+                >
+                  <IconSymbol name="phone.fill" size={24} color="#374151" />
+                  <Text style={[styles.actionBtnText, { color: '#374151' }]}>Call</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: '#25D366' }]}
-                onPress={() => handleWhatsApp(displayProfile.phone_number)}
-              >
-                <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
-                <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>WhatsApp</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: '#25D366' }]}
+                  onPress={() => handleWhatsApp(displayProfile.phone_number)}
+                >
+                  <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
+                  <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>WhatsApp</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: primaryColor }]}
-                onPress={() => router.push(`/chat/${displayProfile.id}`)}
-              >
-                <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
-                <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Message</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: primaryColor }]}
+                  onPress={() => router.push(`/chat/${displayProfile.id}`)}
+                >
+                  <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
+                  <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Message</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        );
-      })()}
-    </View>
+          );
+        })()
+      }
+    </View >
   );
 }
 

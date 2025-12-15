@@ -251,7 +251,7 @@ export default function ServiceDetailScreen() {
                 {/* Scrollable Content */}
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: 160 }]}
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Decorative Background Elements */}
@@ -580,7 +580,7 @@ export default function ServiceDetailScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View>
+            </View >
         </>
     );
 }

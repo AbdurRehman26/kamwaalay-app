@@ -85,6 +85,10 @@ export interface HelperProfile {
   locations: string[];
   rating?: number;
   reviews?: number;
+  age?: string;
+  gender?: string;
+  religion?: string;
+  languages?: string[];
 }
 
 export interface BusinessProfile {
@@ -808,6 +812,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           bio: 'bio' in profileData ? profileData.bio : undefined,
           experience_years: 'experience' in profileData && profileData.experience ? parseInt(profileData.experience) || 0 : undefined,
           skills: undefined,
+          age: 'age' in profileData ? profileData.age : undefined,
+          gender: 'gender' in profileData ? profileData.gender : undefined,
+          religion: 'religion' in profileData ? profileData.religion : undefined,
+          languages: 'languages' in profileData ? profileData.languages : undefined,
         };
 
         const response = await apiService.post(endpoint, apiData);
@@ -824,14 +832,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           await saveUser(updatedUser);
         } else {
-          // Fallback to local update
-          const updatedUser = {
-            ...user,
-            profileData,
-            onboardingStatus: 'completed' as OnboardingStatus,
-            name: 'name' in profileData ? profileData.name : profileData.ownerName,
-          };
-          await saveUser(updatedUser);
+          // Throw error if API fails
+          const errorMessage = response.error || response.message || 'Failed to complete helper onboarding';
+          throw new Error(errorMessage);
         }
       } else {
         // For non-helper users (business, user), just update locally
@@ -844,15 +847,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await saveUser(updatedUser);
         return;
       }
-    } catch (error) {
-      // Fallback to local update
-      const updatedUser = {
-        ...user,
-        profileData,
-        onboardingStatus: 'completed' as OnboardingStatus,
-        name: 'name' in profileData ? profileData.name : profileData.ownerName,
-      };
-      await saveUser(updatedUser);
+    } catch (error: any) {
+      // Re-throw error so the UI can handle it
+      throw error;
     }
   };
 

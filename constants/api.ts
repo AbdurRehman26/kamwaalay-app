@@ -124,7 +124,9 @@ export const API_ENDPOINTS = {
   MESSAGES: {
     CONVERSATIONS: '/conversations',
     GET_MESSAGES: '/conversations/:id/messages',
+    DELETE_CONVERSATION: '/conversations/:id',
     SEND: '/messages',
+    DELETE: '/messages/:id',
   },
 
   // Locations

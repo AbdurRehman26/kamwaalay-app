@@ -4,8 +4,8 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -312,343 +312,341 @@ export default function JobViewScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
+    <>
+      <Stack.Screen options={{ title: 'Job Details', headerBackTitle: 'Back' }} />
+      <View style={[styles.container, { backgroundColor }]}>
+        {/* Decorative Background Elements */}
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-        >
-          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+          >
+            <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+            <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
-          <View style={styles.content}>
-            {/* Status Badge */}
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-              <Text style={[styles.statusText, { color: getStatusTextColor(request.status) }]}>
-                {request.status.toUpperCase()}
-              </Text>
-            </View>
-
-            {/* Service Name */}
-            <Text style={[styles.serviceName, { color: textColor }]}>
-              {request.serviceName}
-            </Text>
-
-            {/* User Info (for helpers/businesses) */}
-            {isHelperOrBusiness && (
-              <View style={[styles.userInfoSection, { backgroundColor: cardBg, borderColor }]}>
-                <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
-                  <Text style={[styles.avatarText, { color: primaryColor }]}>
-                    {(request.userName || 'U').charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.userInfoText}>
-                  <Text style={[styles.userLabel, { color: textMuted }]}>Requested by</Text>
-                  <Text style={[styles.userName, { color: textColor }]}>{request.userName || 'Unknown'}</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.messageButton, { backgroundColor: primaryLight }]}
-                  onPress={handleContact}
-                >
-                  <IconSymbol name="bubble.left.fill" size={20} color={primaryColor} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Description */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Description</Text>
-              <Text style={[styles.description, { color: textSecondary }]}>
-                {request.description || 'No description provided.'}
-              </Text>
-            </View>
-
-            {/* Details */}
-            <View style={styles.detailsSection}>
-              <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
-                <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                  <IconSymbol name="location.fill" size={20} color={primaryColor} />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
-                  <Text style={[styles.detailValue, { color: textColor }]}>{request.location}</Text>
-                </View>
+            <View style={styles.content}>
+              {/* Status Badge */}
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
+                <Text style={[styles.statusText, { color: getStatusTextColor(request.status) }]}>
+                  {request.status.toUpperCase()}
+                </Text>
               </View>
 
-              {request.budget && (
-                <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
-                  <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                    <IconSymbol name="dollarsign.circle.fill" size={20} color={primaryColor} />
+              {/* Service Name */}
+              <Text style={[styles.serviceName, { color: textColor }]}>
+                {request.serviceName}
+              </Text>
+
+              {/* User Info (for helpers/businesses) */}
+              {isHelperOrBusiness && (
+                <View style={[styles.userInfoSection, { backgroundColor: cardBg, borderColor }]}>
+                  <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
+                    <Text style={[styles.avatarText, { color: primaryColor }]}>
+                      {(request.userName || 'U').charAt(0).toUpperCase()}
+                    </Text>
                   </View>
-                  <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: textMuted }]}>Budget</Text>
-                    <Text style={[styles.detailValue, { color: textColor }]}>₨{request.budget.toLocaleString()}</Text>
+                  <View style={styles.userInfoText}>
+                    <Text style={[styles.userLabel, { color: textMuted }]}>Requested by</Text>
+                    <Text style={[styles.userName, { color: textColor }]}>{request.userName || 'Unknown'}</Text>
                   </View>
+                  <TouchableOpacity
+                    style={[styles.messageButton, { backgroundColor: primaryLight }]}
+                    onPress={handleContact}
+                  >
+                    <IconSymbol name="bubble.left.fill" size={20} color={primaryColor} />
+                  </TouchableOpacity>
                 </View>
               )}
 
-              <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
-                <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                  <IconSymbol name="calendar" size={20} color={primaryColor} />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: textMuted }]}>Created</Text>
-                  <Text style={[styles.detailValue, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
-                </View>
+              {/* Description */}
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Description</Text>
+                <Text style={[styles.description, { color: textSecondary }]}>
+                  {request.description || 'No description provided.'}
+                </Text>
               </View>
 
-              {request.applicants && request.applicants.length > 0 && (
+              {/* Details */}
+              <View style={styles.detailsSection}>
                 <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
                   <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                    <IconSymbol name="person.2.fill" size={20} color={primaryColor} />
+                    <IconSymbol name="location.fill" size={20} color={primaryColor} />
                   </View>
                   <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: textMuted }]}>Applicants</Text>
-                    <View style={styles.applicantsTagContainer}>
-                      <View style={[styles.applicantsTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
-                        <IconSymbol name="person.2.fill" size={12} color={primaryColor} />
-                        <Text style={[styles.applicantsTagText, { color: primaryColor }]}>
-                          {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
-                        </Text>
+                    <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
+                    <Text style={[styles.detailValue, { color: textColor }]}>{request.location}</Text>
+                  </View>
+                </View>
+
+                {request.budget && (
+                  <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
+                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                      <IconSymbol name="dollarsign.circle.fill" size={20} color={primaryColor} />
+                    </View>
+                    <View style={styles.detailContent}>
+                      <Text style={[styles.detailLabel, { color: textMuted }]}>Budget</Text>
+                      <Text style={[styles.detailValue, { color: textColor }]}>₨{request.budget.toLocaleString()}</Text>
+                    </View>
+                  </View>
+                )}
+
+                <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
+                  <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                    <IconSymbol name="calendar" size={20} color={primaryColor} />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={[styles.detailLabel, { color: textMuted }]}>Created</Text>
+                    <Text style={[styles.detailValue, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
+                  </View>
+                </View>
+
+                {request.applicants && request.applicants.length > 0 && (
+                  <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
+                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                      <IconSymbol name="person.2.fill" size={20} color={primaryColor} />
+                    </View>
+                    <View style={styles.detailContent}>
+                      <Text style={[styles.detailLabel, { color: textMuted }]}>Applicants</Text>
+                      <View style={styles.applicantsTagContainer}>
+                        <View style={[styles.applicantsTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
+                          <IconSymbol name="person.2.fill" size={12} color={primaryColor} />
+                          <Text style={[styles.applicantsTagText, { color: primaryColor }]}>
+                            {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
-              )}
-            </View>
+                )}
+              </View>
 
-            {/* Actions for users (who own the request) */}
-            {isOwner && user?.userType === 'user' && (
-              <View style={styles.actionsSection}>
-                {/* Edit and Delete buttons */}
-                <View style={styles.ownerActions}>
-                  <TouchableOpacity
-                    style={[styles.editButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
-                    onPress={handleEdit}
-                  >
-                    <IconSymbol name="pencil" size={18} color={primaryColor} />
-                    <Text style={[styles.editButtonText, { color: primaryColor }]}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.deleteButton, { backgroundColor: '#FEF2F2', borderColor: errorColor }]}
-                    onPress={handleDelete}
-                  >
-                    <IconSymbol name="trash" size={18} color={errorColor} />
-                    <Text style={[styles.deleteButtonText, { color: errorColor }]}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
+              {/* Actions for users (who own the request) */}
+              {isOwner && user?.userType === 'user' && (
+                <View style={styles.actionsSection}>
+                  {/* Edit and Delete buttons */}
+                  <View style={styles.ownerActions}>
+                    <TouchableOpacity
+                      style={[styles.editButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
+                      onPress={handleEdit}
+                    >
+                      <IconSymbol name="pencil" size={18} color={primaryColor} />
+                      <Text style={[styles.editButtonText, { color: primaryColor }]}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.deleteButton, { backgroundColor: '#FEF2F2', borderColor: errorColor }]}
+                      onPress={handleDelete}
+                    >
+                      <IconSymbol name="trash" size={18} color={errorColor} />
+                      <Text style={[styles.deleteButtonText, { color: errorColor }]}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                {/* Applicants List */}
-                <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: textColor, fontSize: 16, marginTop: 16 }]}>
-                    Applicants ({request.applicantsDetails?.length || request.applicants?.length || 0})
-                  </Text>
-                  {request.applicantsDetails && request.applicantsDetails.length > 0 ? (
-                    <View style={styles.applicantsList}>
-                      {request.applicantsDetails.map((applicant, index) => (
-                        <View key={applicant.id || index} style={[
-                          styles.applicantCardNew,
-                          {
-                            backgroundColor: cardBg,
-                            borderColor: borderColor,
-                            borderWidth: 1,
-                          }
-                        ]}>
-                          {/* Top Section: Profile */}
-                          <View style={styles.cardHeaderNew}>
-                            <View style={styles.avatarContainerNew}>
-                              {applicant.profileImage ? (
-                                <Image source={{ uri: applicant.profileImage }} style={styles.avatarImageNew} />
-                              ) : (
-                                <View style={[styles.avatarPlaceholderNew, { backgroundColor: primaryLight }]}>
-                                  <Text style={[styles.avatarTextNew, { color: primaryColor }]}>{(applicant.name || 'H').charAt(0).toUpperCase()}</Text>
+                  {/* Applicants List */}
+                  <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: textColor, fontSize: 16, marginTop: 16 }]}>
+                      Applicants ({request.applicantsDetails?.length || request.applicants?.length || 0})
+                    </Text>
+                    {request.applicantsDetails && request.applicantsDetails.length > 0 ? (
+                      <View style={styles.applicantsList}>
+                        {request.applicantsDetails.map((applicant: any, index) => (
+                          <View key={applicant.id || index} style={[
+                            styles.applicantCard,
+                            {
+                              backgroundColor: cardBg,
+                              borderColor: borderColor,
+                            }
+                          ]}>
+                            {/* 1. Header Section */}
+                            <View style={styles.cardHeader}>
+                              <View style={styles.avatarSection}>
+                                {applicant.profileImage ? (
+                                  <Image source={{ uri: applicant.profileImage }} style={styles.avatarImage} />
+                                ) : (
+                                  <View style={[styles.avatarPlaceholder, { backgroundColor: primaryLight }]}>
+                                    <Text style={[styles.avatarText, { color: primaryColor }]}>
+                                      {(applicant.name || 'H').charAt(0).toUpperCase()}
+                                    </Text>
+                                  </View>
+                                )}
+                                <View style={styles.verifiedBadge}>
+                                  <IconSymbol name="checkmark.seal.fill" size={14} color="#FFFFFF" />
+                                </View>
+                              </View>
+
+                              <View style={styles.headerInfo}>
+                                <View style={styles.nameRow}>
+                                  <Text style={[styles.cardName, { color: textColor }]}>
+                                    {applicant.name || 'Helper'}
+                                  </Text>
+                                  {applicant.rating !== undefined && (
+                                    <View style={[styles.ratingPill, { backgroundColor: '#FFFBEB' }]}>
+                                      <IconSymbol name="star.fill" size={12} color="#F59E0B" />
+                                      <Text style={styles.ratingText}>{applicant.rating.toFixed(1)}</Text>
+                                    </View>
+                                  )}
+                                </View>
+                                <Text style={[styles.cardRole, { color: textSecondary }]}>
+                                  {applicant.role ? applicant.role.charAt(0).toUpperCase() + applicant.role.slice(1) : 'Professional Helper'}
+                                </Text>
+                              </View>
+                            </View>
+
+                            {/* 2. Key Details Grid */}
+                            <View style={[styles.statsGrid, { backgroundColor: backgroundColor, borderColor: borderColor }]}>
+                              {/* Row 1: Experience & Age */}
+                              <View style={styles.statsRow}>
+                                <View style={styles.statItem}>
+                                  <Text style={[styles.statLabel, { color: textMuted }]}>Experience</Text>
+                                  <Text style={[styles.statValue, { color: textColor }]}>
+                                    {applicant.experience ? `${applicant.experience} Yrs` : 'N/A'}
+                                  </Text>
+                                </View>
+                                <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
+                                <View style={styles.statItem}>
+                                  <Text style={[styles.statLabel, { color: textMuted }]}>Age</Text>
+                                  <Text style={[styles.statValue, { color: textColor }]}>
+                                    {applicant.age ? `${applicant.age} Yrs` : '-'}
+                                  </Text>
+                                </View>
+                              </View>
+
+                              {/* Row 2: Gender & Religion */}
+                              <View style={styles.statsRow}>
+                                <View style={styles.statItem}>
+                                  <Text style={[styles.statLabel, { color: textMuted }]}>Gender</Text>
+                                  <Text style={[styles.statValue, { color: textColor }]}>
+                                    {applicant.gender ? applicant.gender.charAt(0).toUpperCase() + applicant.gender.slice(1) : '-'}
+                                  </Text>
+                                </View>
+                                <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
+                                <View style={styles.statItem}>
+                                  <Text style={[styles.statLabel, { color: textMuted }]}>Religion</Text>
+                                  <Text style={[styles.statValue, { color: textColor }]}>
+                                    {applicant.religion ? applicant.religion : '-'}
+                                  </Text>
+                                </View>
+                              </View>
+                            </View>
+
+                            {/* 3. Location, Languages & Skills */}
+                            <View style={{ marginBottom: 16 }}>
+
+
+                              {(applicant.languages && applicant.languages.length > 0) && (
+                                <View style={styles.skillsSection}>
+                                  {applicant.languages.slice(0, 3).map((lang: any, idx: number) => {
+                                    const langLabel = typeof lang === 'object' && lang?.name ? lang.name : lang;
+                                    return (
+                                      <View key={`lang-${idx}`} style={[styles.skillChip, { backgroundColor: '#F1F5F9' }]}>
+                                        <Text style={[styles.skillText, { color: '#64748B' }]}>{langLabel}</Text>
+                                      </View>
+                                    );
+                                  })}
                                 </View>
                               )}
-                              <View style={styles.verifiedBadgeNew}>
-                                <IconSymbol name="checkmark.seal.fill" size={12} color="#FFFFFF" />
-                              </View>
-                            </View>
 
-                            <Text style={[styles.cardNameNew, { color: textColor }]}>
-                              {applicant.name || 'Helper'}
-                            </Text>
-
-                            <View style={[styles.roleBadgeNew, { backgroundColor: 'rgba(99, 102, 241, 0.2)' }]}>
-                              <Text style={[styles.roleBadgeTextNew, { color: '#818CF8' }]}>
-                                {(applicant.role || 'HELPER').toUpperCase()}
-                              </Text>
-                            </View>
-
-                            <View style={[styles.ratingBadgeNew, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                              <IconSymbol name="star.fill" size={12} color="#FCD34D" />
-                              <Text style={[styles.ratingTextNew, { color: '#FCD34D' }]}>
-                                {applicant.rating ? applicant.rating.toFixed(1) : 'New'}
-                              </Text>
-                              {applicant.jobsCount !== undefined && (
-                                <Text style={[styles.jobsCountTextNew, { color: textMuted }]}>
-                                  • {applicant.jobsCount} Jobs
-                                </Text>
+                              {(applicant.services && applicant.services.length > 0) && (
+                                <View style={styles.skillsSection}>
+                                  {applicant.services.slice(0, 3).map((service: string, idx: number) => (
+                                    <View key={`svc-${idx}`} style={[styles.skillChip, { backgroundColor: primaryLight }]}>
+                                      <Text style={[styles.skillText, { color: primaryColor }]}>{service}</Text>
+                                    </View>
+                                  ))}
+                                </View>
                               )}
                             </View>
 
-                            {applicant.locations && applicant.locations.length > 0 && (
-                              <View style={styles.locationRowNew}>
-                                <IconSymbol name="mappin.and.ellipse" size={14} color="#EF4444" />
-                                <Text style={[styles.locationTextNew, { color: '#94A3B8' }]}>
-                                  {applicant.locations[0]}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
+                            {/* 4. Action Buttons */}
+                            <View style={styles.actionButtonsContainer}>
+                              <TouchableOpacity
+                                style={[styles.viewProfileBtn, { borderColor: primaryColor }]}
+                                onPress={() => router.push(`/profile/helper/${applicant.id}`)}
+                              >
+                                <Text style={[styles.viewProfileText, { color: primaryColor }]}>View Profile</Text>
+                              </TouchableOpacity>
 
-                          {/* Info Grid */}
-                          <View style={styles.infoGridNew}>
-                            {applicant.experience !== undefined && (
-                              <View style={styles.infoItemNew}>
-                                <FontAwesome name="briefcase" size={14} color="#94A3B8" style={styles.infoIconNew} />
-                                <Text style={styles.infoTextNew}>{applicant.experience} Years</Text>
-                              </View>
-                            )}
-                            {applicant.gender && (
-                              <View style={styles.infoItemNew}>
-                                <FontAwesome name="user" size={14} color="#94A3B8" style={styles.infoIconNew} />
-                                <Text style={styles.infoTextNew}>{applicant.gender}</Text>
-                              </View>
-                            )}
-                            {applicant.age !== undefined && (
-                              <View style={styles.infoItemNew}>
-                                <FontAwesome name="birthday-cake" size={14} color="#94A3B8" style={styles.infoIconNew} />
-                                <Text style={styles.infoTextNew}>{applicant.age} Years</Text>
-                              </View>
-                            )}
-                            {applicant.religion && (
-                              <View style={styles.infoItemNew}>
-                                <FontAwesome name="moon-o" size={14} color="#94A3B8" style={styles.infoIconNew} />
-                                <Text style={styles.infoTextNew}>{applicant.religion}</Text>
-                              </View>
-                            )}
-                          </View>
-
-                          {/* Languages */}
-                          {applicant.languages && applicant.languages.length > 0 && (
-                            <View style={styles.sectionNew}>
-                              <View style={styles.sectionHeaderNew}>
-                                <MaterialIcons name="chat" size={14} color="#94A3B8" />
-                                <Text style={styles.sectionTitleNew}>Languages</Text>
-                              </View>
-                              <View style={styles.chipsContainerNew}>
-                                {applicant.languages.slice(0, 3).map((lang: any, idx) => {
-                                  const langLabel = typeof lang === 'object' && lang?.name ? lang.name : lang;
-                                  return (
-                                    <View key={idx} style={[styles.chipNew, { backgroundColor: primaryLight, borderColor: borderColor }]}>
-                                      <Text style={[styles.chipTextNew, { color: primaryColor }]}>{langLabel}</Text>
-                                    </View>
-                                  );
-                                })}
-                              </View>
-                            </View>
-                          )}
-
-                          {/* Services */}
-                          {applicant.services && applicant.services.length > 0 && (
-                            <View style={styles.sectionNew}>
-                              <View style={styles.sectionHeaderNew}>
-                                <IconSymbol name="bolt.fill" size={14} color="#FCD34D" />
-                                <Text style={[styles.sectionTitleNew, { color: '#FCD34D' }]}>Skills</Text>
-                              </View>
-                              <View style={styles.chipsContainerNew}>
-                                {applicant.services.slice(0, 3).map((service, idx) => (
-                                  <View key={idx} style={[styles.chipNew, { backgroundColor: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.2)', borderWidth: 1 }]}>
-                                    <Text style={[styles.chipTextNew, { color: '#C7D2FE' }]}>{service}</Text>
-                                  </View>
-                                ))}
-                              </View>
-                            </View>
-                          )}
-
-                          {/* Action Buttons */}
-                          <View style={styles.actionsRowNew}>
-                            <TouchableOpacity
-                              style={[styles.actionBtnCircle, { backgroundColor: '#6366F1' }]} // Indigo
-                              onPress={() => router.push(`/chat/${applicant.id}?name=${encodeURIComponent(applicant.name || 'Helper')}`)}
-                            >
-                              <MaterialIcons name="message" size={24} color="#FFFFFF" />
-                            </TouchableOpacity>
-
-                            {applicant.phoneNumber && (
-                              <>
+                              <View style={styles.contactActions}>
                                 <TouchableOpacity
-                                  style={[styles.actionBtnCircle, { backgroundColor: '#22C55E' }]} // Green
-                                  onPress={() => Linking.openURL(`tel:${applicant.phoneNumber}`)}
+                                  style={[styles.contactBtn, { backgroundColor: primaryLight }]}
+                                  onPress={() => router.push(`/chat/${applicant.id}?name=${encodeURIComponent(applicant.name || 'Helper')}`)}
                                 >
-                                  <IconSymbol name="phone.fill" size={24} color="#FFFFFF" />
+                                  <IconSymbol name="bubble.left.fill" size={20} color={primaryColor} />
                                 </TouchableOpacity>
 
-                                <TouchableOpacity
-                                  style={[styles.actionBtnCircle, { backgroundColor: '#25D366' }]} // WhatsApp Green
-                                  onPress={() => Linking.openURL(`whatsapp://send?phone=${applicant.phoneNumber}`)}
-                                >
-                                  <FontAwesome name="whatsapp" size={28} color="#FFFFFF" />
-                                </TouchableOpacity>
-                              </>
-                            )}
+                                {applicant.phoneNumber && (
+                                  <>
+                                    <TouchableOpacity
+                                      style={[styles.contactBtn, { backgroundColor: '#DCFCE7' }]}
+                                      onPress={() => Linking.openURL(`whatsapp://send?phone=${applicant.phoneNumber}`)}
+                                    >
+                                      <FontAwesome name="whatsapp" size={22} color="#16A34A" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                      style={[styles.contactBtn, { backgroundColor: '#E0E7FF' }]}
+                                      onPress={() => Linking.openURL(`tel:${applicant.phoneNumber}`)}
+                                    >
+                                      <IconSymbol name="phone.fill" size={20} color="#4F46E5" />
+                                    </TouchableOpacity>
+                                  </>
+                                )}
+                              </View>
+                            </View>
                           </View>
-                        </View>
-                      ))}
-                    </View>
-                  ) : request.applicants && request.applicants.length > 0 ? (
-                    // Fallback if we only have IDs but no details (shouldn't happen with updated logic, but safe fallback)
+                        ))}
+                      </View>
+                    ) : request.applicants && request.applicants.length > 0 ? (
+                      // Fallback if we only have IDs but no details (shouldn't happen with updated logic, but safe fallback)
+                      <TouchableOpacity
+                        style={[styles.contactButton, { backgroundColor: primaryColor }]}
+                        onPress={handleContactApplicants}
+                      >
+                        <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
+                        <Text style={styles.contactButtonText}>
+                          Contact Applicant{request.applicants.length > 1 ? 's' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={[styles.noApplicantsBadge, { backgroundColor: cardBg, borderColor }]}>
+                        <IconSymbol name="person.fill" size={20} color={textMuted} />
+                        <Text style={[styles.noApplicantsText, { color: textMuted }]}>No applicants yet</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Actions for helpers/businesses */}
+              {isHelperOrBusiness && !isOwner && (
+                <View style={styles.actionsSection}>
+                  {isOpen && !hasApplied && (
                     <TouchableOpacity
-                      style={[styles.contactButton, { backgroundColor: primaryColor }]}
-                      onPress={handleContactApplicants}
+                      style={[styles.applyButton, { backgroundColor: primaryColor }]}
+                      onPress={handleApply}
                     >
-                      <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
-                      <Text style={styles.contactButtonText}>
-                        Contact Applicant{request.applicants.length > 1 ? 's' : ''}
-                      </Text>
+                      <Text style={styles.applyButtonText}>Apply Now</Text>
+                      <IconSymbol name="arrow.right" size={20} color="#FFFFFF" />
                     </TouchableOpacity>
-                  ) : (
-                    <View style={[styles.noApplicantsBadge, { backgroundColor: cardBg, borderColor }]}>
-                      <IconSymbol name="person.fill" size={20} color={textMuted} />
-                      <Text style={[styles.noApplicantsText, { color: textMuted }]}>No applicants yet</Text>
+                  )}
+                  {hasApplied && (
+                    <View style={[styles.appliedBadge, { backgroundColor: '#F0FDF4', borderColor: successColor }]}>
+                      <IconSymbol name="checkmark.circle.fill" size={24} color={successColor} />
+                      <Text style={[styles.appliedText, { color: successColor }]}>Application Sent</Text>
+                    </View>
+                  )}
+                  {!isOpen && !hasApplied && (
+                    <View style={[styles.closedBadge, { backgroundColor: cardBg, borderColor }]}>
+                      <Text style={[styles.closedText, { color: textMuted }]}>This job post is closed</Text>
                     </View>
                   )}
                 </View>
-              </View>
-            )}
-
-            {/* Actions for helpers/businesses */}
-            {isHelperOrBusiness && !isOwner && (
-              <View style={styles.actionsSection}>
-                {isOpen && !hasApplied && (
-                  <TouchableOpacity
-                    style={[styles.applyButton, { backgroundColor: primaryColor }]}
-                    onPress={handleApply}
-                  >
-                    <Text style={styles.applyButtonText}>Apply Now</Text>
-                    <IconSymbol name="arrow.right" size={20} color="#FFFFFF" />
-                  </TouchableOpacity>
-                )}
-                {hasApplied && (
-                  <View style={[styles.appliedBadge, { backgroundColor: '#F0FDF4', borderColor: successColor }]}>
-                    <IconSymbol name="checkmark.circle.fill" size={24} color={successColor} />
-                    <Text style={[styles.appliedText, { color: successColor }]}>Application Sent</Text>
-                  </View>
-                )}
-                {!isOpen && !hasApplied && (
-                  <View style={[styles.closedBadge, { backgroundColor: cardBg, borderColor }]}>
-                    <Text style={[styles.closedText, { color: textMuted }]}>This job post is closed</Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+              )}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    </>
   );
 }
 
@@ -992,194 +990,149 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  applicantRole: {
-    fontSize: 12,
-  },
-  applicantMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  metaDot: {
-    fontSize: 12,
-  },
-  metaText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  applicantActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  applicantCardNew: {
-    borderRadius: 24,
-    padding: 20,
+  applicantCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
     marginBottom: 20,
-    gap: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  cardHeaderNew: {
+  cardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 16,
+    gap: 16,
   },
-  avatarContainerNew: {
-    width: 80,
-    height: 80,
-    marginBottom: 12,
+  avatarSection: {
     position: 'relative',
   },
-  avatarImageNew: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
-  avatarPlaceholderNew: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
-  avatarTextNew: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#818CF8',
-  },
-  verifiedBadgeNew: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#10B981',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardNameNew: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  roleBadgeNew: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 100,
-    marginBottom: 12,
-  },
-  roleBadgeTextNew: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  ratingBadgeNew: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  ratingTextNew: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  jobsCountTextNew: {
-    fontSize: 12,
-  },
-  locationRowNew: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  locationTextNew: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  infoGridNew: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'center',
-  },
-  infoItemNew: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#334155', // Slate 700
-    borderRadius: 8,
-  },
-  infoIconNew: {
-    width: 16,
-    textAlign: 'center',
-  },
-  infoTextNew: {
-    fontSize: 13,
-    color: '#E2E8F0',
-    fontWeight: '500',
-  },
-  sectionNew: {
-    gap: 8,
-  },
-  sectionHeaderNew: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sectionTitleNew: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  chipsContainerNew: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chipNew: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  chipTextNew: {
-    fontSize: 13,
-    color: '#E2E8F0',
-    fontWeight: '500',
-  },
-  actionsRowNew: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 8,
-  },
-  actionBtnCircle: {
+  avatarPlaceholder: {
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  cardName: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  cardRole: {
+    fontSize: 14,
+  },
+  statsGrid: {
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 12,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 24,
+  },
+  statLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  skillsSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  skillChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  skillText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  viewProfileBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  viewProfileText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  contactActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  contactBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

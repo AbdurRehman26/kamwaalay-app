@@ -62,6 +62,10 @@ const MAPPING = {
   'globe': 'public',
   'checkmark': 'check',
   'arrow.right': 'arrow-forward',
+  'bubble.left.fill': 'chat-bubble',
+  'checkmark.seal.fill': 'verified',
+  'mappin.and.ellipse': 'place',
+  'bolt.fill': 'flash-on',
 } as IconMapping;
 
 /**

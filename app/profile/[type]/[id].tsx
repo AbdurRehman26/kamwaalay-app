@@ -632,184 +632,154 @@ export default function ProfileViewScreen() {
         style={[styles.scrollView]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 160 }}
+        bounces={false}
       >
-        {/* Decorative Background Elements */}
-        <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-        <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: cardBg, shadowColor: borderColor }]}
-          >
-            <IconSymbol name="chevron.left" size={24} color={textColor} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: textColor }]}>Profile</Text>
-          <View style={{ width: 44 }} />
+        {/* Solid Primary Header */}
+        <View style={{ backgroundColor: primaryColor, paddingHorizontal: 20, paddingTop: insets.top + 10, paddingBottom: 60 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Profile</Text>
+            <View style={{ width: 44 }} />
+          </View>
         </View>
 
-        <View style={styles.contentContainer}>
-          {/* Profile Header */}
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarContainer}>
-              {displayProfile.profileImage ? (
-                <Image source={{ uri: displayProfile.profileImage }} style={[styles.avatarImage, { borderColor: cardBg }]} />
-              ) : (
-                <View style={[styles.avatarImage, styles.avatarPlaceholder, { backgroundColor: primaryLight, borderColor: cardBg }]}>
-                  <Text style={[styles.avatarText, { color: primaryColor }]}>{displayProfile.name.charAt(0).toUpperCase()}</Text>
-                </View>
-              )}
-              {displayProfile.verified && (
-                <View style={[styles.verifiedBadge, { borderColor: cardBg }]}>
-                  <IconSymbol name="checkmark.seal.fill" size={14} color="#FFFFFF" />
-                </View>
-              )}
+        <View style={{ flex: 1, marginTop: -40, paddingHorizontal: 20 }}>
+
+          {/* Main ID Card */}
+          <View style={[styles.profileCard, { backgroundColor: cardBg, borderColor }]}>
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <View style={{ position: 'relative', marginBottom: 12 }}>
+                {displayProfile.profileImage ? (
+                  <Image source={{ uri: displayProfile.profileImage }} style={[styles.avatarImage, { borderColor: cardBg }]} />
+                ) : (
+                  <View style={[styles.avatarImage, styles.avatarPlaceholder, { backgroundColor: primaryLight, borderColor: cardBg }]}>
+                    <Text style={[styles.avatarText, { color: primaryColor }]}>{displayProfile.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
+                {displayProfile.verified && (
+                  <View style={styles.verifiedBadge}>
+                    <IconSymbol name="checkmark.seal.fill" size={14} color="#FFFFFF" />
+                  </View>
+                )}
+              </View>
+
+              <Text style={[styles.name, { color: textColor }]}>{displayProfile.name}</Text>
+              <Text style={[styles.serviceType, { color: textSecondary }]}>{displayProfile.service}</Text>
             </View>
 
-            <Text style={[styles.name, { color: textColor }]}>{displayProfile.name}</Text>
-            <Text style={[styles.serviceType, { color: textSecondary }]}>{displayProfile.service}</Text>
-
-            <View style={[styles.statsRow, { borderColor }]}>
+            {/* Stats Grid */}
+            <View style={[styles.statsContainer, { backgroundColor: backgroundColor }]}>
               <View style={styles.statItem}>
-                <View style={[styles.statIconContainer, { backgroundColor: '#FFF9C4' }]}>
-                  <IconSymbol name="star.fill" size={14} color="#F59E0B" />
-                </View>
+                <IconSymbol name="star.fill" size={16} color="#F59E0B" />
                 <Text style={[styles.statValue, { color: textColor }]}>
                   {typeof displayProfile.rating === 'number' ? displayProfile.rating.toFixed(1) : displayProfile.rating}
                 </Text>
                 <Text style={[styles.statLabel, { color: textSecondary }]}>Rating</Text>
               </View>
-
               <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
-
               <View style={styles.statItem}>
-                <View style={[styles.statIconContainer, { backgroundColor: primaryLight }]}>
-                  <IconSymbol name="clock.fill" size={14} color={primaryColor} />
-                </View>
+                <IconSymbol name="clock.fill" size={16} color={primaryColor} />
                 <Text style={[styles.statValue, { color: textColor }]}>{displayProfile.experience}</Text>
                 <Text style={[styles.statLabel, { color: textSecondary }]}>Exp.</Text>
               </View>
-
               <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
-
               <View style={styles.statItem}>
-                <View style={[styles.statIconContainer, { backgroundColor: '#FEE2E2' }]}>
-                  <IconSymbol name="location.fill" size={14} color="#EF4444" />
-                </View>
+                <IconSymbol name="mappin.and.ellipse" size={16} color="#EF4444" />
                 <Text style={[styles.statValue, { color: textColor }]} numberOfLines={1}>
                   {displayProfile.location.split(',')[0]}
                 </Text>
-                <Text style={[styles.statLabel, { color: textSecondary }]}>Location</Text>
+                <Text style={[styles.statLabel, { color: textSecondary }]}>City</Text>
               </View>
             </View>
           </View>
 
           {/* About Section */}
           {displayProfile.bio && (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+            <View style={{ marginBottom: 24 }}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>About</Text>
               <Text style={[styles.bioText, { color: textSecondary }]}>{displayProfile.bio}</Text>
             </View>
           )}
 
-          {/* Personal Details Section */}
+          {/* Personal Details Grid */}
           {(displayProfile.gender || displayProfile.religion || (displayProfile.languages && displayProfile.languages.length > 0)) && (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+            <View style={{ marginBottom: 24 }}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Details</Text>
-              <View style={styles.detailsList}>
+              <View style={styles.gridContainer}>
                 {displayProfile.gender && (
-                  <View style={styles.detailItem}>
-                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                      <FontAwesome name="user" size={16} color={primaryColor} />
-                    </View>
-                    <View>
-                      <Text style={[styles.detailLabel, { color: textSecondary }]}>Gender</Text>
-                      <Text style={[styles.detailValue, { color: textColor }]}>
-                        {displayProfile.gender.charAt(0).toUpperCase() + displayProfile.gender.slice(1)}
-                      </Text>
-                    </View>
+                  <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Gender</Text>
+                    <Text style={[styles.gridValue, { color: textColor }]}>
+                      {displayProfile.gender.charAt(0).toUpperCase() + displayProfile.gender.slice(1)}
+                    </Text>
                   </View>
                 )}
-
                 {displayProfile.religion && (
-                  <View style={styles.detailItem}>
-                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                      <FontAwesome name="moon-o" size={16} color={primaryColor} />
-                    </View>
-                    <View>
-                      <Text style={[styles.detailLabel, { color: textSecondary }]}>Religion</Text>
-                      <Text style={[styles.detailValue, { color: textColor }]}>{displayProfile.religion}</Text>
-                    </View>
+                  <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Religion</Text>
+                    <Text style={[styles.gridValue, { color: textColor }]}>{displayProfile.religion}</Text>
                   </View>
                 )}
-
                 {displayProfile.languages && displayProfile.languages.length > 0 && (
-                  <View style={styles.detailItem}>
-                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                      <FontAwesome name="language" size={16} color={primaryColor} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.detailLabel, { color: textSecondary }]}>Languages</Text>
-                      <View style={styles.languageTags}>
-                        {displayProfile.languages.map((lang: string | any, index: number) => {
-                          const langName = typeof lang === 'object' && lang.name ? lang.name : lang;
-                          return (
-                            <View key={index} style={[styles.langTag, { backgroundColor: '#F3F4F6' }]}>
-                              <Text style={[styles.langTagText, { color: '#4B5563' }]}>{langName}</Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
+                  <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor, flexBasis: '100%' }]}>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Languages</Text>
+                    <Text style={[styles.gridValue, { color: textColor }]}>
+                      {displayProfile.languages.map((l: any) => typeof l === 'object' ? l.name : l).join(', ')}
+                    </Text>
                   </View>
                 )}
               </View>
             </View>
           )}
 
-          {/* Services Offered Section */}
+          {/* Services Offered */}
           {displayProfile.services && displayProfile.services.length > 0 && (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Services Offered</Text>
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Expertise</Text>
               <View style={styles.tagsContainer}>
                 {displayProfile.services.map((service: string, index: number) => (
-                  <View key={index} style={[styles.tag, { backgroundColor: primaryLight }]}>
-                    <Text style={[styles.tagText, { color: primaryColor }]}>{service}</Text>
+                  <View key={index} style={[styles.tag, { backgroundColor: cardBg, borderWidth: 1, borderColor }]}>
+                    <Text style={[styles.tagText, { color: textSecondary }]}>{service}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Service Areas Section */}
+          {/* Service Areas */}
           {displayProfile.locations && displayProfile.locations.length > 0 && (
-            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+            <View style={{ marginBottom: 24 }}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Service Areas</Text>
               <View style={styles.tagsContainer}>
                 {displayProfile.locations.map((loc: string, index: number) => (
-                  <View key={index} style={[styles.locationTag, { borderColor }]}>
-                    <IconSymbol name="mappin.circle.fill" size={14} color={textSecondary} />
-                    <Text style={[styles.locationTagText, { color: textSecondary }]}>{loc}</Text>
+                  <View key={index} style={[styles.tag, { backgroundColor: cardBg, borderWidth: 1, borderColor }]}>
+                    <IconSymbol name="mappin.circle.fill" size={12} color={textSecondary} />
+                    <Text style={[styles.tagText, { color: textSecondary }]}>{loc}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Service Listings Section */}
+          {/* Service Listings */}
           {displayProfile.service_listings && displayProfile.service_listings.length > 0 && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: textColor, paddingLeft: 4 }]}>Service Packages</Text>
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Service Packages</Text>
               {displayProfile.service_listings.map((service: any, index: number) => {
                 const serviceTypes = service.service_types && Array.isArray(service.service_types) && service.service_types.length > 0
                   ? service.service_types
-                  : service.service_type
-                    ? [service.service_type]
-                    : ['Service'];
+                  : service.service_type ? [service.service_type] : ['Service'];
 
-                const formatServiceType = (type: string) => {
-                  return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
-                };
-
+                const title = serviceTypes.map((t: string) => t.charAt(0).toUpperCase() + t.slice(1).replace('_', ' ')).join(', ');
                 const monthlyRate = parseFloat(service.monthly_rate || '0');
 
                 return (
@@ -819,421 +789,121 @@ export default function ProfileViewScreen() {
                     onPress={() => router.push(`/service/${service.id}`)}
                     style={[styles.listingCard, { backgroundColor: cardBg, borderColor }]}
                   >
-                    <View style={styles.listingHeader}>
-                      <View style={styles.listingTitleContent}>
-                        <Text style={[styles.listingTitle, { color: textColor }]}>
-                          {serviceTypes.map(formatServiceType).join(', ')}
-                        </Text>
-                        <Text style={[styles.listingPrice, { color: primaryColor }]}>
-                          {monthlyRate > 0 ? `₨${Math.floor(monthlyRate).toLocaleString()}/mo` : 'Contact for Price'}
-                        </Text>
-                      </View>
-                      <View style={[styles.iconBox, { backgroundColor: primaryLight }]}>
-                        <IconSymbol name="chevron.right" size={16} color={primaryColor} />
-                      </View>
+                    <View style={[styles.listingIcon, { backgroundColor: primaryLight }]}>
+                      <IconSymbol name="wrench.fill" size={20} color={primaryColor} />
                     </View>
-
-                    {service.description && (
-                      <Text style={[styles.listingDesc, { color: textSecondary }]} numberOfLines={2}>
-                        {service.description}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.listingTitle, { color: textColor }]}>{title}</Text>
+                      <Text style={[styles.listingPrice, { color: textSecondary }]}>
+                        {monthlyRate > 0 ? `₨${Math.floor(monthlyRate).toLocaleString()}/mo` : 'Contact for Price'}
                       </Text>
-                    )}
+                    </View>
+                    <IconSymbol name="chevron.right" size={20} color={textSecondary} />
                   </TouchableOpacity>
                 );
               })}
             </View>
           )}
 
-          {/* Other Services Section */}
+          {/* Other Services Section (Horizontal Scroll) */}
           {otherServices.length > 0 && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: textColor, paddingLeft: 4 }]}>More from {displayProfile.name}</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 20 }}
-              >
+            <View style={{ marginBottom: 24 }}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>More from {displayProfile.name}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 20 }}>
                 {otherServices.map((service: any, index: number) => (
                   <TouchableOpacity
                     key={index}
-                    style={[styles.miniCard, { backgroundColor: cardBg, borderColor }]}
+                    style={{ width: 140, padding: 12, borderRadius: 16, backgroundColor: cardBg, borderWidth: 1, borderColor }}
                     onPress={() => router.push(`/profile/helper/${service.id}` as any)}
                   >
-                    <View style={[styles.miniCardIcon, { backgroundColor: primaryLight }]}>
+                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                       <IconSymbol name="briefcase.fill" size={20} color={primaryColor} />
                     </View>
-                    <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>
-                      {service.service_type
-                        ? service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ')
-                        : 'Service'}
-                    </Text>
-                    <Text style={[styles.miniCardPrice, { color: textSecondary }]}>
-                      ₨{service.monthly_rate?.toLocaleString()}
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: textColor, marginBottom: 4 }} numberOfLines={2}>
+                      {service.service_type ? service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ') : 'Service'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
           )}
+
         </View>
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      {
-        (() => {
-          const isHelper = type === 'helper';
-          const isBusiness = type === 'business';
-          // Always show contact options
-          const shouldShowContact = true;
+      <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor, paddingBottom: insets.bottom + 12 }]}>
+        <View style={styles.bottomActions}>
+          <TouchableOpacity
+            style={[styles.iconButton, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }]}
+            onPress={() => handleCall(displayProfile.phone_number)}
+          >
+            <IconSymbol name="phone.fill" size={22} color="#374151" />
+          </TouchableOpacity>
 
-          if (!displayProfile) {
-            return null;
-          }
+          <TouchableOpacity
+            style={[styles.iconButton, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0' }]}
+            onPress={() => handleWhatsApp(displayProfile.phone_number)}
+          >
+            <FontAwesome name="whatsapp" size={24} color="#16A34A" />
+          </TouchableOpacity>
 
-          return (
-            <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor, paddingBottom: insets.bottom + 16 }]}>
-              <View style={styles.bottomActions}>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB', borderWidth: 1 }]}
-                  onPress={() => handleCall(displayProfile.phone_number)}
-                >
-                  <IconSymbol name="phone.fill" size={24} color="#374151" />
-                  <Text style={[styles.actionBtnText, { color: '#374151' }]}>Call</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#25D366' }]}
-                  onPress={() => handleWhatsApp(displayProfile.phone_number)}
-                >
-                  <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
-                  <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>WhatsApp</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: primaryColor }]}
-                  onPress={() => router.push(`/chat/${displayProfile.id}`)}
-                >
-                  <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
-                  <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Message</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })()
-      }
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: primaryColor }]}
+            onPress={() => router.push(`/chat/${displayProfile.id}`)}
+          >
+            <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
+            <Text style={styles.primaryButtonText}>Message</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View >
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  topCircle: {
-    position: 'absolute',
-    top: -width * 0.4,
-    right: -width * 0.2,
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-  },
-  bottomCircle: {
-    position: 'absolute',
-    bottom: -width * 0.3,
-    left: -width * 0.2,
-    width: width * 0.7,
-    height: width * 0.7,
-    borderRadius: width * 0.35,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  contentContainer: {
-    paddingHorizontal: 20,
-  },
-  profileHeader: {
-    alignItems: 'center',
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  profileCard: {
+    padding: 24,
+    borderRadius: 24,
+    borderWidth: 1,
     marginBottom: 24,
-  },
-  avatarContainer: {
-    marginBottom: 16,
-    position: 'relative',
-  },
-  avatarImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
-  },
-  avatarPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#10B981',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  serviceType: {
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 12,
-  },
-  card: {
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 1,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  bioText: {
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  tagText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  locationTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  locationTagText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  listingCard: {
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  listingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  listingTitleContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-  listingTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  listingPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  iconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listingDesc: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  miniCard: {
-    width: 150,
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginRight: 12,
-  },
-  miniCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  miniCardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  miniCardPrice: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 72,
-    borderRadius: 16,
-    gap: 4,
-    paddingVertical: 12,
-  },
-  actionBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  detailsList: {
-    gap: 16,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  detailIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailLabel: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  languageTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  langTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  langTagText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    elevation: 4,
     alignItems: 'center',
   },
+  avatarImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 4 },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 32, fontWeight: '700' },
+  verifiedBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#10B981', width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF' },
+  name: { fontSize: 22, fontWeight: '800', marginBottom: 4, textAlign: 'center' },
+  serviceType: { fontSize: 14, fontWeight: '600', letterSpacing: 0.5, marginBottom: 20 },
+  statsContainer: { flexDirection: 'row', width: '100%', padding: 12, borderRadius: 16, justifyContent: 'space-between', alignItems: 'center' },
+  statItem: { alignItems: 'center', flex: 1, gap: 4 },
+  statValue: { fontSize: 14, fontWeight: '700' },
+  statLabel: { fontSize: 11, fontWeight: '500' },
+  statDivider: { width: 1, height: 30, opacity: 0.5 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', marginBottom: 12 },
+  bioText: { fontSize: 15, lineHeight: 24 },
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  gridItem: { flexBasis: '48%', padding: 12, borderRadius: 16, borderWidth: 1 },
+  gridLabel: { fontSize: 12, marginBottom: 4, fontWeight: '500' },
+  gridValue: { fontSize: 15, fontWeight: '700' },
+  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  tagText: { fontSize: 13, fontWeight: '600' },
+  listingCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, borderWidth: 1, marginBottom: 12, gap: 12 },
+  listingIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  listingTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  listingPrice: { fontSize: 13, fontWeight: '500' },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingTop: 16, paddingHorizontal: 20, borderTopWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 10 },
+  bottomActions: { flexDirection: 'row', gap: 12 },
+  iconButton: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  primaryButton: { flex: 1, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

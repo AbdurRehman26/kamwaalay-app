@@ -9,10 +9,12 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   FlatList,
+  Modal,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View
 } from 'react-native';
 
@@ -32,6 +34,8 @@ export default function ChatScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [conversations, setConversations] = useState<ChatItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
@@ -77,9 +81,37 @@ export default function ChatScreen() {
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleDeleteConversation = (id: string) => {
+    setConversationToDelete(id);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+
+    const id = conversationToDelete;
+    // Optimistic update
+    setConversations(prev => prev.filter(chat => chat.id !== id));
+    setDeleteModalVisible(false);
+    setConversationToDelete(null);
+
+    try {
+      await apiService.delete(
+        API_ENDPOINTS.MESSAGES.DELETE_CONVERSATION.replace(':id', id),
+        undefined,
+        true
+      );
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      // Optionally revert state here
+      fetchConversations();
+    }
+  };
+
   const renderChatItem = ({ item }: { item: ChatItem }) => (
     <TouchableOpacity
       style={[styles.chatItem, { backgroundColor: cardBg, borderColor }]}
+      onLongPress={() => handleDeleteConversation(item.id)}
       onPress={() => router.push({
         pathname: `/chat/${item.id}`,
         params: {
@@ -97,7 +129,18 @@ export default function ChatScreen() {
           <ThemedText type="subtitle" style={styles.chatName}>
             {item.name}
           </ThemedText>
-          <ThemedText style={[styles.chatTime, { color: textMuted }]}>{item.time}</ThemedText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <ThemedText style={[styles.chatTime, { color: textMuted }]}>{item.time}</ThemedText>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeleteConversation(item.id);
+              }}
+              style={{ padding: 4 }}
+            >
+              <IconSymbol name="trash.fill" size={16} color={textMuted} />
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.chatFooter}>
           <ThemedText style={[styles.chatMessage, { color: textMuted }]} numberOfLines={1}>
@@ -152,6 +195,39 @@ export default function ChatScreen() {
           </ThemedText>
         </View>
       )}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteModalVisible}
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setDeleteModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
+                <ThemedText type="subtitle" style={styles.modalTitle}>Delete Conversation</ThemedText>
+                <ThemedText style={styles.modalText}>
+                  Are you sure you want to delete this conversation? This action cannot be undone.
+                </ThemedText>
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setDeleteModalVisible(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.deleteButton]}
+                    onPress={confirmDeleteConversation}
+                  >
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </ThemedView>
   );
 }
@@ -265,6 +341,64 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     marginTop: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+  },
+  deleteButton: {
+    backgroundColor: '#EF4444',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

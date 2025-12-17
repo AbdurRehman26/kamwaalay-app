@@ -1,6 +1,5 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
-import { Colors } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -200,21 +199,14 @@ export default function ServiceDetailScreen() {
     const locations: string[] = [];
 
     if (service.location_details && Array.isArray(service.location_details) && service.location_details.length > 0) {
-        service.location_details.forEach((loc: any) => {
-            if (loc.display_text) {
-                locations.push(loc.display_text);
-            } else {
-                const city = loc.city_name || loc.city || '';
-                const area = loc.area || loc.area_name || '';
-                if (city && area) {
-                    locations.push(`${city}, ${area}`);
-                } else if (area) {
-                    locations.push(area);
-                } else if (city) {
-                    locations.push(city);
-                }
-            }
-        });
+        // Extract areas directly from location_details objects as requested
+        const areas = service.location_details
+            .map((loc: any) => loc.area) // User specified 'area' key inside location_details objects
+            .filter((a: any) => a && typeof a === 'string' && a.trim() !== '');
+
+        if (areas.length > 0) {
+            locations.push(...areas);
+        }
     } else if (service.area && service.city) {
         locations.push(`${service.city}, ${service.area}`);
     } else if (service.area) {
@@ -229,690 +221,285 @@ export default function ServiceDetailScreen() {
         <>
             <Stack.Screen options={{ headerShown: false, title: 'Service Details' }} />
             <View style={[styles.container, { backgroundColor }]}>
-
-                {/* Header */}
-                <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            if (router.canGoBack()) {
-                                router.back();
-                            } else {
-                                router.push('/(tabs)/explore');
-                            }
-                        }}
-                        style={[styles.backButton, { backgroundColor: cardBg, shadowColor: borderColor }]}
-                    >
-                        <IconSymbol name="chevron.left" size={24} color={textColor} />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: textColor }]}>Service Details</Text>
-                    <View style={{ width: 44 }} />
-                </View>
-
-                {/* Scrollable Content */}
                 <ScrollView
                     style={styles.scrollView}
-                    contentContainerStyle={[styles.scrollContent, { paddingBottom: 160 }]}
+                    contentContainerStyle={{ paddingBottom: 120 }}
                     showsVerticalScrollIndicator={false}
+                    bounces={false}
                 >
-                    {/* Decorative Background Elements */}
-                    <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-                    <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-
-                    <View style={styles.contentContainer}>
-                        {/* Service Card */}
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-                            <View style={styles.serviceHeader}>
-                                <View style={[styles.iconContainer, { backgroundColor: primaryLight }]}>
-                                    <IconSymbol name="wrench.fill" size={28} color={primaryColor} />
-                                </View>
-                                <View style={styles.serviceTitleContainer}>
-                                    <Text style={[styles.serviceTitle, { color: textColor }]}>{serviceName}</Text>
-                                    {monthlyRate > 0 && (
-                                        <Text style={[styles.servicePrice, { color: primaryColor }]}>
-                                            ₨{Math.floor(monthlyRate).toLocaleString()}
-                                            <Text style={[styles.servicePricePeriod, { color: textSecondary }]}>/mo</Text>
-                                        </Text>
-                                    )}
-                                </View>
-                            </View>
-
-                            {/* Service Types Tags */}
-                            <View style={styles.section}>
-                                <Text style={[styles.sectionLabel, { color: textColor }]}>Service Types</Text>
-                                <View style={styles.tagsContainer}>
-                                    {serviceTypes.length > 0 && serviceTypes[0] !== 'Service' ? (
-                                        serviceTypes.map((serviceType: string, index: number) => {
-                                            if (!serviceType || serviceType.trim() === '') return null;
-                                            return (
-                                                <View key={index} style={[styles.tag, { backgroundColor: primaryLight }]}>
-                                                    <Text style={[styles.tagText, { color: primaryColor }]}>
-                                                        {formatServiceType(serviceType)}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        })
-                                    ) : (
-                                        <Text style={[styles.noDataText, { color: textSecondary }]}>No service types specified</Text>
-                                    )}
-                                </View>
-                            </View>
-
-                            {service.description && (
-                                <View style={styles.section}>
-                                    <Text style={[styles.sectionLabel, { color: textColor }]}>Description</Text>
-                                    <Text style={[styles.description, { color: textSecondary }]}>{service.description}</Text>
-                                </View>
-                            )}
-
-                            {/* Meta Info */}
-                            <View style={styles.metaContainer}>
-                                {service.work_type && (
-                                    <View style={[styles.metaItem, { backgroundColor: 'transparent', borderColor }]}>
-                                        <IconSymbol name="clock.fill" size={16} color={textSecondary} />
-                                        <Text style={[styles.metaText, { color: textSecondary }]}>
-                                            {service.work_type.charAt(0).toUpperCase() + service.work_type.slice(1).replace('_', ' ')}
-                                        </Text>
-                                    </View>
-                                )}
-                                {locations.length > 0 && (
-                                    <View style={[styles.metaItem, { backgroundColor: 'transparent', borderColor }]}>
-                                        <IconSymbol name="location.fill" size={16} color={textSecondary} />
-                                        <Text style={[styles.metaText, { color: textSecondary }]}>
-                                            {locations.length > 2
-                                                ? `${locations[0]} +${locations.length - 1} more`
-                                                : locations.join(', ')}
-                                        </Text>
-                                    </View>
-                                )}
-                            </View>
-
-                            {/* Locations Tags */}
-                            {locations.length > 0 && (
-                                <View style={styles.locationsContainer}>
-                                    <IconSymbol name="mappin.circle.fill" size={16} color={Colors.light.primary} />
-                                    {locations.map((loc, index) => {
-                                        if (!loc || loc.trim() === '') return null;
-                                        return (
-                                            <View key={index} style={[styles.locationTag, { borderColor }]}>
-                                                <Text style={[styles.locationTagText, { color: textSecondary }]}>{loc}</Text>
-                                            </View>
-                                        );
-                                    })}
-                                </View>
-                            )}
+                    {/* Hero Header */}
+                    <View style={{ backgroundColor: primaryColor, paddingHorizontal: 20, paddingTop: insets.top + 10, paddingBottom: 60 }}>
+                        {/* Nav */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                            <TouchableOpacity
+                                onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/explore')}
+                                style={{
+                                    width: 40, height: 40, borderRadius: 20,
+                                    backgroundColor: 'rgba(255,255,255,0.2)',
+                                    alignItems: 'center', justifyContent: 'center'
+                                }}
+                            >
+                                <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+                            </TouchableOpacity>
+                            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginLeft: 16 }}>Service Details</Text>
                         </View>
 
-                        {/* Details Card */}
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-                            <Text style={[styles.cardTitle, { color: textColor }]}>Service Details</Text>
-                            <View style={styles.detailsGrid}>
-                                {service.work_type && (
-                                    <View style={styles.detailItem}>
-                                        <View style={[styles.detailIconContainer, { backgroundColor: primaryLight }]}>
-                                            <IconSymbol name="clock.fill" size={18} color={primaryColor} />
-                                        </View>
-                                        <View style={styles.detailContent}>
-                                            <Text style={[styles.detailLabel, { color: textSecondary }]}>Work Type</Text>
-                                            <Text style={[styles.detailValue, { color: textColor }]}>
-                                                {service.work_type.charAt(0).toUpperCase() + service.work_type.slice(1).replace('_', ' ')}
-                                            </Text>
-                                        </View>
+                        {/* Service Title & Price */}
+                        <View>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                                {serviceTypes.slice(0, 3).map((t: string, i: number) => (
+                                    <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                                        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600' }}>{formatServiceType(t)}</Text>
                                     </View>
-                                )}
-                                {monthlyRate > 0 && (
-                                    <View style={styles.detailItem}>
-                                        <View style={[styles.detailIconContainer, { backgroundColor: primaryLight }]}>
-                                            <IconSymbol name="dollarsign.circle.fill" size={18} color={primaryColor} />
-                                        </View>
-                                        <View style={styles.detailContent}>
-                                            <Text style={[styles.detailLabel, { color: textSecondary }]}>Monthly Rate</Text>
-                                            <Text style={[styles.detailValue, { color: textColor }]}>₨{Math.floor(monthlyRate).toLocaleString()}/mo</Text>
-                                        </View>
-                                    </View>
-                                )}
-                                {service.city && (
-                                    <View style={styles.detailItem}>
-                                        <View style={[styles.detailIconContainer, { backgroundColor: primaryLight }]}>
-                                            <IconSymbol name="building.2.fill" size={18} color={primaryColor} />
-                                        </View>
-                                        <View style={styles.detailContent}>
-                                            <Text style={[styles.detailLabel, { color: textSecondary }]}>City</Text>
-                                            <Text style={[styles.detailValue, { color: textColor }]}>{service.city}</Text>
-                                        </View>
-                                    </View>
-                                )}
-                                {experience && (
-                                    <View style={styles.detailItem}>
-                                        <View style={[styles.detailIconContainer, { backgroundColor: primaryLight }]}>
-                                            <IconSymbol name="star.fill" size={18} color={primaryColor} />
-                                        </View>
-                                        <View style={styles.detailContent}>
-                                            <Text style={[styles.detailLabel, { color: textSecondary }]}>Experience</Text>
-                                            <Text style={[styles.detailValue, { color: textColor }]}>{experience} {experience === 1 ? 'year' : 'years'}</Text>
-                                        </View>
-                                    </View>
-                                )}
-                                {verified && (
-                                    <View style={styles.detailItem}>
-                                        <View style={[styles.detailIconContainer, { backgroundColor: '#D1FAE5' }]}>
-                                            <IconSymbol name="checkmark.seal.fill" size={18} color="#10B981" />
-                                        </View>
-                                        <View style={styles.detailContent}>
-                                            <Text style={[styles.detailLabel, { color: textSecondary }]}>Verification</Text>
-                                            <Text style={[styles.detailValue, { color: textColor }]}>Verified</Text>
-                                        </View>
-                                    </View>
-                                )}
+                                ))}
                             </View>
+                            <Text style={{ color: '#FFFFFF', fontSize: 26, fontWeight: '800', marginBottom: 8, lineHeight: 32 }}>
+                                {serviceName}
+                            </Text>
+                            {monthlyRate > 0 ? (
+                                <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '700' }}>
+                                    ₨{Math.floor(monthlyRate).toLocaleString()}
+                                    <Text style={{ fontSize: 14, fontWeight: '500', opacity: 0.9 }}>/mo</Text>
+                                </Text>
+                            ) : (
+                                <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700', opacity: 0.9 }}>
+                                    Price Negotiable
+                                </Text>
+                            )}
                         </View>
+                    </View>
 
-                        {/* Provider Details Card */}
-                        {(providerGender || providerReligion || (providerLanguages && providerLanguages.length > 0)) && (
-                            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-                                <Text style={[styles.cardTitle, { color: textColor }]}>Provider Details</Text>
-                                <View style={styles.detailsGrid}>
-                                    {providerGender && (
-                                        <View style={styles.detailItem}>
-                                            <View style={[styles.detailIconContainer, { backgroundColor: primaryLight }]}>
-                                                <FontAwesome name="user" size={18} color={primaryColor} />
-                                            </View>
-                                            <View style={styles.detailContent}>
-                                                <Text style={[styles.detailLabel, { color: textSecondary }]}>Gender</Text>
-                                                <Text style={[styles.detailValue, { color: textColor }]}>
-                                                    {providerGender.charAt(0).toUpperCase() + providerGender.slice(1)}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    )}
-                                    {providerReligion && (
-                                        <View style={styles.detailItem}>
-                                            <View style={[styles.detailIconContainer, { backgroundColor: primaryLight }]}>
-                                                <FontAwesome name="moon-o" size={18} color={primaryColor} />
-                                            </View>
-                                            <View style={styles.detailContent}>
-                                                <Text style={[styles.detailLabel, { color: textSecondary }]}>Religion</Text>
-                                                <Text style={[styles.detailValue, { color: textColor }]}>{providerReligion}</Text>
-                                            </View>
-                                        </View>
-                                    )}
-                                    {providerLanguages && providerLanguages.length > 0 && (
-                                        <View style={styles.detailItem}>
-                                            <View style={[styles.detailIconContainer, { backgroundColor: primaryLight }]}>
-                                                <FontAwesome name="language" size={18} color={primaryColor} />
-                                            </View>
-                                            <View style={styles.detailContent}>
-                                                <Text style={[styles.detailLabel, { color: textSecondary }]}>Languages</Text>
-                                                <View style={[styles.tagsContainer, { marginTop: 4 }]}>
-                                                    {providerLanguages.map((lang: any, index: number) => {
-                                                        const langName = typeof lang === 'object' && lang.name ? lang.name : lang;
-                                                        return (
-                                                            <View key={index} style={[styles.tag, { backgroundColor: primaryLight, paddingVertical: 4, paddingHorizontal: 8 }]}>
-                                                                <Text style={[styles.tagText, { color: primaryColor, fontSize: 12 }]}>{langName}</Text>
-                                                            </View>
-                                                        );
-                                                    })}
-                                                </View>
-                                            </View>
-                                        </View>
-                                    )}
-                                </View>
-                            </View>
-                        )}
+                    {/* Content Container (Overlapping) */}
+                    <View style={{ flex: 1, marginTop: -40, paddingHorizontal: 20 }}>
 
-                        {/* Provider Card */}
-                        <Text style={[styles.sectionTitle, { color: textColor }]}>Service Provider</Text>
+                        {/* Provider ID Card */}
                         <TouchableOpacity
-                            style={[styles.providerCard, { backgroundColor: cardBg, borderColor }]}
+                            activeOpacity={0.9}
                             onPress={() => {
                                 if (providerId) {
                                     const profileType = providerRole === 'business' ? 'business' : 'helper';
                                     router.push(`/profile/${profileType}/${providerId}`);
                                 }
                             }}
+                            style={[styles.providerCard, { backgroundColor: cardBg, borderColor: borderColor }]}
                         >
-                            <View style={styles.providerHeader}>
-                                {providerImage ? (
-                                    <Image source={{ uri: providerImage }} style={[styles.providerImage, { borderColor: cardBg }]} />
-                                ) : (
-                                    <View style={[styles.providerPlaceholder, { backgroundColor: primaryLight }]}>
-                                        <Text style={[styles.providerInitial, { color: primaryColor }]}>{providerName.charAt(0).toUpperCase()}</Text>
-                                    </View>
-                                )}
-                                <View style={styles.providerInfo}>
-                                    <View style={styles.providerNameRow}>
-                                        <Text style={[styles.providerName, { color: textColor }]}>{providerName}</Text>
-                                        {verified && (
-                                            <View style={styles.verifiedBadge}>
-                                                <IconSymbol name="checkmark.seal.fill" size={14} color="#10B981" />
-                                            </View>
-                                        )}
-                                    </View>
-                                    <View style={styles.providerMetaRow}>
-                                        <View style={styles.ratingContainer}>
-                                            <IconSymbol name="star.fill" size={14} color="#F59E0B" />
-                                            <Text style={[styles.ratingText, { color: textSecondary }]}>
-                                                {provider?.rating ? Number(provider.rating).toFixed(1) : 'New'}
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                {/* Avatar */}
+                                <View style={{
+                                    width: 64, height: 64, borderRadius: 32,
+                                    backgroundColor: backgroundColor,
+                                    padding: 3, marginRight: 16
+                                }}>
+                                    <View style={{ flex: 1, borderRadius: 30, overflow: 'hidden', backgroundColor: primaryLight, alignItems: 'center', justifyContent: 'center' }}>
+                                        {providerImage ? (
+                                            <Image source={{ uri: providerImage }} style={{ width: '100%', height: '100%' }} />
+                                        ) : (
+                                            <Text style={{ fontSize: 20, fontWeight: '700', color: primaryColor }}>
+                                                {providerName.charAt(0).toUpperCase()}
                                             </Text>
-                                        </View>
-                                        {provider?.reviews_count > 0 && (
-                                            <>
-                                                <Text style={[styles.metaSeparator, { color: textSecondary }]}>•</Text>
-                                                <Text style={[styles.reviewsText, { color: textSecondary }]}>{provider.reviews_count} reviews</Text>
-                                            </>
                                         )}
                                     </View>
                                 </View>
+
+                                {/* Info */}
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={{ fontSize: 18, fontWeight: '700', color: textColor }} numberOfLines={1}>{providerName}</Text>
+                                        {verified && <IconSymbol name="checkmark.seal.fill" size={16} color="#10B981" />}
+                                    </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                        <IconSymbol name="star.fill" size={14} color="#F59E0B" />
+                                        <Text style={{ fontSize: 13, fontWeight: '600', color: textSecondary }}>
+                                            {provider?.rating ? Number(provider.rating).toFixed(1) : 'New'}
+                                            {provider?.reviews_count > 0 && <Text style={{ fontWeight: '400' }}> ({provider.reviews_count} reviews)</Text>}
+                                        </Text>
+                                    </View>
+                                </View>
+
                                 <IconSymbol name="chevron.right" size={20} color={textSecondary} />
                             </View>
                         </TouchableOpacity>
 
+                        {/* Description */}
+                        {service.description && (
+                            <View style={{ marginBottom: 24 }}>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>About Service</Text>
+                                <Text style={{ fontSize: 15, lineHeight: 24, color: textSecondary }}>{service.description}</Text>
+                            </View>
+                        )}
+
+                        {/* Service Details Grid */}
+                        <View style={{ marginBottom: 24 }}>
+                            <Text style={[styles.sectionTitle, { color: textColor }]}>Service Details</Text>
+                            <View style={styles.gridContainer}>
+                                {service.work_type && (
+                                    <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>Work Type</Text>
+                                        <Text style={[styles.gridValue, { color: textColor }]}>
+                                            {service.work_type.charAt(0).toUpperCase() + service.work_type.slice(1).replace('_', ' ')}
+                                        </Text>
+                                    </View>
+                                )}
+                                {(locations.length > 0 || service.city) && (
+                                    <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>Location{locations.length > 1 ? 's' : ''}</Text>
+                                        <Text style={[styles.gridValue, { color: textColor }]} numberOfLines={2}>
+                                            {locations.length > 0 ? locations.join(', ') : service.city}
+                                        </Text>
+                                    </View>
+                                )}
+                                {experience && (
+                                    <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>Experience</Text>
+                                        <Text style={[styles.gridValue, { color: textColor }]}>{experience} Years</Text>
+                                    </View>
+                                )}
+                                <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Posted</Text>
+                                    <Text style={[styles.gridValue, { color: textColor }]}>Recently</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Provider Attributes */}
+                        {(providerGender || providerReligion || (providerLanguages && providerLanguages.length > 0)) && (
+                            <View style={{ marginBottom: 24 }}>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>Provider Info</Text>
+                                <View style={styles.gridContainer}>
+                                    {providerGender && (
+                                        <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>Gender</Text>
+                                            <Text style={[styles.gridValue, { color: textColor }]}>
+                                                {providerGender.charAt(0).toUpperCase() + providerGender.slice(1)}
+                                            </Text>
+                                        </View>
+                                    )}
+                                    {providerReligion && (
+                                        <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>Religion</Text>
+                                            <Text style={[styles.gridValue, { color: textColor }]}>{providerReligion}</Text>
+                                        </View>
+                                    )}
+                                    {providerLanguages && providerLanguages.length > 0 && (
+                                        <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor, flexBasis: '100%' }]}>
+                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>Languages</Text>
+                                            <Text style={[styles.gridValue, { color: textColor }]}>
+                                                {providerLanguages.map((l: any) => typeof l === 'object' ? l.name : l).join(', ')}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        )}
+
                         {/* Other Services */}
                         {otherServices.length > 0 && (
-                            <View style={styles.otherServicesSection}>
-                                <Text style={[styles.sectionTitle, { color: textColor }]}>More Services from {providerName}</Text>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={{ paddingRight: 20 }}
-                                >
-                                    {otherServices.map((item, index) => {
-                                        const otherServiceTypes = item.service_types && Array.isArray(item.service_types) && item.service_types.length > 0
-                                            ? item.service_types
-                                            : item.service_type
-                                                ? [item.service_type]
-                                                : ['Service'];
-
-                                        const otherServiceName = otherServiceTypes.length === 1
-                                            ? formatServiceType(otherServiceTypes[0])
-                                            : `${formatServiceType(otherServiceTypes[0])} +${otherServiceTypes.length - 1} more`;
-
-                                        const otherMonthlyRate = parseFloat(item.monthly_rate || '0');
-
-                                        return (
-                                            <TouchableOpacity
-                                                key={index}
-                                                style={[styles.miniCard, { backgroundColor: cardBg, borderColor }]}
-                                                onPress={() => router.push(`/service/${item.id}`)}
-                                            >
-                                                <View style={[styles.miniCardIcon, { backgroundColor: primaryLight }]}>
-                                                    <IconSymbol name="wrench.fill" size={20} color={primaryColor} />
-                                                </View>
-                                                <Text style={[styles.miniCardTitle, { color: textColor }]} numberOfLines={1}>
-                                                    {otherServiceName}
-                                                </Text>
-                                                <Text style={[styles.miniCardPrice, { color: textSecondary }]}>
-                                                    {otherMonthlyRate > 0 ? `₨${Math.floor(otherMonthlyRate).toLocaleString()}` : 'Contact'}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                            <View style={{ marginBottom: 24 }}>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>More from {providerName}</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 20 }}>
+                                    {otherServices.map((item, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={{
+                                                width: 160, padding: 12, borderRadius: 16,
+                                                backgroundColor: cardBg, borderWidth: 1, borderColor: borderColor
+                                            }}
+                                            onPress={() => router.push(`/service/${item.id}`)}
+                                        >
+                                            <View style={{
+                                                width: 40, height: 40, borderRadius: 12,
+                                                backgroundColor: primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 10
+                                            }}>
+                                                <IconSymbol name="wrench.fill" size={20} color={primaryColor} />
+                                            </View>
+                                            <Text style={{ fontSize: 14, fontWeight: '700', color: textColor, marginBottom: 4 }} numberOfLines={2}>
+                                                {item.service_type || 'Service'}
+                                            </Text>
+                                            <Text style={{ fontSize: 13, color: primaryColor, fontWeight: '600' }}>
+                                                View Details
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
                                 </ScrollView>
                             </View>
                         )}
+
                     </View>
                 </ScrollView>
 
-                {/* Bottom Action Bar */}
-                <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor, paddingBottom: insets.bottom + 16 }]}>
+                {/* Sticky Bottom Bar */}
+                <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor: borderColor, paddingBottom: insets.bottom + 12 }]}>
                     <View style={styles.bottomActions}>
                         <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB', borderWidth: 1 }]}
+                            style={[styles.iconButton, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }]}
                             onPress={() => handleCall(phoneNumber)}
                         >
-                            <IconSymbol name="phone.fill" size={24} color="#374151" />
-                            <Text style={[styles.actionBtnText, { color: '#374151' }]}>Call</Text>
+                            <IconSymbol name="phone.fill" size={22} color="#374151" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: '#25D366' }]}
+                            style={[styles.iconButton, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0' }]}
                             onPress={() => handleWhatsApp(phoneNumber)}
                         >
-                            <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
-                            <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>WhatsApp</Text>
+                            <FontAwesome name="whatsapp" size={24} color="#16A34A" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: primaryColor }]}
+                            style={[styles.primaryButton, { backgroundColor: primaryColor }]}
                             onPress={() => router.push(`/chat/${providerId}`)}
                         >
-                            <IconSymbol name="message.fill" size={24} color="#FFFFFF" />
-                            <Text style={[styles.actionBtnText, { color: '#FFFFFF' }]}>Message</Text>
+                            <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
+                            <Text style={styles.primaryButtonText}>Message</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View >
+            </View>
         </>
     );
+
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    topCircle: {
-        position: 'absolute',
-        top: -width * 0.4,
-        right: -width * 0.2,
-        width: width * 0.8,
-        height: width * 0.8,
-        borderRadius: width * 0.4,
-    },
-    bottomCircle: {
-        position: 'absolute',
-        bottom: -width * 0.3,
-        left: -width * 0.2,
-        width: width * 0.7,
-        height: width * 0.7,
-        borderRadius: width * 0.35,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingBottom: 100,
-    },
-    contentContainer: {
-        paddingHorizontal: 20,
-    },
-    card: {
-        padding: 20,
-        borderRadius: 20,
-        borderWidth: 1,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.02,
-        shadowRadius: 10,
-        elevation: 1,
-    },
-    serviceHeader: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 16,
-        marginBottom: 20,
-    },
-    iconContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    serviceTitleContainer: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    serviceTitle: {
-        fontSize: 20,
-        fontWeight: '800',
-        marginBottom: 4,
-    },
-    servicePrice: {
-        fontSize: 24,
-        fontWeight: '800',
-    },
-    servicePricePeriod: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    section: {
-        marginBottom: 16,
-    },
-    sectionLabel: {
-        fontSize: 14,
-        fontWeight: '700',
-        marginBottom: 8,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    description: {
-        fontSize: 15,
-        lineHeight: 24,
-    },
-    metaContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 16,
-    },
-    metaItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
-        borderWidth: 1,
-    },
-    metaText: {
-        fontSize: 13,
-        fontWeight: '500',
-    },
-    tagsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    tag: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 10,
-    },
-    tagText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    locationsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        alignItems: 'center',
-    },
-    locationTag: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 10,
-        borderWidth: 1,
-    },
-    locationTagText: {
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 16,
-    },
-    detailsGrid: {
-        gap: 12,
-    },
-    detailItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    detailIconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    detailContent: {
-        flex: 1,
-    },
-    detailLabel: {
-        fontSize: 12,
-        marginBottom: 2,
-    },
-    detailValue: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 12,
-    },
+    container: { flex: 1 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    scrollView: { flex: 1 },
     providerCard: {
         padding: 16,
         borderRadius: 20,
         borderWidth: 1,
         marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 4
     },
-    providerHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    providerImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        borderWidth: 2,
-    },
-    providerPlaceholder: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    providerInitial: {
-        fontSize: 20,
-        fontWeight: '700',
-    },
-    providerInfo: {
-        flex: 1,
-    },
-    providerNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 2,
-    },
-    providerName: {
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    verifiedBadge: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        backgroundColor: '#D1FAE5',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    providerMetaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    ratingText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    metaSeparator: {
-        fontSize: 12,
-    },
-    reviewsText: {
-        fontSize: 13,
-        fontWeight: '500',
-    },
-    otherServicesSection: {
-        marginBottom: 24,
-    },
-    miniCard: {
-        width: 150,
+    sectionTitle: { fontSize: 18, fontWeight: '800', marginBottom: 12 },
+    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    gridItem: {
+        flexBasis: '48%',
         padding: 12,
         borderRadius: 16,
         borderWidth: 1,
-        marginRight: 12,
     },
-    miniCardIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 10,
-    },
-    miniCardTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    miniCardPrice: {
-        fontSize: 12,
-        fontWeight: '500',
-    },
+    gridLabel: { fontSize: 12, marginBottom: 4, fontWeight: '500' },
+    gridValue: { fontSize: 15, fontWeight: '700' },
     bottomBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        paddingHorizontal: 20,
-        paddingTop: 16,
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        paddingTop: 16, paddingHorizontal: 20,
         borderTopWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 10,
+        shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 10
     },
-    bottomActions: {
-        flexDirection: 'row',
-        gap: 12,
+    bottomActions: { flexDirection: 'row', gap: 12 },
+    iconButton: {
+        width: 50, height: 50, borderRadius: 25,
+        alignItems: 'center', justifyContent: 'center',
+        borderWidth: 1,
     },
-    actionBtn: {
-        flex: 1,
-        flexDirection: 'column', // Matched profile buttons
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 72,
-        borderRadius: 16,
-        gap: 4,
-        paddingVertical: 12,
+    primaryButton: {
+        flex: 1, height: 50, borderRadius: 25,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3
     },
-    actionBtnText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    noDataText: {
-        fontSize: 13,
-        fontStyle: 'italic',
-    },
+    primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });

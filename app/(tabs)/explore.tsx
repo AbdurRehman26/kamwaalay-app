@@ -629,9 +629,11 @@ export default function ExploreScreen() {
           style={[
             styles.helperCard,
             {
-              backgroundColor: isDark ? '#1E293B' : themeColors.card,
-              borderColor: isDark ? '#334155' : themeColors.border,
-              padding: 16, // Added padding for internal spacing
+              backgroundColor: themeColors.card,
+              borderColor: themeColors.border,
+              shadowColor: themeColors.shadow,
+              padding: 0, // Reset padding for strict control, we'll use inner views
+              overflow: 'hidden' // Ensure footer respects border radius
             }
           ]}
           onPress={() => {
@@ -643,219 +645,206 @@ export default function ExploreScreen() {
               router.push(`/profile/${profileType}/${providerId}` as any);
             }
           }}
-          activeOpacity={0.9}
+          activeOpacity={0.95}
         >
-          {/* Top Tags: Service Type & Availability */}
-          <View style={{ alignItems: 'flex-start', marginBottom: 16, gap: 8 }}>
-            <View style={{
-              backgroundColor: '#6366F1', // Purple
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 20
-            }}>
-              <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>
-                {service || 'Service Provider'}
-              </Text>
-            </View>
-
-            {/* Availability Placeholder - Assuming Full Time for design match or checking data if available */}
-            <View style={{
-              backgroundColor: isDark ? '#334155' : '#F3F4F6',
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16
-            }}>
-              <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 12, fontWeight: '500' }}>
-                Full Time
-              </Text>
-            </View>
-          </View>
-
-          {/* Skills Section */}
-          <View style={{ marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-              <IconSymbol name="bolt.fill" size={14} color="#FBBF24" />
-              <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 12, fontWeight: '600', letterSpacing: 1 }}>SKILLS</Text>
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {(() => {
-                const srvs = getAllServices(item);
-                return srvs.slice(0, 3).map((s, i) => (
-                  <View key={i} style={{
-                    borderWidth: 1,
-                    borderColor: '#4F46E5', // Indigo border
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    backgroundColor: isDark ? 'rgba(79, 70, 229, 0.1)' : 'transparent'
-                  }}>
-                    <Text style={{ color: isDark ? '#E2E8F0' : '#374151', fontSize: 13, fontWeight: '500' }}>{s}</Text>
-                  </View>
-                ));
-              })()}
-              {getAllServices(item).length > 3 && (
-                <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 13, alignSelf: 'center' }}>
-                  +{getAllServices(item).length - 3} more
+          {/* Main Service Content */}
+          <View style={{ padding: 18, paddingBottom: 14 }}>
+            {/* Header: Title & Price */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: themeColors.text,
+                  marginBottom: 6,
+                  lineHeight: 26,
+                  textTransform: 'capitalize'
+                }}>
+                  {service || 'Service'}{' Services'}
                 </Text>
-              )}
-            </View>
-          </View>
-
-          {/* Price */}
-          {price > 0 && (
-            <View style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'baseline' }}>
-              <Text style={{ color: '#22C55E', fontSize: 20, fontWeight: '700' }}>PKR {Math.floor(price).toLocaleString()}.00</Text>
-              <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 14 }}>/month</Text>
-            </View>
-          )}
-
-          {/* Nested Profile Card */}
-          <View style={{
-            backgroundColor: isDark ? '#334155' : '#F8FAFC',
-            borderRadius: 12,
-            padding: 12,
-            marginBottom: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12
-          }}>
-            <View style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: isDark ? '#475569' : '#E2E8F0',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden'
-            }}>
-              {item.profile_image ? (
-                <Image source={{ uri: item.profile_image }} style={{ width: 48, height: 48 }} />
-              ) : (
-                <Text style={{ fontSize: 18, fontWeight: '600', color: isDark ? '#E2E8F0' : '#475569' }}>
-                  {providerName.charAt(0).toUpperCase()}
-                </Text>
-              )}
-            </View>
-            <View>
-              <Text style={{ color: isDark ? '#F8FAFC' : '#1E293B', fontSize: 16, fontWeight: '600' }}>{providerName}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <IconSymbol name="star.fill" size={12} color="#FBBF24" />
-                <Text style={{ color: isDark ? '#94A3B8' : '#64748B', fontSize: 13 }}>{rating.toFixed(2)}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Location */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
-            <IconSymbol name="mappin.and.ellipse" size={16} color="#EF4444" />
-            <Text style={{ color: isDark ? '#E2E8F0' : '#334151', fontSize: 15 }}>
-              {locations.length > 0 ? locations[0] : 'Location N/A'}
-            </Text>
-          </View>
-
-          {/* Description */}
-          <Text style={{ color: isDark ? '#94A3B8' : '#6B7280', fontSize: 15, marginBottom: 16 }}>
-            {bio || 'Complete assistance for your needs.'}
-          </Text>
-
-          {/* Demographics List */}
-          <View style={{ gap: 10, marginBottom: 16 }}>
-            {/* Gender */}
-            {(item.gender || (item.user as any)?.gender) && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <FontAwesome name="user" size={16} color={isDark ? '#64748B' : '#94A3B8'} style={{ width: 20, textAlign: 'center' }} />
-                <Text style={{ color: isDark ? '#E2E8F0' : '#334151', fontSize: 15 }}>{item.gender || (item.user as any)?.gender}</Text>
-              </View>
-            )}
-
-            {/* Religion */}
-            {item.religion && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <FontAwesome name="moon-o" size={16} color={isDark ? '#EAB308' : '#D97706'} style={{ width: 20, textAlign: 'center' }} />
-                <Text style={{ color: isDark ? '#E2E8F0' : '#334151', fontSize: 15 }}>{item.religion}</Text>
-              </View>
-            )}
-
-            {/* Languages */}
-            {(Array.isArray(item.languages) && item.languages.length > 0) && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <MaterialIcons name="chat" size={16} color={isDark ? '#64748B' : '#94A3B8'} />
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  {item.languages.slice(0, 3).map((lang: any, idx) => {
-                    const langLabel = typeof lang === 'object' && lang?.name ? lang.name : lang;
-                    return (
-                      <View key={idx} style={{
-                        backgroundColor: isDark ? '#334155' : '#E5E7EB',
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        borderRadius: 4
-                      }}>
-                        <Text style={{ color: isDark ? '#E2E8F0' : '#374151', fontSize: 13 }}>{langLabel}</Text>
-                      </View>
-                    );
-                  })}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <IconSymbol name="mappin.and.ellipse" size={14} color={themeColors.textSecondary} />
+                  <Text style={{ fontSize: 14, color: themeColors.textSecondary }} numberOfLines={1}>
+                    {locations[0] || 'Remote'}
+                  </Text>
                 </View>
               </View>
-            )}
+
+              {price > 0 && (
+                <View style={{
+                  backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#ECFDF5',
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 10,
+                  alignItems: 'flex-end',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(34, 197, 94, 0.3)' : '#A7F3D0'
+                }}>
+                  <Text style={{ fontSize: 11, color: isDark ? '#4ADE80' : '#15803D', fontWeight: '600', marginBottom: 1 }}>Starting</Text>
+                  <Text style={{ fontSize: 16, color: isDark ? '#4ADE80' : '#15803D', fontWeight: '700' }}>
+                    {(price >= 1000 ? (price / 1000).toFixed(0) + 'k' : price)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Description / Bio */}
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.textSecondary,
+              lineHeight: 22,
+              marginBottom: 16
+            }} numberOfLines={2}>
+              {bio || `Professional ${service.toLowerCase()} services tailored to your specific needs. High quality work guaranteed.`}
+            </Text>
+
+
+
+            {/* Skills / Features Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {getAllServices(item).slice(0, 4).map((s, i) => (
+                <View key={i} style={{
+                  backgroundColor: themeColors.backgroundSecondary,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: themeColors.border
+                }}>
+                  <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '500' }}>{s}</Text>
+                </View>
+              ))}
+            </ScrollView>
           </View>
 
-          {/* View Details Link */}
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}
-            onPress={() => {
-              const serviceId = getPrimaryServiceId(item);
-              if (serviceId) {
-                router.push(`/service/${serviceId}`);
-              } else {
-                const profileType = apiRole === 'business' ? 'business' : 'helper';
-                router.push(`/profile/${profileType}/${providerId}` as any);
-              }
-            }}
-          >
-            <Text style={{ color: '#6366F1', fontSize: 15, fontWeight: '600', marginRight: 4 }}>View Details</Text>
-            <IconSymbol name="arrow.right" size={16} color="#6366F1" />
-          </TouchableOpacity>
+          {/* Footer: Provider Info & Quick Actions */}
+          <View style={{
+            backgroundColor: themeColors.primary, // Colorful footer
+            paddingVertical: 12,
+            paddingHorizontal: 18,
+            borderTopWidth: 1,
+            borderTopColor: themeColors.border,
+            gap: 12, // Gap between rows
+          }}>
+            {/* Top Footer Row: Provider & Actions */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              {/* Provider */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18, // Circle
+                  backgroundColor: 'rgba(255,255,255,0.2)', // Semi-transparent white
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.3)'
+                }}>
+                  {item.profile_image ? (
+                    <Image source={{ uri: item.profile_image }} style={{ width: 36, height: 36 }} />
+                  ) : (
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
+                      {providerName.charAt(0).toUpperCase()}
+                    </Text>
+                  )}
+                </View>
 
-          {/* Action Buttons (Floating look) */}
-          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 8 }}>
-            {/* Message */}
-            <TouchableOpacity
-              style={{
-                width: 56, height: 56, borderRadius: 28,
-                backgroundColor: '#6366F1',
-                alignItems: 'center', justifyContent: 'center',
-                shadowColor: '#6366F1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6
-              }}
-              onPress={(e) => handleInAppMessage(providerId, providerName, e)}
-            >
-              <MaterialIcons name="message" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }} numberOfLines={1}>
+                    {providerName}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <IconSymbol name="star.fill" size={12} color="#F59E0B" />
+                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' }}>
+                      {rating.toFixed(1)} <Text style={{ fontSize: 11, fontWeight: '400' }}>({reviewsCount})</Text>
+                    </Text>
+                  </View>
+                </View>
+              </View>
 
-            {/* Phone */}
-            <TouchableOpacity
-              style={{
-                width: 56, height: 56, borderRadius: 28,
-                backgroundColor: '#22C55E',
-                alignItems: 'center', justifyContent: 'center',
-                shadowColor: '#22C55E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6
-              }}
-              onPress={(e) => handleCall(phoneNumber, e)}
-            >
-              <IconSymbol name="phone.fill" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+              {/* Actions */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(255,255,255,0.15)', // Glassy effect
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.2)'
+                  }}
+                  onPress={(e) => handleCall(phoneNumber, e)}
+                >
+                  <IconSymbol name="phone.fill" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
 
-            {/* WhatsApp */}
-            <TouchableOpacity
-              style={{
-                width: 56, height: 56, borderRadius: 28,
-                backgroundColor: '#25D366',
-                alignItems: 'center', justifyContent: 'center',
-                shadowColor: '#25D366', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6
-              }}
-              onPress={(e) => handleWhatsApp(phoneNumber, e)}
-            >
-              <FontAwesome name="whatsapp" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(255,255,255,0.15)', // Glassy effect
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.2)'
+                  }}
+                  onPress={(e) => handleWhatsApp(phoneNumber, e)}
+                >
+                  <FontAwesome name="whatsapp" size={18} color="#25D366" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: '#FFFFFF', // White button for contrast
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    elevation: 3
+                  }}
+                  onPress={(e) => handleInAppMessage(providerId, providerName, e)}
+                >
+                  <MaterialIcons name="message" size={18} color={themeColors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Bottom Footer Row: Demographics */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 }}>
+              {(item.gender || (item.user as any)?.gender) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <FontAwesome name="user" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{item.gender || (item.user as any)?.gender}</Text>
+                </View>
+              )}
+              {item.religion && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <FontAwesome name="moon-o" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{item.religion}</Text>
+                </View>
+              )}
+              {(Array.isArray(item.languages) && item.languages.length > 0) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialIcons name="chat" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
+                    {item.languages.length} Language{item.languages.length > 1 ? 's' : ''}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -870,7 +859,13 @@ export default function ExploreScreen() {
           {
             backgroundColor: themeColors.card,
             borderColor: themeColors.border,
-            shadowColor: themeColors.shadow
+            shadowColor: themeColors.shadow,
+            shadowOpacity: isDark ? 0.3 : 0.08,
+            shadowOffset: { width: 0, height: 4 },
+            shadowRadius: 12,
+            elevation: 5,
+            paddingBottom: 0, // Footer handles bottom padding
+            overflow: 'hidden'
           }
         ]}
         onPress={() => {
@@ -879,259 +874,217 @@ export default function ExploreScreen() {
         }}
         activeOpacity={0.9}
       >
-        {/* Header Badges */}
-        <View style={styles.helperCardHeader}>
-          {isVerified ? (
-            <View style={styles.helperCardVerified}>
-              <IconSymbol name="checkmark.seal.fill" size={12} color="#FFFFFF" />
-              <Text style={styles.helperCardVerifiedText}>Verified</Text>
+        {/* ID Card Header Bar (Name + Role) */}
+        <View style={{
+          height: 84, // Increased height to accommodate Name + Role
+          backgroundColor: themeColors.primary,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          paddingHorizontal: 20,
+          paddingTop: 16
+        }}>
+          {/* Text Container - Padded Left to make room for Avatar if we want,
+               OR we move Avatar to body.
+               Let's align text to the Right or allow full width if Avatar is moved down.
+               User said "Make name part of header".
+               Let's put Name Top, Role Below.
+           */}
+          <View style={{ marginLeft: 80, flex: 1, justifyContent: 'center' }}>
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 20,
+              fontWeight: '800',
+              marginBottom: 2
+            }} numberOfLines={1}>{providerName}</Text>
+
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 12,
+              fontWeight: '600',
+              letterSpacing: 1,
+              opacity: 0.8
+            }}>{service.toUpperCase()}</Text>
+          </View>
+
+          {isVerified && (
+            <View style={{ position: 'absolute', top: 12, right: 12 }}>
+              <IconSymbol name="checkmark.seal.fill" size={16} color="#FFFFFF" />
             </View>
-          ) : <View />}
-
-          <View style={[
-            styles.helperCardRating,
-            {
-              backgroundColor: isDark ? '#0F172A' : '#FFFBEB',
-              borderColor: isDark ? '#334155' : '#FEF3C7'
-            }
-          ]}>
-            <IconSymbol name="star.fill" size={12} color="#FCD34D" />
-            <Text style={[
-              styles.helperCardRatingText,
-              { color: isDark ? '#FCD34D' : '#B45309' }
-            ]}>{rating.toFixed(1)}</Text>
-          </View>
+          )}
         </View>
 
-        {/* Profile Section */}
-        <View style={styles.helperProfileSection}>
-          <View style={[
-            styles.helperAvatarContainer,
-            {
-              backgroundColor: themeColors.backgroundTertiary,
-              borderColor: themeColors.card
-            }
-          ]}>
-            {item.profile_image ? (
-              <Image source={{ uri: item.profile_image }} style={styles.helperAvatarImage} />
-            ) : (
-              <IconSymbol name="person.fill" size={40} color={themeColors.textSecondary} />
-            )}
-          </View>
-
-          <View style={[
-            styles.helperRoleTag,
-            {
-              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : themeColors.primaryLight,
-              borderColor: isDark ? 'rgba(99, 102, 241, 0.4)' : themeColors.primaryLight
-            }
-          ]}>
-            <Text style={[
-              styles.helperRoleText,
-              { color: isDark ? '#A5B4FC' : themeColors.primary }
-            ]}>{service.toUpperCase()}</Text>
-          </View>
-
-          <Text style={[styles.helperName, { color: themeColors.text }]}>{providerName}</Text>
-
-          <View style={styles.helperLocationRow}>
-            <IconSymbol name="mappin.and.ellipse" size={14} color={themeColors.error} />
-            <View style={[
-              styles.locationBadge,
-              { backgroundColor: themeColors.backgroundTertiary }
-            ]}>
-              <Text style={[styles.helperLocationText, { color: themeColors.textSecondary }]}>
-                {locations.length > 0 ? locations[0] : 'Location N/A'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Demographics & Languages Grid */}
-        <View style={styles.helperDetailsContainer}>
-          {/* Left Column: Demographics */}
-          <View style={styles.helperDemographicsColumn}>
-            {/* Age */}
-            {item.age !== undefined && (
-              <View style={styles.helperDetailRow}>
-                <FontAwesome name="birthday-cake" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
-                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
-                  {item.age} years
-                </Text>
-              </View>
-            )}
-
-            {/* Gender */}
-            {(item.gender || (item.user as any)?.gender) && (
-              <View style={styles.helperDetailRow}>
-                <FontAwesome name="user" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
-                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
-                  {item.gender || (item.user as any)?.gender}
-                </Text>
-              </View>
-            )}
-
-            {/* Religion */}
-            {item.religion && (
-              <View style={styles.helperDetailRow}>
-                <FontAwesome name="moon-o" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
-                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
-                  {item.religion}
-                </Text>
-              </View>
-            )}
-
-            {/* Experience */}
-            {experience ? (
-              <View style={styles.helperDetailRow}>
-                <FontAwesome name="briefcase" size={14} color={themeColors.textSecondary} style={{ width: 20, textAlign: 'center' }} />
-                <Text style={[styles.helperDetailText, { color: themeColors.textSecondary }]}>
-                  {experience}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* Right Column: Languages */}
-          <View style={styles.helperLanguagesColumn}>
-            {(Array.isArray(item.languages) && item.languages.length > 0) && (
-              <View>
-                <View style={[styles.helperSectionHeader, { marginBottom: 8 }]}>
-                  <MaterialIcons name="chat" size={14} color={themeColors.textSecondary} />
-                  <Text style={[styles.helperSectionTitle, { color: themeColors.textSecondary, fontSize: 13 }]}>Languages</Text>
-                </View>
-                <View style={styles.languageChipsContainer}>
-                  {item.languages.slice(0, 2).map((lang: any, idx) => {
-                    const langLabel = typeof lang === 'object' && lang?.name ? lang.name : lang;
-                    return (
-                      <View key={idx} style={[
-                        styles.languageChip,
-                        { backgroundColor: themeColors.backgroundSecondary, borderColor: themeColors.border }
-                      ]}>
-                        <Text style={[styles.languageChipText, { color: themeColors.textSecondary }]}>{langLabel}</Text>
-                      </View>
-                    );
-                  })}
-                  {item.languages.length > 2 && (
-                    <View style={[
-                      styles.languageChip,
-                      { backgroundColor: themeColors.backgroundSecondary, borderColor: themeColors.border }
-                    ]}>
-                      <Text style={[styles.languageChipText, { color: themeColors.textSecondary }]}>+{item.languages.length - 2}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Price Row (if available) */}
-        {price > 0 && (
-          <View style={[
-            styles.helperPriceRow,
-            { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5' }
-          ]}>
-            <Text style={{ color: isDark ? '#34D399' : '#059669', fontWeight: '500', fontSize: 13 }}>Monthly Rate</Text>
-            <Text style={[styles.helperPriceText, { color: isDark ? '#34D399' : '#059669' }]}>
-              ₨{Math.floor(price).toLocaleString()}
-            </Text>
-          </View>
-        )}
-
-        {/* Skills / Services Section */}
-        {(() => {
-          const srvs = getAllServices(item);
-          return srvs.length > 0 ? (
-            <View style={styles.helperTagsContainer}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                <IconSymbol name="bolt.fill" size={14} color={isDark ? "#FCD34D" : themeColors.warning} />
-                <Text style={[styles.helperSectionTitle, { color: isDark ? "#FCD34D" : themeColors.warning }]}>Skills</Text>
-              </View>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {srvs.slice(0, 3).map((s, i) => (
-                  <View key={i} style={[
-                    styles.helperTag,
-                    {
-                      backgroundColor: isDark ? 'rgba(99, 102, 241, 0.1)' : themeColors.backgroundSecondary,
-                      borderColor: isDark ? 'rgba(99, 102, 241, 0.2)' : themeColors.border
-                    }
-                  ]}>
-                    <Text style={[
-                      styles.helperTagText,
-                      { color: isDark ? '#C7D2FE' : themeColors.textSecondary }
-                    ]}>{s}</Text>
-                  </View>
-                ))}
-                {srvs.length > 3 && (
-                  <View style={[
-                    styles.helperTag,
-                    {
-                      backgroundColor: isDark ? 'rgba(99, 102, 241, 0.1)' : themeColors.backgroundSecondary,
-                      borderColor: isDark ? 'rgba(99, 102, 241, 0.2)' : themeColors.border
-                    }
-                  ]}>
-                    <Text style={[
-                      styles.helperTagText,
-                      { color: isDark ? '#C7D2FE' : themeColors.textSecondary }
-                    ]}>+{srvs.length - 3}</Text>
-                  </View>
+        {/* Content Body */}
+        <View style={{ paddingHorizontal: 20, marginTop: -32 }}>
+          {/* Profile Header (Avatar & Rating) */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 20 }}>
+            {/* Avatar - Overlapping Header */}
+            <View style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: themeColors.card,
+              padding: 4,
+              marginRight: 16,
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4
+            }}>
+              <View style={{ flex: 1, borderRadius: 32, overflow: 'hidden', backgroundColor: themeColors.backgroundTertiary, alignItems: 'center', justifyContent: 'center' }}>
+                {item.profile_image ? (
+                  <Image source={{ uri: item.profile_image }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={{ fontSize: 24, fontWeight: '700', color: themeColors.textSecondary }}>
+                    {providerName.charAt(0).toUpperCase()}
+                  </Text>
                 )}
               </View>
             </View>
-          ) : null;
-        })()}
+
+            {/* Rating & Location (Name removed from here) */}
+            <View style={{ flex: 1, paddingBottom: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <IconSymbol name="star.fill" size={14} color="#F59E0B" />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: themeColors.textSecondary }}>{rating.toFixed(1)}</Text>
+                </View>
+                <Text style={{ color: themeColors.border }}>|</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <IconSymbol name="mappin.and.ellipse" size={12} color={themeColors.textSecondary} />
+                  <Text style={{ fontSize: 13, color: themeColors.textSecondary }} numberOfLines={1}>
+                    {locations.length > 0 ? locations[0] : 'Remote'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* ID Details Grid */}
+          <View style={{
+            backgroundColor: themeColors.backgroundTertiary,
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 20,
+            borderWidth: 1,
+            borderColor: themeColors.border
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ width: '45%' }}>
+                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Religion</Text>
+                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.religion || '-'}</Text>
+              </View>
+              <View style={{ width: '45%' }}>
+                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Languages</Text>
+                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+                  {Array.isArray(item.languages) && item.languages.length > 0 ? `${item.languages.length} Spoken` : '-'}
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <View style={{ width: '45%' }}>
+                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Age</Text>
+                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.age ? `${item.age} Years` : '-'}</Text>
+              </View>
+              <View style={{ width: '45%' }}>
+                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Exp.</Text>
+                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{experience || 'Entry'}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Skills */}
+          {(() => {
+            const srvs = getAllServices(item);
+            if (srvs.length === 0) return null;
+            return (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: themeColors.textSecondary, marginBottom: 8, textTransform: 'uppercase' }}>Expertise</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {srvs.slice(0, 4).map((s, i) => (
+                    <View key={i} style={{
+                      backgroundColor: themeColors.card,
+                      borderWidth: 1,
+                      borderColor: themeColors.border,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6
+                    }}>
+                      <Text style={{ fontSize: 11, fontWeight: '500', color: themeColors.textSecondary }}>{s}</Text>
+                    </View>
+                  ))}
+                  {srvs.length > 4 && <Text style={{ fontSize: 11, color: themeColors.textSecondary, alignSelf: 'center' }}>+{srvs.length - 4}</Text>}
+                </View>
+              </View>
+            );
+          })()}
+
+        </View>
 
         {/* Footer Actions */}
-        <View style={[
-          styles.helperFooter,
-          {
-            backgroundColor: themeColors.card,
-            borderTopColor: themeColors.border
-          }
-        ]}>
-          <TouchableOpacity
-            style={[styles.helperActionButton, { backgroundColor: '#22C55E' }]}
-            onPress={(e) => handleCall(phoneNumber, e)}
-          >
-            <IconSymbol name="phone.fill" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+        <View style={{
+          backgroundColor: themeColors.backgroundSecondary,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          borderTopWidth: 1,
+          borderTopColor: themeColors.border,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          {/* Price */}
+          <View>
+            <Text style={{ fontSize: 11, color: themeColors.textSecondary }}>Starting Rate</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: themeColors.primary }}>
+              {price > 0 ? `₨${(price / 1000).toFixed(0)}k` : 'N/A'} <Text style={{ fontSize: 12, fontWeight: 'normal', color: themeColors.textSecondary }}>/mo</Text>
+            </Text>
+          </View>
 
-          <TouchableOpacity
-            style={[styles.helperActionButton, { backgroundColor: '#22C55E' }]}
-            onPress={(e) => handleWhatsApp(phoneNumber, e)}
-          >
-            <FontAwesome name="whatsapp" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.helperActionButton, { backgroundColor: '#6366F1' }]}
-            onPress={(e) => handleInAppMessage(providerId, providerName, e)}
-          >
-            <MaterialIcons name="message" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0' }}
+              onPress={(e) => handleCall(phoneNumber, e)}
+            >
+              <IconSymbol name="phone.fill" size={18} color="#1E293B" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0' }}
+              onPress={(e) => handleWhatsApp(phoneNumber, e)}
+            >
+              <FontAwesome name="whatsapp" size={22} color="#25D366" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: themeColors.primary, alignItems: 'center', justifyContent: 'center' }}
+              onPress={(e) => handleInAppMessage(providerId, providerName, e)}
+            >
+              <MaterialIcons name="message" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
+
       </TouchableOpacity>
     );
   };
 
   // Helper function to get all services for a helper
   const getAllServices = (helper: Helper): string[] => {
+    let services: string[] = [];
     // Check service_listings first (for helpers)
     if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
-      return helper.service_listings.map((s) => {
+      services = helper.service_listings.map((s) => {
         const serviceType = s.service_type || '';
         return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
       });
     }
     // Fallback to services
-    if (helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
-      return helper.services.map((s) => {
+    else if (helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
+      services = helper.services.map((s) => {
         const serviceType = s.service_type || '';
         return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
       });
     }
-    return [];
+    return [...new Set(services)];
   };
 
   // Helper function to get all locations for a helper
@@ -2908,6 +2861,79 @@ const styles = StyleSheet.create({
   helperPriceText: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  // --- New Helper Card Redesign Styles ---
+  helperCardCover: {
+    padding: 16,
+    paddingBottom: 24,
+    backgroundColor: 'transparent', // Overlap effect if needed, or just container
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  helperCardContent: {
+    marginTop: -20, // Negative margin to overlap with cover or just pull up
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  helperHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  helperNameColumn: {
+    flex: 1,
+    paddingTop: 8, // Align with avatar center roughly
+    gap: 4,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 16,
+    opacity: 0.5,
+  },
+  helperDetailChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  skillPreviewContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  skillText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  cardActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  actionButtonPrimary: {
+    flex: 1.2, // Slightly larger
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
 

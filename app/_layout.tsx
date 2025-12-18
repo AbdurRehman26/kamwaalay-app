@@ -125,6 +125,7 @@ function RootLayoutNav() {
     // If user exists but is not verified, redirect to OTP verify screen
     // But ONLY if we're not on login/signup screens (allow users to login fresh)
     else if (user && user.isVerified === false) {
+      console.log('[RootLayoutNav] User not verified, redirecting to OTP');
       // Don't redirect if user is on login or signup screens - let them login fresh
       if (currentPath === 'auth/phone-login' || currentPath === 'auth/signup') {
         // User is on login/signup screen - don't redirect, let them login
@@ -141,21 +142,32 @@ function RootLayoutNav() {
     }
     // If user exists and is verified, and is in auth group, redirect to appropriate screen
     else if (user && user.isVerified !== false && inAuthGroup) {
+      console.log('[RootLayoutNav] User verified in auth/onboarding group', {
+        onboardingStatus: user.onboardingStatus,
+        userType: user.userType
+      });
+
       try {
-        // Allow navigation to specific onboarding screens (helper-profile, business-profile)
-        // Don't redirect if user is already on these screens
-        if (currentPath === 'onboarding/helper-profile' || currentPath === 'onboarding/business-profile') {
-          // User is on the stepper onboarding screen - allow them to stay
+        if (user.onboardingStatus === 'completed') {
+          console.log('[RootLayoutNav] Onboarding completed, redirecting to tabs');
+          router.replace('/(tabs)');
           return;
         }
 
-        if (user.onboardingStatus === 'completed') {
-          router.replace('/(tabs)');
-        } else if (user.onboardingStatus === 'in_progress') {
+        // Allow navigation to specific onboarding screens (helper-profile, business-profile)
+        // only if onboarding is not yet completed
+        if (currentPath === 'onboarding/helper-profile' || currentPath === 'onboarding/business-profile') {
+          return;
+        }
+
+        if (user.onboardingStatus === 'in_progress') {
+          console.log('[RootLayoutNav] Onboarding in progress, redirecting to start');
           router.replace('/onboarding/start');
         } else if (user.userType) {
+          console.log('[AuthContext] User has type but no onboarding yet, redirecting to start');
           router.replace('/onboarding/start');
         } else {
+          console.log('[AuthContext] No user type, redirecting to user-type selection');
           router.replace('/auth/user-type');
         }
       } catch (error) {

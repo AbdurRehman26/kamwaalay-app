@@ -3,6 +3,8 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { Image as ExpoImage } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -33,8 +35,10 @@ const GENDER_OPTIONS = ['Male', 'Female'];
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, uploadProfilePhoto, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
 
   const insets = useSafeAreaInsets();
 
@@ -104,10 +108,58 @@ export default function EditProfileScreen() {
   const [showReligionDropdown, setShowReligionDropdown] = useState(false);
 
   React.useEffect(() => {
+    refreshProfile();
     if (user?.userType === 'helper') {
       fetchLanguages();
     }
-  }, [user?.userType]);
+  }, []);
+
+  // Sync internal state when user object changes (e.g., after refreshProfile)
+  React.useEffect(() => {
+    if (user) {
+      if (user.userType === 'helper') {
+        const pd = user.profileData as any;
+        setName(pd?.name || user.name || '');
+        setBio(pd?.bio || (user as any).bio || '');
+        setExperience(pd?.experience || (user as any).experience || '');
+        setAge(pd?.age?.toString() || (user as any).age?.toString() || '');
+
+        const rawGender = pd?.gender || (user as any).gender;
+        if (rawGender && typeof rawGender === 'object') {
+          setGender(rawGender.id || rawGender.value || rawGender.name || '');
+        } else {
+          setGender(rawGender || '');
+        }
+
+        const rawReligion = pd?.religion || (user as any).religion;
+        if (rawReligion && typeof rawReligion === 'object') {
+          setReligion(rawReligion.id || rawReligion.value || rawReligion.key || '');
+        } else {
+          setReligion(rawReligion || '');
+        }
+
+        const rawLangs = pd?.languages || (user as any).languages;
+        if (Array.isArray(rawLangs)) {
+          const parsedLangs = rawLangs.map((l: any) => {
+            if (l && typeof l === 'object') {
+              return l.id || l.value;
+            }
+            const id = typeof l === 'string' ? parseInt(l) : l;
+            return typeof id === 'number' && !isNaN(id) ? id : null;
+          }).filter((l: any) => l !== null);
+          setLanguages(parsedLangs);
+        }
+      } else if (user.userType === 'business') {
+        const pd = user.profileData as any;
+        setOwnerName(pd?.ownerName || (user as any).ownerName || user.name || '');
+        setBusinessName(pd?.businessName || (user as any).businessName || '');
+        setBio(pd?.bio || (user as any).bio || '');
+        setName(user.name || '');
+      } else {
+        setName(user.name || '');
+      }
+    }
+  }, [user]);
 
   const fetchLanguages = async () => {
     try {
@@ -152,6 +204,37 @@ export default function EditProfileScreen() {
     setLanguages(updatedLanguages);
   };
 
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        setSelectedImageUri(uri);
+
+        // Immediate upload
+        setIsUploadingPhoto(true);
+        try {
+          await uploadProfilePhoto(uri);
+          Alert.alert('Success', 'Profile photo updated successfully');
+        } catch (error: any) {
+          Alert.alert('Upload Failed', error.message || 'Failed to upload photo');
+          setSelectedImageUri(null); // Reset preview on failure
+        } finally {
+          setIsUploadingPhoto(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
   const handleSave = async () => {
     const finalName = user?.userType === 'business' ? ownerName : name;
     if (!finalName.trim()) {
@@ -166,40 +249,31 @@ export default function EditProfileScreen() {
 
     setIsLoading(true);
     try {
-      const updatedUser: any = {
+      // 2. Update profile data (Photo is now uploaded immediately in pickImage)
+      // Sending flat payload as per requirement
+      const profileUpdateData: any = {
         name: finalName.trim(),
       };
 
-      // Update profile data for helpers/businesses
-      if (user?.userType === 'helper' && user.profileData) {
-        updatedUser.profileData = {
-          ...user.profileData,
-          name: finalName.trim(),
-          bio: bio.trim() || undefined,
-          experience: experience.trim() || undefined,
-          age: age.trim() || undefined,
-          gender: gender || undefined,
-          religion: religion || undefined,
-          languages: languages,
-        };
-      } else if (user?.userType === 'business' && user.profileData) {
-        updatedUser.profileData = {
-          ...user.profileData,
-          businessName: businessName.trim(),
-          ownerName: ownerName.trim(),
-          bio: bio.trim() || undefined,
-          experience: bio.trim() || undefined, // Mapping bio to experience/description for business if needed
-        };
-        // Also update the main name field for businesses
-        updatedUser.name = ownerName.trim();
+      if (user?.userType === 'helper') {
+        profileUpdateData.bio = bio.trim() || undefined;
+        profileUpdateData.experience = experience.trim() || undefined;
+        profileUpdateData.age = age.trim() ? parseInt(age) : undefined;
+        profileUpdateData.gender = gender ? gender.toLowerCase() : undefined;
+        profileUpdateData.religion = religion || undefined;
+        profileUpdateData.languages = languages;
+      } else if (user?.userType === 'business') {
+        profileUpdateData.businessName = businessName.trim() || undefined;
+        profileUpdateData.ownerName = ownerName.trim() || undefined;
+        profileUpdateData.bio = bio.trim() || undefined;
       }
 
-      await updateUser(updatedUser);
+      await updateUser(profileUpdateData);
       Alert.alert('Success', 'Profile updated successfully', [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -252,12 +326,30 @@ export default function EditProfileScreen() {
           <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
               <View style={[styles.avatar, { backgroundColor: cardBg, borderColor: cardBg, shadowColor: primaryColor }]}>
-                <Text style={[styles.avatarText, { color: primaryColor }]}>
-                  {(name || user?.name || 'U').charAt(0).toUpperCase()}
-                </Text>
+                {isUploadingPhoto ? (
+                  <ActivityIndicator size="large" color={primaryColor} />
+                ) : selectedImageUri || user?.profileImage ? (
+                  <ExpoImage
+                    source={{ uri: selectedImageUri || user?.profileImage }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Text style={[styles.avatarText, { color: primaryColor }]}>
+                    {(name || user?.name || 'U').charAt(0).toUpperCase()}
+                  </Text>
+                )}
               </View>
-              <TouchableOpacity style={[styles.cameraButton, { backgroundColor: primaryColor, borderColor: cardBg }]}>
-                <IconSymbol name="camera.fill" size={20} color="#FFFFFF" />
+              <TouchableOpacity
+                style={[styles.cameraButton, { backgroundColor: primaryColor, borderColor: cardBg }]}
+                onPress={pickImage}
+                disabled={isUploadingPhoto}
+              >
+                {isUploadingPhoto ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <IconSymbol name="camera.fill" size={20} color="#FFFFFF" />
+                )}
               </TouchableOpacity>
             </View>
             <Text style={[styles.changePhotoText, { color: textSecondary }]}>Tap to change photo</Text>
@@ -611,6 +703,11 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 48,
     fontWeight: 'bold',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
   },
   cameraButton: {
     position: 'absolute',

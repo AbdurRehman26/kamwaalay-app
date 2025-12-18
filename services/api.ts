@@ -67,11 +67,14 @@ class ApiService {
   /**
    * Build headers for API requests
    */
-  private async buildHeaders(includeAuth: boolean = true): Promise<HeadersInit> {
+  private async buildHeaders(includeAuth: boolean = true, isFormData: boolean = false): Promise<HeadersInit> {
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (includeAuth) {
       const token = await this.getAuthToken();
@@ -198,20 +201,22 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = buildApiUrl(endpoint, params);
-      const headers = await this.buildHeaders(includeAuth);
+      const isFormData = body instanceof FormData;
+      const headers = await this.buildHeaders(includeAuth, isFormData);
 
       console.log('[API] POST request', {
         url,
         endpoint,
+        isFormData,
         hasBody: !!body,
-        bodyKeys: body ? Object.keys(body) : [],
+        bodyKeys: body && !isFormData ? Object.keys(body) : (isFormData ? 'FormData' : []),
         includeAuth,
       });
 
       const response = await fetch(url, {
         method: 'POST',
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
       });
 
       console.log('[API] POST response received', {
@@ -267,12 +272,20 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = buildApiUrl(endpoint, params);
-      const headers = await this.buildHeaders(includeAuth);
+      const isFormData = body instanceof FormData;
+
+      // Laravel/PHP workaround: multipart/form-data doesn't work with PUT/PATCH methods directly
+      // So we use POST and add _method spoofing field
+      if (isFormData) {
+        (body as FormData).append('_method', 'PUT');
+      }
+
+      const headers = await this.buildHeaders(includeAuth, isFormData);
 
       const response = await fetch(url, {
-        method: 'PUT',
+        method: isFormData ? 'POST' : 'PUT',
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
       });
 
       return await this.handleResponse<T>(response);
@@ -296,12 +309,20 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = buildApiUrl(endpoint, params);
-      const headers = await this.buildHeaders(includeAuth);
+      const isFormData = body instanceof FormData;
+
+      // Laravel/PHP workaround: multipart/form-data doesn't work with PUT/PATCH methods directly
+      // So we use POST and add _method spoofing field
+      if (isFormData) {
+        (body as FormData).append('_method', 'PATCH');
+      }
+
+      const headers = await this.buildHeaders(includeAuth, isFormData);
 
       const response = await fetch(url, {
-        method: 'PATCH',
+        method: isFormData ? 'POST' : 'PATCH',
         headers,
-        body: body ? JSON.stringify(body) : undefined,
+        body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
       });
 
       return await this.handleResponse<T>(response);

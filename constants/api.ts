@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
   PROFILE: {
     GET: '/profile',
     UPDATE: '/profile',
+    PHOTO: '/profile/photo',
   },
 
   // Password

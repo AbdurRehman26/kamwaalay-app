@@ -40,7 +40,12 @@ function formatPhoneNumberWithCountryCode(phone: string): string {
  * Handles both boolean fields (is_onboarded, onboarded) and status strings (onboarding_status, onboardingStatus)
  */
 function extractOnboardingStatus(apiData: any, fallback: OnboardingStatus = 'not_started'): OnboardingStatus {
-  // Check for boolean fields first (is_onboarded, onboarded)
+  // Check for the new field first
+  if (apiData?.onboarding_complete === true) {
+    return 'completed';
+  }
+
+  // Check for boolean fields (is_onboarded, onboarded)
   if (apiData?.is_onboarded === true || apiData?.onboarded === true) {
     return 'completed';
   }
@@ -142,7 +147,8 @@ interface AuthContextType {
   verifyOTP: (otp: string) => Promise<boolean>;
   resendOTP: () => Promise<void>;
   selectUserType: (userType: UserType) => Promise<void>;
-  updateUser: (userData: Partial<User>) => Promise<void>;
+  updateUser: (userData: Partial<User> | FormData) => Promise<void>;
+  uploadProfilePhoto: (photoUri: string) => Promise<void>;
   completeOnboarding: (
     profileData: HelperProfile | BusinessProfile,
     additionalData?: {
@@ -162,6 +168,7 @@ interface AuthContextType {
   ) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -187,6 +194,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Only load user if they are verified, otherwise clear unverified users
         if (parsed.isVerified === true) {
           setUser(parsed);
+          // Refresh profile after loading from storage
+          refreshProfile(parsed);
         } else {
           // Clear unverified user data on app load
           await AsyncStorage.removeItem('user');
@@ -198,6 +207,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Error loading user
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshProfile = async (currentUser?: User) => {
+    try {
+      const activeUser = currentUser || user;
+      if (!activeUser) return;
+
+      const response = await apiService.get(API_ENDPOINTS.PROFILE.GET);
+
+      if (response.success && response.data) {
+        const profileData = response.data.user || response.data;
+        const updatedUser: User = {
+          ...activeUser,
+          ...profileData,
+          id: profileData.id?.toString() || activeUser.id,
+          onboardingStatus: extractOnboardingStatus(profileData, activeUser.onboardingStatus),
+        };
+
+        await saveUser(updatedUser);
+        console.log('[AuthContext] Profile refreshed:', updatedUser.onboardingStatus);
+      }
+    } catch (error) {
+      console.error('[AuthContext] Error refreshing profile:', error);
     }
   };
 
@@ -660,7 +693,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUser = async (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User> | FormData) => {
     if (!user) return;
 
     try {
@@ -698,16 +731,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userDataFromApi = responseData.user || responseData;
         // Extract onboarding status from API response, but prefer userData.onboardingStatus if explicitly provided
         const onboardingStatusFromApi = extractOnboardingStatus(userDataFromApi, user.onboardingStatus || 'not_started');
+
+        // If userData is FormData, we can't easily access its properties
+        const onboardingStatusFromRequest = userData instanceof FormData
+          ? (userData.has('onboardingStatus') ? userData.get('onboardingStatus') as OnboardingStatus : undefined)
+          : (userData as Partial<User>).onboardingStatus;
+
         const updatedUser = {
           ...user,
           ...userDataFromApi,
           // Preserve existing user data that might not be in response
           id: userDataFromApi.id?.toString() || user.id,
           phoneNumber: userDataFromApi.phone || userDataFromApi.phoneNumber || user.phoneNumber,
-          email: userDataFromApi.email || user.email || userData.email,
-          name: userDataFromApi.name || user.name || userData.name,
+          email: userDataFromApi.email || user.email || (userData instanceof FormData ? user.email : (userData as any).email),
+          name: userDataFromApi.name || user.name || (userData instanceof FormData ? user.name : (userData as any).name),
           // Use onboardingStatus from userData if explicitly provided, otherwise use API response
-          onboardingStatus: userData.onboardingStatus || onboardingStatusFromApi,
+          onboardingStatus: onboardingStatusFromRequest || onboardingStatusFromApi,
         };
         await saveUser(updatedUser);
       } else {
@@ -722,6 +761,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Re-throw error so calling code can handle it
       throw new Error(errorMessage);
+    }
+  };
+
+  const uploadProfilePhoto = async (photoUri: string) => {
+    if (!user) return;
+
+    try {
+      const formData = new FormData();
+
+      const filename = photoUri.split('/').pop() || 'profile.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append('photo', {
+        uri: photoUri,
+        name: filename,
+        type,
+      } as any);
+
+      const response = await apiService.post(
+        API_ENDPOINTS.PROFILE.PHOTO,
+        formData,
+        undefined,
+        true
+      );
+
+      if (response.success && response.data) {
+        const responseData = response.data;
+        const userDataFromApi = responseData.user || responseData;
+
+        const updatedUser = {
+          ...user,
+          ...userDataFromApi,
+          profileImage: userDataFromApi.photo || userDataFromApi.profile_image || userDataFromApi.profileImage || user.profileImage,
+        };
+        await saveUser(updatedUser);
+      } else {
+        throw new Error(response.error || 'Failed to upload photo');
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to upload photo');
     }
   };
 
@@ -972,6 +1052,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         completeOnboarding,
         changePassword,
         logout,
+        refreshProfile: () => refreshProfile(),
+        uploadProfilePhoto,
         isAuthenticated: !!user,
       }}
     >
@@ -996,6 +1078,8 @@ export function useAuth() {
       completeOnboarding: async () => { },
       changePassword: async () => { },
       logout: async () => { },
+      refreshProfile: async () => { },
+      uploadProfilePhoto: async () => { },
       isAuthenticated: false,
     } as AuthContextType;
   }

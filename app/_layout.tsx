@@ -196,7 +196,8 @@ function RootLayoutNav() {
       <Stack.Screen name="privacy" options={{ headerShown: false }} />
       <Stack.Screen name="about" options={{ headerShown: false }} />
       <Stack.Screen name="job/create" options={{ headerShown: false }} />
-      <Stack.Screen name="job-view/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="job/edit/[id]" options={{ headerShown: false, title: 'Edit Job' }} />
+      <Stack.Screen name="job-view/[id]/index" options={{ headerShown: false }} />
       <Stack.Screen
         name="business/dashboard"
         options={{

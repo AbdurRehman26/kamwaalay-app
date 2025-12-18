@@ -366,7 +366,6 @@ export default function ProfileViewScreen() {
 
               // Remove duplicates and filter out empty values
               const uniqueLocs = [...new Set(locs.filter(Boolean))];
-              console.log('📍 Locations from listing.location_details:', uniqueLocs);
               return uniqueLocs;
             })(),
             profile_image: user.profile_image || user.avatar,
@@ -585,44 +584,38 @@ export default function ProfileViewScreen() {
   };
 
   // Handle phone call
-  const handleCall = (phoneNumber: string | null) => {
+  const handleCall = async (phoneNumber: string | null) => {
     if (!phoneNumber) {
       Alert.alert('Phone Number', 'Phone number not available');
       return;
     }
     const url = `tel:${phoneNumber}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert('Error', 'Phone dialer is not available');
-        }
-      })
-      .catch(() => {
-        Alert.alert('Error', 'Unable to open phone dialer');
-      });
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      Alert.alert('Error', 'Unable to open phone dialer');
+    }
   };
 
   // Handle WhatsApp
-  const handleWhatsApp = (phoneNumber: string | null) => {
+  const handleWhatsApp = async (phoneNumber: string | null) => {
     if (!phoneNumber) {
       Alert.alert('Phone Number', 'Phone number not available');
       return;
     }
     const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
-    const url = `https://wa.me/${formattedPhone.replace(/\+/g, '')}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert('Error', 'WhatsApp is not available');
-        }
-      })
-      .catch(() => {
+    const appUrl = `whatsapp://send?phone=${formattedPhone}`;
+    const webUrl = `https://wa.me/${formattedPhone.replace(/\+/g, '')}`;
+
+    try {
+      await Linking.openURL(appUrl);
+    } catch (err) {
+      try {
+        await Linking.openURL(webUrl);
+      } catch (webErr) {
         Alert.alert('Error', 'Unable to open WhatsApp');
-      });
+      }
+    }
   };
 
   return (
@@ -726,7 +719,7 @@ export default function ProfileViewScreen() {
                 {displayProfile.religion && (
                   <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
                     <Text style={[styles.gridLabel, { color: textSecondary }]}>Religion</Text>
-                    <Text style={[styles.gridValue, { color: textColor }]}>{displayProfile.religion}</Text>
+                    <Text style={[styles.gridValue, { color: textColor }]}>{typeof displayProfile.religion === 'object' ? (displayProfile.religion as any).label : displayProfile.religion}</Text>
                   </View>
                 )}
                 {displayProfile.languages && displayProfile.languages.length > 0 && (

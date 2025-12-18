@@ -11,12 +11,14 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 const SERVICE_TYPES = [
@@ -70,11 +72,11 @@ export default function CreateRequestScreen() {
   const [locationSearch, setLocationSearch] = useState('');
   const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+
+  // Modal State
+  const [activeSelection, setActiveSelection] = useState<'service' | 'work' | 'location' | null>(null);
 
   // UI State
-  const [showServiceTypeDropdown, setShowServiceTypeDropdown] = useState(false);
-  const [showWorkTypeDropdown, setShowWorkTypeDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Search locations from API when user types
@@ -84,7 +86,6 @@ export default function CreateRequestScreen() {
         searchLocations(locationSearch.trim());
       } else if (locationSearch.trim().length === 0) {
         setFilteredLocations([]);
-        setShowLocationDropdown(false);
       }
     }, 300); // Debounce for 300ms
 
@@ -94,7 +95,6 @@ export default function CreateRequestScreen() {
   const searchLocations = async (query: string) => {
     try {
       setIsLoadingLocations(true);
-      setShowLocationDropdown(true);
 
       const response = await apiService.get(
         API_ENDPOINTS.LOCATIONS.SEARCH,
@@ -122,14 +122,11 @@ export default function CreateRequestScreen() {
         }));
 
         setFilteredLocations(mappedLocations);
-        setShowLocationDropdown(mappedLocations.length > 0);
       } else {
         setFilteredLocations([]);
-        setShowLocationDropdown(false);
       }
     } catch (error) {
       setFilteredLocations([]);
-      setShowLocationDropdown(false);
     } finally {
       setIsLoadingLocations(false);
     }
@@ -137,10 +134,9 @@ export default function CreateRequestScreen() {
 
   const handleLocationSelect = (location: Location) => {
     // Only allow single location selection as per design implication ("Area *")
-    // But keeping array structure for compatibility if needed, or simply replacing
     setSelectedLocations([location]);
     setLocationSearch(location.area || location.name);
-    setShowLocationDropdown(false);
+    setActiveSelection(null);
   };
 
   const handleCreate = async () => {
@@ -176,6 +172,91 @@ export default function CreateRequestScreen() {
     }
   };
 
+  const renderSelectionModal = () => {
+    if (!activeSelection) return null;
+
+    let title = '';
+    let options: string[] | Location[] = [];
+    let onSelect: (item: any) => void = () => { };
+
+    if (activeSelection === 'service') {
+      title = 'Select Service Type';
+      options = SERVICE_TYPES;
+      onSelect = (item) => {
+        setServiceType(item);
+        setActiveSelection(null);
+      };
+    } else if (activeSelection === 'work') {
+      title = 'Select Work Type';
+      options = WORK_TYPES;
+      onSelect = (item) => {
+        setWorkType(item);
+        setActiveSelection(null);
+      };
+    } else if (activeSelection === 'location') {
+      title = 'Select Area';
+      options = filteredLocations;
+      onSelect = handleLocationSelect;
+    }
+
+    return (
+      <Modal
+        visible={!!activeSelection}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setActiveSelection(null)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: backgroundColor }}>
+          <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+            <TouchableOpacity onPress={() => setActiveSelection(null)} style={styles.closeButton}>
+              <IconSymbol name="xmark" size={24} color={textColor} />
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: textColor }]}>{title}</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {activeSelection === 'location' && (
+            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: borderColor }}>
+              <TextInput
+                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
+                placeholder="Type to search area..."
+                placeholderTextColor={textMuted}
+                value={locationSearch}
+                onChangeText={setLocationSearch}
+                autoFocus
+              />
+              {isLoadingLocations && (
+                <ActivityIndicator style={styles.loader} size="small" color={primaryColor} />
+              )}
+            </View>
+          )}
+
+          <ScrollView contentContainerStyle={{ padding: 20 }}>
+            {activeSelection === 'location' && options.length === 0 && locationSearch.length > 0 && !isLoadingLocations ? (
+              <Text style={{ textAlign: 'center', color: textMuted, marginTop: 20 }}>No locations found</Text>
+            ) : (
+              options.map((item: any, index: number) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.modalItem, { borderBottomColor: borderColor }]}
+                  onPress={() => onSelect(item)}
+                >
+                  <Text style={[styles.modalItemText, { color: textColor }]}>
+                    {activeSelection === 'location' ? (item.area ? item.area : item.name) : item}
+                  </Text>
+                  {((activeSelection === 'service' && serviceType === item) ||
+                    (activeSelection === 'work' && workType === item)) && (
+                      <IconSymbol name="checkmark" size={20} color={primaryColor} />
+                    )}
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    );
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -200,73 +281,35 @@ export default function CreateRequestScreen() {
 
           {/* Row 1: Service Type & Work Type */}
           <View style={styles.row}>
-            <View style={[styles.col, { zIndex: 2000 }]}>
+            <View style={styles.col}>
               <ThemedText style={styles.label}>SERVICE TYPE *</ThemedText>
               <TouchableOpacity
                 style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
-                onPress={() => {
-                  setShowServiceTypeDropdown(!showServiceTypeDropdown);
-                  setShowWorkTypeDropdown(false);
-                }}
+                onPress={() => setActiveSelection('service')}
               >
                 <Text style={[styles.dropdownButtonText, { color: serviceType ? textColor : textMuted }]}>
                   {serviceType || 'Select Service'}
                 </Text>
                 <IconSymbol name="chevron.down" size={16} color={textMuted} />
               </TouchableOpacity>
-              {showServiceTypeDropdown && (
-                <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                  {SERVICE_TYPES.map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
-                      onPress={() => {
-                        setServiceType(type);
-                        setShowServiceTypeDropdown(false);
-                      }}
-                    >
-                      <Text style={[styles.dropdownItemText, { color: textColor }]}>{type}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
             </View>
 
-            <View style={[styles.col, { zIndex: 1000 }]}>
+            <View style={styles.col}>
               <ThemedText style={styles.label}>WORK TYPE *</ThemedText>
               <TouchableOpacity
                 style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
-                onPress={() => {
-                  setShowWorkTypeDropdown(!showWorkTypeDropdown);
-                  setShowServiceTypeDropdown(false);
-                }}
+                onPress={() => setActiveSelection('work')}
               >
                 <Text style={[styles.dropdownButtonText, { color: workType ? textColor : textMuted }]}>
                   {workType || 'Select Type'}
                 </Text>
                 <IconSymbol name="chevron.down" size={16} color={textMuted} />
               </TouchableOpacity>
-              {showWorkTypeDropdown && (
-                <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                  {WORK_TYPES.map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
-                      onPress={() => {
-                        setWorkType(type);
-                        setShowWorkTypeDropdown(false);
-                      }}
-                    >
-                      <Text style={[styles.dropdownItemText, { color: textColor }]}>{type}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
             </View>
           </View>
 
           {/* Row 2: Salary & Area */}
-          <View style={[styles.row, { zIndex: 1 }]}>
+          <View style={styles.row}>
             <View style={styles.col}>
               <ThemedText style={styles.label}>ESTIMATED SALARY</ThemedText>
               <TextInput
@@ -279,38 +322,17 @@ export default function CreateRequestScreen() {
               />
             </View>
 
-            <View style={[styles.col, { zIndex: 500 }]}>
+            <View style={styles.col}>
               <ThemedText style={styles.label}>AREA *</ThemedText>
-              <View>
-                <TextInput
-                  style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
-                  placeholder="Type to search area..."
-                  placeholderTextColor={textMuted}
-                  value={locationSearch}
-                  onChangeText={setLocationSearch}
-                  onFocus={() => {
-                    if (locationSearch.trim()) setShowLocationDropdown(true);
-                  }}
-                />
-                {isLoadingLocations && (
-                  <ActivityIndicator style={styles.loader} size="small" color={primaryColor} />
-                )}
-                {showLocationDropdown && filteredLocations.length > 0 && (
-                  <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor: borderColor, width: '100%', top: '100%' }]}>
-                    {filteredLocations.map((loc, index) => (
-                      <TouchableOpacity
-                        key={loc.id || index}
-                        style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
-                        onPress={() => handleLocationSelect(loc)}
-                      >
-                        <Text style={[styles.dropdownItemText, { color: textColor }]}>
-                          {loc.area ? `${loc.area}` : loc.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
+              <TouchableOpacity
+                style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
+                onPress={() => setActiveSelection('location')}
+              >
+                <Text style={[styles.dropdownButtonText, { color: locationSearch ? textColor : textMuted }]} numberOfLines={1}>
+                  {locationSearch || 'Select Area'}
+                </Text>
+                <IconSymbol name="chevron.down" size={16} color={textMuted} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -319,28 +341,28 @@ export default function CreateRequestScreen() {
             <View style={styles.col}>
               <ThemedText style={styles.label}>YOUR NAME *</ThemedText>
               <TextInput
-                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
+                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textMuted, opacity: 0.8 }]}
                 placeholder="Full Name"
                 placeholderTextColor={textMuted}
                 value={userName}
-                onChangeText={setUserName}
+                editable={false}
               />
             </View>
 
             <View style={styles.col}>
               <ThemedText style={styles.label}>PHONE *</ThemedText>
               <TextInput
-                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
+                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textMuted, opacity: 0.8 }]}
                 placeholder="03001234567"
                 placeholderTextColor={textMuted}
                 keyboardType="phone-pad"
                 value={phone}
-                onChangeText={setPhone}
+                editable={false}
               />
               <View style={styles.helperTextContainer}>
                 <IconSymbol name="info.circle" size={12} color={textMuted} />
                 <Text style={[styles.helperText, { color: textMuted }]}>
-                  Not visible until accepted.
+                  Not visible until you accept an application.
                 </Text>
               </View>
             </View>
@@ -404,6 +426,8 @@ export default function CreateRequestScreen() {
 
         </View>
       </ScrollView>
+
+      {renderSelectionModal()}
     </ThemedView>
   );
 }
@@ -489,24 +513,6 @@ const styles = StyleSheet.create({
   dropdownButtonText: {
     fontSize: 14,
   },
-  dropdownList: {
-    position: 'absolute',
-    top: 52,
-    left: 0,
-    right: 0,
-    borderWidth: 1,
-    borderRadius: 8,
-    maxHeight: 200,
-    zIndex: 9999,
-    elevation: 5,
-  },
-  dropdownItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-  },
-  dropdownItemText: {
-    fontSize: 14,
-  },
   loader: {
     position: 'absolute',
     right: 12,
@@ -550,5 +556,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalItemText: {
+    fontSize: 16,
+  },
 });
-

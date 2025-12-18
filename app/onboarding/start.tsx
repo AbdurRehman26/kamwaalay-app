@@ -138,17 +138,12 @@ export default function OnboardingStartScreen() {
       setTimeout(() => {
         const userType = updatedUser?.userType || user?.userType;
 
-        console.log('Onboarding navigation - User type:', userType);
-        console.log('Onboarding navigation - User object:', updatedUser);
-
         if (userType === 'helper') {
           console.log('Navigating to helper-profile stepper');
           router.replace('/onboarding/helper-profile');
         } else if (userType === 'business') {
-          console.log('Navigating to business-profile');
           router.replace('/onboarding/business-profile');
         } else {
-          console.log('Navigating to tabs (regular user)');
           // For regular users, complete onboarding and go to tabs
           updateUser({
             ...profileUpdateData,

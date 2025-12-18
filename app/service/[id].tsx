@@ -126,19 +126,20 @@ export default function ServiceDetailScreen() {
         }
     };
 
-    const handleCall = (phoneNumber: string | null) => {
+    const handleCall = async (phoneNumber: string | null) => {
         if (!phoneNumber) {
             Alert.alert('Phone Number', 'Phone number not available');
             return;
         }
         const url = `tel:${phoneNumber}`;
-        Linking.canOpenURL(url).then((supported) => {
-            if (supported) Linking.openURL(url);
-            else Alert.alert('Error', 'Phone dialer not available');
-        });
+        try {
+            await Linking.openURL(url);
+        } catch (err) {
+            Alert.alert('Error', 'Unable to open phone dialer');
+        }
     };
 
-    const handleWhatsApp = (phoneNumber: string | null) => {
+    const handleWhatsApp = async (phoneNumber: string | null) => {
         if (!phoneNumber) {
             Alert.alert('Phone Number', 'Phone number not available');
             return;
@@ -149,11 +150,20 @@ export default function ServiceDetailScreen() {
             else if (cleaned.startsWith('0')) cleaned = '+92' + cleaned.substring(1);
             else cleaned = '+92' + cleaned;
         }
-        const url = `https://wa.me/${cleaned.replace(/\+/g, '')}`;
-        Linking.canOpenURL(url).then((supported) => {
-            if (supported) Linking.openURL(url);
-            else Alert.alert('Error', 'WhatsApp not available');
-        });
+
+        // Use whatsapp:// scheme first as it provides better UX if installed, fallback to web
+        const appUrl = `whatsapp://send?phone=${cleaned}`;
+        const webUrl = `https://wa.me/${cleaned.replace(/\+/g, '')}`;
+
+        try {
+            await Linking.openURL(appUrl);
+        } catch (err) {
+            try {
+                await Linking.openURL(webUrl);
+            } catch (webErr) {
+                Alert.alert('Error', 'Unable to open WhatsApp');
+            }
+        }
     };
 
     if (loading) {
@@ -377,7 +387,7 @@ export default function ServiceDetailScreen() {
                                     {providerReligion && (
                                         <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
                                             <Text style={[styles.gridLabel, { color: textSecondary }]}>Religion</Text>
-                                            <Text style={[styles.gridValue, { color: textColor }]}>{providerReligion}</Text>
+                                            <Text style={[styles.gridValue, { color: textColor }]}>{typeof providerReligion === 'object' ? (providerReligion as any).label : providerReligion}</Text>
                                         </View>
                                     )}
                                     {providerLanguages && providerLanguages.length > 0 && (

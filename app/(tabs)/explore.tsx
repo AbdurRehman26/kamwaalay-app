@@ -531,46 +531,41 @@ export default function ExploreScreen() {
   };
 
   // Handle phone call
-  const handleCall = (phoneNumber: string | null, e?: any) => {
+  const handleCall = async (phoneNumber: string | null, e?: any) => {
     if (e) e.stopPropagation();
     if (!phoneNumber) {
       Alert.alert('Phone Number', 'Phone number not available for this provider');
       return;
     }
     const url = `tel:${phoneNumber}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert('Error', 'Phone dialer is not available on this device');
-        }
-      })
-      .catch(() => {
-        Alert.alert('Error', 'Unable to open phone dialer');
-      });
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      Alert.alert('Error', 'Unable to open phone dialer');
+    }
   };
 
   // Handle WhatsApp
-  const handleWhatsApp = (phoneNumber: string | null, e?: any) => {
+  const handleWhatsApp = async (phoneNumber: string | null, e?: any) => {
     if (e) e.stopPropagation();
     if (!phoneNumber) {
       Alert.alert('Phone Number', 'Phone number not available for this provider');
       return;
     }
     const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
-    const url = `https://wa.me/${formattedPhone.replace(/\+/g, '')}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert('Error', 'WhatsApp is not available on this device');
-        }
-      })
-      .catch(() => {
+    // Use whatsapp:// scheme first as it provides better UX if installed, fallback to web
+    const appUrl = `whatsapp://send?phone=${formattedPhone}`;
+    const webUrl = `https://wa.me/${formattedPhone.replace(/\+/g, '')}`;
+
+    try {
+      await Linking.openURL(appUrl);
+    } catch (err) {
+      try {
+        await Linking.openURL(webUrl);
+      } catch (webErr) {
         Alert.alert('Error', 'Unable to open WhatsApp');
-      });
+      }
+    }
   };
 
   // Handle in-app message
@@ -833,7 +828,7 @@ export default function ExploreScreen() {
               {item.religion && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <FontAwesome name="moon-o" size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{item.religion}</Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{typeof item.religion === 'object' ? (item.religion as any).label : item.religion}</Text>
                 </View>
               )}
               {(Array.isArray(item.languages) && item.languages.length > 0) && (
@@ -973,7 +968,7 @@ export default function ExploreScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ width: '45%' }}>
                 <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Religion</Text>
-                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.religion || '-'}</Text>
+                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.religion ? (typeof item.religion === 'object' ? (item.religion as any).label : item.religion) : '-'}</Text>
               </View>
               <View style={{ width: '45%' }}>
                 <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Languages</Text>

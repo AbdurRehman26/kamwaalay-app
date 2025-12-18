@@ -49,7 +49,6 @@ export default function NotificationsScreen() {
           : (response.data.notifications || []);
         setNotifications(notifs);
       } else {
-        console.log('Failed to fetch notifications:', response.error);
 
         // Check if error is 404 (Not Found), which often means "no notifications" in some APIs
         // Also check for "No notifications found" message

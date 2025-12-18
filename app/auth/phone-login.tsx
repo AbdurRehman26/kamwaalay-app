@@ -65,11 +65,6 @@ export default function PhoneLoginScreen() {
   }, []);
 
   const handleContinue = async () => {
-    console.log('[PhoneLogin] handleContinue called', {
-      authMethod,
-      phoneNumber,
-    });
-
     // Clear any previous error
     setErrorMessage(null);
     setIsLoading(true);

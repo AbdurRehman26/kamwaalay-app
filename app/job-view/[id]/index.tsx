@@ -17,7 +17,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -67,6 +67,41 @@ export default function JobViewScreen() {
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
+
+  // Handle phone call
+  const handleCall = async (phoneNumber: string | null) => {
+    if (!phoneNumber) {
+      Alert.alert('Phone Number', 'Phone number not available');
+      return;
+    }
+    const url = `tel:${phoneNumber}`;
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      Alert.alert('Error', 'Unable to open phone dialer');
+    }
+  };
+
+  // Handle WhatsApp
+  const handleWhatsApp = async (phoneNumber: string | null) => {
+    if (!phoneNumber) {
+      Alert.alert('Phone Number', 'Phone number not available');
+      return;
+    }
+    const cleaned = phoneNumber.replace(/[^\d+]/g, '');
+    const appUrl = `whatsapp://send?phone=${cleaned}`;
+    const webUrl = `https://wa.me/${cleaned.replace(/\+/g, '')}`;
+
+    try {
+      await Linking.openURL(appUrl);
+    } catch (err) {
+      try {
+        await Linking.openURL(webUrl);
+      } catch (webErr) {
+        Alert.alert('Error', 'Unable to open WhatsApp');
+      }
+    }
+  };
   const textSecondary = useThemeColor({}, 'textSecondary');
   const textMuted = useThemeColor({}, 'textMuted');
   const primaryColor = useThemeColor({}, 'primary');
@@ -524,7 +559,7 @@ export default function JobViewScreen() {
                                 <View style={styles.statItem}>
                                   <Text style={[styles.statLabel, { color: textMuted }]}>Religion</Text>
                                   <Text style={[styles.statValue, { color: textColor }]}>
-                                    {applicant.religion ? applicant.religion : '-'}
+                                    {applicant.religion ? (typeof applicant.religion === 'object' ? (applicant.religion as any).label : applicant.religion) : '-'}
                                   </Text>
                                 </View>
                               </View>
@@ -579,13 +614,13 @@ export default function JobViewScreen() {
                                   <>
                                     <TouchableOpacity
                                       style={[styles.contactBtn, { backgroundColor: '#DCFCE7' }]}
-                                      onPress={() => Linking.openURL(`whatsapp://send?phone=${applicant.phoneNumber}`)}
+                                      onPress={() => handleWhatsApp(applicant.phoneNumber || '')}
                                     >
                                       <FontAwesome name="whatsapp" size={22} color="#16A34A" />
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                       style={[styles.contactBtn, { backgroundColor: '#E0E7FF' }]}
-                                      onPress={() => Linking.openURL(`tel:${applicant.phoneNumber}`)}
+                                      onPress={() => handleCall(applicant.phoneNumber || '')}
                                     >
                                       <IconSymbol name="phone.fill" size={20} color="#4F46E5" />
                                     </TouchableOpacity>

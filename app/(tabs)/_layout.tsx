@@ -19,10 +19,6 @@ export default function TabLayout() {
   const iconInactive = useThemeColor({}, 'iconSecondary');
 
   // Debug logging
-  console.log('[TabLayout] User type:', user?.userType);
-  console.log('[TabLayout] Is helper or business:', isHelperOrBusiness);
-  console.log('[TabLayout] Should show explore:', !isHelperOrBusiness);
-
   return (
     <Tabs
       screenOptions={{

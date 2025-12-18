@@ -353,6 +353,14 @@ export default function JobViewScreen() {
         {/* Decorative Background Elements */}
 
         <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.headerBackButton}
+              onPress={() => router.back()}
+            >
+              <IconSymbol name="chevron.left" size={28} color={textColor} />
+            </TouchableOpacity>
+          </View>
           <ScrollView
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
@@ -714,6 +722,20 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
   },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 4,
+    zIndex: 50,
+    width: '100%',
+  },
+  headerBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
@@ -996,14 +1018,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
-  applicantCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
+
   applicantInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1057,10 +1072,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
+
   verifiedBadge: {
     position: 'absolute',
     bottom: -2,

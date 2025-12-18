@@ -20,7 +20,6 @@ export default function SettingsScreen() {
   const { user } = useAuth();
   const { themeMode, setThemeMode, colorScheme } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const [emailNotifications, setEmailNotifications] = React.useState(false);
 
   const primaryColor = useThemeColor({}, 'primary');
   const cardBg = useThemeColor({}, 'card');
@@ -30,8 +29,8 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         horizontal={false}
@@ -113,17 +112,6 @@ export default function SettingsScreen() {
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: borderColor, true: primaryColor }}
-            />
-          </View>
-          <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="envelope.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.settingLabel}>Email Notifications</ThemedText>
-            </View>
-            <Switch
-              value={emailNotifications}
-              onValueChange={setEmailNotifications}
               trackColor={{ false: borderColor, true: primaryColor }}
             />
           </View>

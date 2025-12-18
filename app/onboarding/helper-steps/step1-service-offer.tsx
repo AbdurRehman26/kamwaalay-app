@@ -7,13 +7,12 @@ import { apiService } from '@/services/api';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 interface Location {
@@ -41,6 +40,7 @@ import { useApp } from '@/contexts/AppContext';
 interface ServiceType {
   id: string | number;
   name: string;
+  slug: string;
   emoji?: string;
   image?: string;
   icon?: string;
@@ -153,13 +153,13 @@ export default function Step1ServiceOffer({
     });
   };
 
-  const toggleServiceType = (serviceId: string) => {
-    const isSelected = data.serviceTypes.includes(serviceId);
+  const toggleServiceType = (serviceSlug: string) => {
+    const isSelected = data.serviceTypes.includes(serviceSlug);
     onChange({
       ...data,
       serviceTypes: isSelected
-        ? data.serviceTypes.filter((id) => id !== serviceId)
-        : [...data.serviceTypes, serviceId],
+        ? data.serviceTypes.filter((slug) => slug !== serviceSlug)
+        : [...data.serviceTypes, serviceSlug],
     });
   };
 
@@ -196,20 +196,20 @@ export default function Step1ServiceOffer({
             </ThemedText>
             <View style={styles.serviceTypesContainer}>
               {serviceTypes.map((service: ServiceType) => {
-                const serviceId = service.id.toString();
-                const isSelected = data.serviceTypes.includes(serviceId);
+                const serviceSlug = service.slug || service.name.toLowerCase().replace(/\s+/g, '-');
+                const isSelected = data.serviceTypes.includes(serviceSlug);
                 return (
                   <TouchableOpacity
-                    key={serviceId}
+                    key={service.id.toString()}
                     style={[
                       styles.serviceCard,
                       { backgroundColor: cardBg, borderColor },
                       isSelected && { borderColor: primaryColor, backgroundColor: primaryLight },
                     ]}
-                    onPress={() => toggleServiceType(serviceId)}
+                    onPress={() => toggleServiceType(serviceSlug)}
                   >
                     {/* Use API icon/image if available, otherwise fallback to emoji */}
-                      <Text style={styles.serviceEmoji}>{service.icon || '🔧'}</Text>
+                    <Text style={styles.serviceEmoji}>{service.icon || '🔧'}</Text>
                     <Text
                       style={[
                         styles.serviceName,

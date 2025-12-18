@@ -88,7 +88,7 @@ export interface HelperProfile {
   age?: string;
   gender?: string;
   religion?: string;
-  languages?: string[];
+  languages?: number[];
 }
 
 export interface BusinessProfile {
@@ -143,7 +143,23 @@ interface AuthContextType {
   resendOTP: () => Promise<void>;
   selectUserType: (userType: UserType) => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
-  completeOnboarding: (profileData: HelperProfile | BusinessProfile) => Promise<void>;
+  completeOnboarding: (
+    profileData: HelperProfile | BusinessProfile,
+    additionalData?: {
+      verification?: {
+        nicFile: any | null;
+        nicNumber: string;
+        photoFile: any | null;
+      };
+      serviceOffer?: {
+        serviceTypes: string[];
+        locations: any[];
+        workType: string;
+        monthlyRate: string;
+        description: string;
+      };
+    }
+  ) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -813,7 +829,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           experience_years: 'experience' in profileData && profileData.experience ? parseInt(profileData.experience) || 0 : undefined,
           skills: undefined,
           age: 'age' in profileData ? profileData.age : undefined,
-          gender: 'gender' in profileData ? profileData.gender : undefined,
+          gender: 'gender' in profileData && profileData.gender ? profileData.gender.toLowerCase() : undefined,
           religion: 'religion' in profileData ? profileData.religion : undefined,
           languages: 'languages' in profileData ? profileData.languages : undefined,
         };
@@ -834,7 +850,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Throw error if API fails
           const errorMessage = response.error || response.message || 'Failed to complete helper onboarding';
-          throw new Error(errorMessage);
+          const error = new Error(errorMessage);
+          (error as any).validationErrors = response.data?.errors;
+          throw error;
         }
       } else {
         // For non-helper users (business, user), just update locally

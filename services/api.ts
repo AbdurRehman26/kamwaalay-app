@@ -3,8 +3,8 @@
  * Centralized API client for making HTTP requests
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, buildApiUrl } from '@/constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -37,7 +37,7 @@ class ApiService {
       if (authToken) {
         return authToken;
       }
-      
+
       // Fallback: check user object
       const userData = await AsyncStorage.getItem('user');
       if (userData) {
@@ -56,7 +56,7 @@ class ApiService {
           // Error parsing user data
         }
       }
-      
+
       return null;
     } catch (error) {
       // Error getting auth token
@@ -88,7 +88,7 @@ class ApiService {
    */
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     let data: any = {};
-    
+
     try {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -110,11 +110,15 @@ class ApiService {
 
     if (!response.ok) {
       // Handle different error response formats
-      const errorMessage = 
-        data.message || 
-        data.error || 
+      const errorMessage =
+        data.message ||
+        data.error ||
         data.error?.message ||
-        (Array.isArray(data.errors) ? data.errors.join(', ') : null) ||
+        (Array.isArray(data.errors)
+          ? data.errors.join(', ')
+          : (typeof data.errors === 'object' && data.errors !== null)
+            ? Object.values(data.errors).flat().join(', ')
+            : null) ||
         `HTTP ${response.status}: ${response.statusText}`;
 
       return {
@@ -154,7 +158,7 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       let url = buildApiUrl(endpoint, params);
-      
+
       // Add query parameters
       if (queryParams) {
         const queryString = Object.entries(queryParams)
@@ -165,9 +169,9 @@ class ApiService {
           url += `?${queryString}`;
         }
       }
-      
+
       const headers = await this.buildHeaders(includeAuth);
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers,
@@ -195,7 +199,7 @@ class ApiService {
     try {
       const url = buildApiUrl(endpoint, params);
       const headers = await this.buildHeaders(includeAuth);
-      
+
       console.log('[API] POST request', {
         url,
         endpoint,
@@ -264,7 +268,7 @@ class ApiService {
     try {
       const url = buildApiUrl(endpoint, params);
       const headers = await this.buildHeaders(includeAuth);
-      
+
       const response = await fetch(url, {
         method: 'PUT',
         headers,
@@ -293,7 +297,7 @@ class ApiService {
     try {
       const url = buildApiUrl(endpoint, params);
       const headers = await this.buildHeaders(includeAuth);
-      
+
       const response = await fetch(url, {
         method: 'PATCH',
         headers,
@@ -321,7 +325,7 @@ class ApiService {
     try {
       const url = buildApiUrl(endpoint, params);
       const headers = await this.buildHeaders(includeAuth);
-      
+
       const response = await fetch(url, {
         method: 'DELETE',
         headers,

@@ -21,7 +21,7 @@ interface CompleteProfileData {
   age: string;
   gender: string;
   religion: string;
-  languages: string;
+  languages: number[];
 }
 
 interface Step3CompleteProfileProps {
@@ -29,6 +29,7 @@ interface Step3CompleteProfileProps {
   onChange: (data: CompleteProfileData) => void;
   onBack: () => void;
   onSubmit: () => void;
+  isLoading?: boolean;
 }
 
 const RELIGION_OPTIONS = [
@@ -48,6 +49,7 @@ export default function Step3CompleteProfile({
   onChange,
   onBack,
   onSubmit,
+  isLoading = false,
 }: Step3CompleteProfileProps) {
   // Theme colors
   const textColor = useThemeColor({}, 'text');
@@ -95,17 +97,17 @@ export default function Step3CompleteProfile({
     }
   };
 
-  const toggleLanguage = (languageName: string) => {
-    const currentLanguages = data.languages ? data.languages.split(',').map(l => l.trim()).filter(l => l) : [];
+  const toggleLanguage = (languageId: number) => {
+    const currentLanguages = data.languages || [];
 
-    let updatedLanguages: string[];
-    if (currentLanguages.includes(languageName)) {
-      updatedLanguages = currentLanguages.filter(l => l !== languageName);
+    let updatedLanguages: number[];
+    if (currentLanguages.includes(languageId)) {
+      updatedLanguages = currentLanguages.filter(id => id !== languageId);
     } else {
-      updatedLanguages = [...currentLanguages, languageName];
+      updatedLanguages = [...currentLanguages, languageId];
     }
 
-    onChange({ ...data, languages: updatedLanguages.join(', ') });
+    onChange({ ...data, languages: updatedLanguages });
   };
 
   const handleSubmit = () => {
@@ -218,17 +220,20 @@ export default function Step3CompleteProfile({
             <ThemedText style={[styles.helperText, { color: textSecondary }]}>Select languages you can speak</ThemedText>
 
             {/* Selected Languages Chips */}
-            {data.languages ? (
+            {data.languages && data.languages.length > 0 ? (
               <View style={styles.selectedLanguagesContainer}>
-                {data.languages.split(',').map(l => l.trim()).filter(l => l).map((lang, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[styles.languageChip, { backgroundColor: primaryColor }]}
-                    onPress={() => toggleLanguage(lang)}
-                  >
-                    <Text style={styles.languageChipText}>{lang} ✕</Text>
-                  </TouchableOpacity>
-                ))}
+                {data.languages.map((langId) => {
+                  const langName = availableLanguages.find(l => l.id === langId)?.name || langId.toString();
+                  return (
+                    <TouchableOpacity
+                      key={langId}
+                      style={[styles.languageChip, { backgroundColor: primaryColor }]}
+                      onPress={() => toggleLanguage(langId)}
+                    >
+                      <Text style={styles.languageChipText}>{langName} ✕</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             ) : null}
 
@@ -256,7 +261,8 @@ export default function Step3CompleteProfile({
                 ) : (
                   <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
                     {availableLanguages.map((lang) => {
-                      const isSelected = data.languages?.split(',').map(l => l.trim()).includes(lang.name);
+                      const langId = typeof lang.id === 'string' ? parseInt(lang.id) : lang.id;
+                      const isSelected = data.languages?.includes(langId);
                       return (
                         <TouchableOpacity
                           key={lang.id}
@@ -264,7 +270,7 @@ export default function Step3CompleteProfile({
                             styles.languageItem,
                             isSelected && { backgroundColor: primaryColor + '20' }
                           ]}
-                          onPress={() => toggleLanguage(lang.name)}
+                          onPress={() => toggleLanguage(langId)}
                         >
                           <Text style={[styles.languageItemText, { color: textColor }]}>{lang.name}</Text>
                           {isSelected && <Text style={{ color: primaryColor }}>✓</Text>}
@@ -296,8 +302,16 @@ export default function Step3CompleteProfile({
           <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
             <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.submitButton, { backgroundColor: primaryColor }]} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Complete Profile</Text>
+          <TouchableOpacity
+            style={[styles.submitButton, { backgroundColor: primaryColor, opacity: isLoading ? 0.7 : 1 }]}
+            onPress={handleSubmit}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.submitButtonText}>Complete Profile</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -456,5 +470,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-

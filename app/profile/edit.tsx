@@ -85,12 +85,15 @@ export default function EditProfileScreen() {
   const [religion, setReligion] = useState(
     user?.userType === 'helper' ? (user?.profileData as any)?.religion || '' : ''
   );
-  const [languages, setLanguages] = useState(
+  const [languages, setLanguages] = useState<number[]>(
     user?.userType === 'helper'
       ? Array.isArray((user?.profileData as any)?.languages)
-        ? (user?.profileData as any)?.languages.join(', ')
-        : (user?.profileData as any)?.languages || ''
-      : ''
+        ? (user?.profileData as any)?.languages.map((l: any) => {
+          const id = typeof l === 'string' ? parseInt(l) : l;
+          return typeof id === 'number' && !isNaN(id) ? id : null;
+        }).filter((l: any) => l !== null)
+        : []
+      : []
   );
 
   // Language fetching/handling
@@ -136,17 +139,17 @@ export default function EditProfileScreen() {
     }
   };
 
-  const toggleLanguage = (languageName: string) => {
-    const currentLanguages = languages ? languages.split(',').map((l: string) => l.trim()).filter((l: string) => l) : [];
+  const toggleLanguage = (languageId: number) => {
+    const currentLanguages = languages || [];
 
-    let updatedLanguages: string[];
-    if (currentLanguages.includes(languageName)) {
-      updatedLanguages = currentLanguages.filter((l: string) => l !== languageName);
+    let updatedLanguages: number[];
+    if (currentLanguages.includes(languageId)) {
+      updatedLanguages = currentLanguages.filter((id) => id !== languageId);
     } else {
-      updatedLanguages = [...currentLanguages, languageName];
+      updatedLanguages = [...currentLanguages, languageId];
     }
 
-    setLanguages(updatedLanguages.join(', '));
+    setLanguages(updatedLanguages);
   };
 
   const handleSave = async () => {
@@ -177,7 +180,7 @@ export default function EditProfileScreen() {
           age: age.trim() || undefined,
           gender: gender || undefined,
           religion: religion || undefined,
-          languages: languages ? languages.split(',').map((l: string) => l.trim()).filter((l: string) => l) : [],
+          languages: languages,
         };
       } else if (user?.userType === 'business' && user.profileData) {
         updatedUser.profileData = {
@@ -426,15 +429,18 @@ export default function EditProfileScreen() {
 
                       {/* Selected Chips */}
                       <View style={styles.chipsContainer}>
-                        {languages ? languages.split(',').map((l: string) => l.trim()).filter((l: string) => l).map((lang: string, index: number) => (
-                          <TouchableOpacity
-                            key={index}
-                            style={[styles.chip, { backgroundColor: primaryColor }]}
-                            onPress={() => toggleLanguage(lang)}
-                          >
-                            <Text style={styles.chipText}>{lang} ✕</Text>
-                          </TouchableOpacity>
-                        )) : null}
+                        {languages && languages.length > 0 ? languages.map((langId: number, index: number) => {
+                          const langName = availableLanguages.find(l => l.id === langId)?.name || langId.toString();
+                          return (
+                            <TouchableOpacity
+                              key={index}
+                              style={[styles.chip, { backgroundColor: primaryColor }]}
+                              onPress={() => toggleLanguage(langId)}
+                            >
+                              <Text style={styles.chipText}>{langName} ✕</Text>
+                            </TouchableOpacity>
+                          );
+                        }) : null}
                       </View>
 
                       <TouchableOpacity
@@ -455,12 +461,13 @@ export default function EditProfileScreen() {
                               <ActivityIndicator size="small" color={primaryColor} style={{ padding: 20 }} />
                             ) : (
                               availableLanguages.map((lang: any) => {
-                                const isSelected = languages?.split(',').map((l: string) => l.trim()).includes(lang.name);
+                                const langId = typeof lang.id === 'string' ? parseInt(lang.id) : lang.id;
+                                const isSelected = languages?.includes(langId);
                                 return (
                                   <TouchableOpacity
                                     key={lang.id}
                                     style={[styles.dropdownItem, { borderBottomColor: borderColor }, isSelected && { backgroundColor: primaryLight + '40' }]}
-                                    onPress={() => toggleLanguage(lang.name)}
+                                    onPress={() => toggleLanguage(langId)}
                                   >
                                     <Text style={[styles.dropdownText, { color: textColor }]}>{lang.name}</Text>
                                     {isSelected && <IconSymbol name="checkmark" size={16} color={primaryColor} />}

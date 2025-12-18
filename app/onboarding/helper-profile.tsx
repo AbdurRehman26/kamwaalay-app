@@ -1,14 +1,17 @@
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Stepper } from '@/components/ui/stepper';
 import { HelperProfile, useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Dimensions,
+  Modal,
   StyleSheet,
-  View,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Step1ServiceOffer from './helper-steps/step1-service-offer';
@@ -43,7 +46,7 @@ interface CompleteProfileData {
   age: string;
   gender: string;
   religion: string;
-  languages: string;
+  languages: number[];
 }
 
 const STEP_LABELS = ['Service Offer', 'Verification', 'Complete Profile'];
@@ -54,6 +57,8 @@ export default function HelperProfileScreen() {
   const { user, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
@@ -83,7 +88,7 @@ export default function HelperProfileScreen() {
     age: '',
     gender: '',
     religion: '',
-    languages: '',
+    languages: [],
   });
 
   const handleNext = () => {
@@ -128,20 +133,53 @@ export default function HelperProfileScreen() {
         age: profileData.age,
         gender: profileData.gender,
         religion: profileData.religion,
-        languages: profileData.languages ? profileData.languages.split(',').map(l => l.trim()).filter(l => l) : [],
+        languages: profileData.languages,
       };
 
       // Store verification and service offer data in a way that completeOnboarding can access
-      // We'll pass this through the profileData or extend the interface
-      // For now, we'll store it in a way that the API can use
-      await completeOnboarding(helperProfile);
+      await completeOnboarding(helperProfile, {
+        verification: {
+          nicFile: verificationData.nicFile,
+          nicNumber: verificationData.nicNumber,
+          photoFile: verificationData.photoFile
+        },
+        serviceOffer: {
+          serviceTypes: serviceOfferData.serviceTypes,
+          locations: serviceOfferData.locations,
+          workType: serviceOfferData.workType,
+          monthlyRate: serviceOfferData.monthlyRate,
+          description: serviceOfferData.description
+        }
+      });
 
       // Navigate to tabs
       router.replace('/(tabs)');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Onboarding error:', error);
       // Stay on the same screen so user can retry
-      Alert.alert('Error', 'Failed to complete onboarding. Please try again.');
+      // Stay on the same screen so user can retry
+      let msg = error.message || 'Failed to complete onboarding. Please try again.';
+
+      if (error.validationErrors) {
+        if (typeof error.validationErrors === 'object') {
+          // Format object errors (e.g. { field: ['error'] }) into a list
+          const errors = Object.values(error.validationErrors).flat();
+          if (errors.length > 0) {
+            msg = errors.join('\n• ');
+            // Add bullet point to first item if there are multiple lines
+            if (errors.length > 0) msg = '• ' + msg;
+          }
+        } else if (Array.isArray(error.validationErrors)) {
+          const errors = error.validationErrors;
+          if (errors.length > 0) {
+            msg = errors.join('\n• ');
+            if (errors.length > 0) msg = '• ' + msg;
+          }
+        }
+      }
+
+      setErrorMessage(msg);
+      setErrorModalVisible(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -173,6 +211,7 @@ export default function HelperProfileScreen() {
             onChange={setProfileData}
             onBack={handleBack}
             onSubmit={handleSubmit}
+            isLoading={isSubmitting}
           />
         );
       default:
@@ -180,6 +219,8 @@ export default function HelperProfileScreen() {
     }
   };
 
+  /* 
+  // Removed full screen loader to show button loader instead
   if (isSubmitting) {
     return (
       <View style={[styles.container, { backgroundColor }]}>
@@ -188,7 +229,8 @@ export default function HelperProfileScreen() {
         </View>
       </View>
     );
-  }
+  } 
+  */
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -203,6 +245,29 @@ export default function HelperProfileScreen() {
           {renderStep()}
         </View>
       </View>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={errorModalVisible}
+        onRequestClose={() => setErrorModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: backgroundColor }]}>
+            <View style={styles.errorIconContainer}>
+              <IconSymbol name="exclamationmark.circle.fill" size={48} color="#FF3B30" />
+            </View>
+            <Text style={[styles.modalTitle, { color: primaryColor }]}>Error</Text>
+            <Text style={styles.modalMessage}>{errorMessage}</Text>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: primaryColor }]}
+              onPress={() => setErrorModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -237,5 +302,53 @@ const styles = StyleSheet.create({
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: width * 0.35,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '85%',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  errorIconContainer: {
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });

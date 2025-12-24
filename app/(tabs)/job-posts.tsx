@@ -447,11 +447,13 @@ export default function JobPostsScreen() {
 
               {/* Location */}
               <View style={styles.detailRow}>
-                <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
-                  <View>
-                    <Text style={[styles.detailMainText, { color: textColor }]}>{request.location || 'Location will be visible once your application approved by the user'}</Text>
-                    <Text style={[styles.detailSubText, { color: textMuted }]}>{request.city || 'Karachi'}</Text>
-                  </View>
+                  <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
+                    <View>
+                      {request.location ? (
+                        <Text style={[styles.detailMainText, { color: textColor }]}>{request.location}</Text>
+                      ) : null}
+                      <Text style={[styles.detailSubText, { color: textMuted }]}>{request.city || 'Karachi'}</Text>
+                    </View>
               </View>
 
               {/* Date */}

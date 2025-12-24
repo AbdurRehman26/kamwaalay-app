@@ -505,7 +505,7 @@ export default function ExploreScreen() {
       addUniqueLocation(helper.area);
     }
 
-    return locationList.length > 0 ? locationList : ['Location not specified'];
+    return locationList.length > 0 ? locationList : ['Location will be visible once your application approved by the user'];
   };
 
   // Helper function to get phone number

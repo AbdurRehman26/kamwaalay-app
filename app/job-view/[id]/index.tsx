@@ -423,7 +423,7 @@ export default function JobViewScreen() {
                   </View>
                     <View style={styles.detailContent}>
                       <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
-                      <Text style={[styles.detailValue, { color: textColor }]}>{request.location}, {request.city || 'Karachi'}</Text>
+                      <Text style={[styles.detailValue, { color: textColor }]}>{request.location || 'Location will be visible once your application approved by the user'}{request.location ? `, ${request.city || 'Karachi'}` : ''}</Text>
                     </View>
                 </View>
 

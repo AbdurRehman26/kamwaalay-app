@@ -107,7 +107,7 @@ export default function ProfileViewScreen() {
               rating: business.rating || 0,
               reviews: business.reviews_count || 0,
               price: business.service_listings?.[0]?.monthly_rate || 0,
-              location: business.location_details?.[0]?.area || business.location_details?.[0]?.area_name || business.area || 'Location not specified',
+              location: business.location_details?.[0]?.area || business.location_details?.[0]?.area_name || business.area || 'Location will be visible once your application approved by the user',
               distance: 'N/A',
               experience: business.experience_years ? `${business.experience_years} years` : 'N/A',
               bio: business.bio || business.description || 'No description available',
@@ -171,7 +171,7 @@ export default function ProfileViewScreen() {
               rating: helper.rating || 0,
               reviews: helper.reviews_count || 0,
               price: helper.service_listings?.[0]?.monthly_rate || 0,
-              location: helper.location_details?.[0]?.area || helper.location_details?.[0]?.area_name || helper.area || 'Location not specified',
+              location: helper.location_details?.[0]?.area || helper.location_details?.[0]?.area_name || helper.area || 'Location will be visible once your application approved by the user',
               distance: 'N/A',
               experience: helper.experience_years ? `${helper.experience_years} years` : 'N/A',
               bio: helper.bio || 'No description available',
@@ -243,7 +243,7 @@ export default function ProfileViewScreen() {
             rating: user.rating || listing.rating || 0,
             reviews: user.reviews_count || listing.reviews_count || 0,
             price: listing.monthly_rate || listing.price || 0,
-            location: listing.area || listing.location?.name || listing.location_name || 'Location not specified',
+            location: listing.area || listing.location?.name || listing.location_name || 'Location will be visible once your application approved by the user',
             distance: listing.distance || 'N/A',
             experience: user.experience_years
               ? `${user.experience_years} years`

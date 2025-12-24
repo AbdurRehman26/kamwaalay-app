@@ -445,7 +445,7 @@ export default function HomeScreen() {
                 <View style={styles.detailRow}>
                   <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
                   <View>
-                    <Text style={[styles.detailMainText, { color: textColor }]}>{request.location || 'Location not specified'}</Text>
+                    <Text style={[styles.detailMainText, { color: textColor }]}>{request.location || 'Location will be visible once your application approved by the user'}</Text>
                     <Text style={[styles.detailSubText, { color: textSecondary }]}>{request.city || 'Karachi'}</Text>
                   </View>
                 </View>

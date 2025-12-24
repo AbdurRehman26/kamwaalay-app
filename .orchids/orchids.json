@@ -1,0 +1,7 @@
+{
+  "projectId": "8fb50c84-44b8-41cb-bb5c-75d9dee63711",
+  "createdAt": 1735048425000,
+  "startupCommands": [
+    "npx expo start --web --port 8082"
+  ]
+}

@@ -206,6 +206,7 @@ export default function JobPostsScreen() {
             city: (typeof post.city === 'string' ? post.city : post.city?.name) || 
                   (typeof post.location_city === 'string' ? post.location_city : post.location_city?.name) || 
                   'Karachi',
+            workType: post.work_type,
             budget: post.monthly_rate || post.budget || post.price || 0,
           status: post.status === 'pending' ? 'open' : (post.status || 'open'),
           createdAt: post.created_at || post.createdAt || new Date().toISOString(),
@@ -394,6 +395,14 @@ export default function JobPostsScreen() {
       return `Posted ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     };
 
+    const formatWorkType = (type?: string) => {
+      if (!type) return 'Part Time';
+      return type
+        .split(/[_\s]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+
     return (
       <View key={request.id} style={styles.cardWrapper}>
         <TouchableOpacity
@@ -441,7 +450,7 @@ export default function JobPostsScreen() {
               <View style={styles.detailRow}>
                 <IconSymbol name="briefcase.fill" size={18} color="#94A3B8" />
                 <View style={styles.jobTypeTag}>
-                  <Text style={styles.jobTypeText}>Part Time</Text>
+                  <Text style={styles.jobTypeText}>{formatWorkType(request.workType)}</Text>
                 </View>
               </View>
 
@@ -449,10 +458,10 @@ export default function JobPostsScreen() {
               <View style={styles.detailRow}>
                   <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
                     <View>
+                      <Text style={[styles.detailMainText, { color: textColor }]}>{request.city || 'Karachi'}</Text>
                       {request.location ? (
-                        <Text style={[styles.detailMainText, { color: textColor }]}>{request.location}</Text>
+                        <Text style={[styles.detailSubText, { color: textMuted }]}>{request.location}</Text>
                       ) : null}
-                      <Text style={[styles.detailSubText, { color: textMuted }]}>{request.city || 'Karachi'}</Text>
                     </View>
               </View>
 

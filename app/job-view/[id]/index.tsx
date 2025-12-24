@@ -31,6 +31,7 @@ interface Job {
     description: string;
     location: string;
     city?: string;
+    workType?: string;
     budget?: number;
   status: string;
   createdAt: string;
@@ -154,13 +155,14 @@ export default function JobViewScreen() {
               serviceName: jobData.service_type
                 ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
                 : jobData.service_name || 'Service',
-              description: jobData.description || jobData.special_requirements || '',
-              location: jobData.area || jobData.location || jobData.location_name || '',
-              city: (typeof jobData.city === 'string' ? jobData.city : jobData.city?.name) || 
-                    (typeof jobData.location_city === 'string' ? jobData.location_city : jobData.location_city?.name) || 
-                    'Karachi',
-              budget: jobData.monthly_rate || jobData.budget || jobData.price,
-              status: jobData.status === 'pending' ? 'open' : (jobData.status || 'open'),
+            description: jobData.description || jobData.special_requirements || '',
+            location: jobData.area || jobData.location || jobData.location_name || '',
+            city: (typeof jobData.city === 'string' ? jobData.city : jobData.city?.name) || 
+                  (typeof jobData.location_city === 'string' ? jobData.location_city : jobData.location_city?.name) || 
+                  'Karachi',
+            workType: jobData.work_type,
+            budget: jobData.monthly_rate || jobData.budget || jobData.price,
+            status: jobData.status === 'pending' ? 'open' : (jobData.status || 'open'),
             createdAt: jobData.created_at || jobData.createdAt || new Date().toISOString(),
             applicants: jobData.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
               jobData.applicants ||
@@ -415,23 +417,36 @@ export default function JobViewScreen() {
                 </Text>
               </View>
 
-              {/* Details */}
-              <View style={styles.detailsSection}>
-                <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
-                  <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
-                    <IconSymbol name="location.fill" size={20} color={primaryColor} />
-                  </View>
+                {/* Details */}
+                <View style={styles.detailsSection}>
+                  {request.workType && (
+                    <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
+                      <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                        <IconSymbol name="briefcase.fill" size={20} color={primaryColor} />
+                      </View>
                       <View style={styles.detailContent}>
-                        <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
+                        <Text style={[styles.detailLabel, { color: textMuted }]}>Work Type</Text>
                         <Text style={[styles.detailValue, { color: textColor }]}>
-                          {request.location ? (
-                            `${request.location}${request.city ? `, ${request.city}` : ''}`
-                          ) : (
-                            request.city || 'Karachi'
-                          )}
+                          {request.workType
+                            .split(/[_\s]/)
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                            .join(' ')}
                         </Text>
                       </View>
-                </View>
+                    </View>
+                  )}
+
+                  <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>
+                    <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
+                      <IconSymbol name="location.fill" size={20} color={primaryColor} />
+                    </View>
+                        <View style={styles.detailContent}>
+                          <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
+                          <Text style={[styles.detailValue, { color: textColor }]}>
+                            {request.city || 'Karachi'}{request.location ? ` (${request.location})` : ''}
+                          </Text>
+                        </View>
+                  </View>
 
                 {request.budget && (
                   <View style={[styles.detailItem, { backgroundColor: cardBg, borderColor }]}>

@@ -75,17 +75,19 @@ export default function JobApplyScreen() {
 
                 if (response.success && response.data) {
                     const jobData = response.data.job_post || response.data.booking || response.data;
-                    setJob({
-                        id: jobData.id?.toString() || id,
-                        serviceName: jobData.service_type
-                            ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
-                            : jobData.service_name || 'Service',
-                        location: jobData.area || jobData.location || jobData.location_name || '',
-                        description: jobData.description || '',
-                        budget: jobData.monthly_rate || jobData.budget || jobData.price,
-                        specialRequirements: jobData.special_requirements,
-                        workType: jobData.work_type || 'Full Time', // Fallback/Placeholder
-                    });
+                        setJob({
+                            id: jobData.id?.toString() || id,
+                            serviceName: jobData.service_type
+                                ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
+                                : jobData.service_name || 'Service',
+                            location: (typeof jobData.city === 'string' ? jobData.city : jobData.city?.name) || 
+                                      (typeof jobData.location_city === 'string' ? jobData.location_city : jobData.location_city?.name) || 
+                                      jobData.area || jobData.location || 'Karachi',
+                            description: jobData.description || '',
+                            budget: jobData.monthly_rate || jobData.budget || jobData.price,
+                            specialRequirements: jobData.special_requirements,
+                            workType: jobData.work_type ? jobData.work_type.split(/[_\s]/).map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Part Time',
+                        });
                 }
             } catch (error) {
                 console.error('Error fetching job details:', error);

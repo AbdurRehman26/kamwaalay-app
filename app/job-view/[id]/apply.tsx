@@ -158,19 +158,18 @@ export default function JobApplyScreen() {
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-            <Stack.Screen options={{ title: 'Job Application', headerTitle: 'Job Application' }} />
+            <Stack.Screen options={{ headerShown: false }} />
             <View style={[styles.container, { backgroundColor }]}>
                 <SafeAreaView style={styles.safeArea} edges={['top']}>
                     {/* Header */}
                     <View style={styles.header}>
                         <TouchableOpacity
-                            style={[styles.backButton, { backgroundColor: cardBg, borderColor }]}
+                            style={styles.backTextButton}
                             onPress={() => router.back()}
                         >
-                            <IconSymbol name="xmark" size={20} color={textColor} />
+                            <IconSymbol name="chevron.left" size={20} color={primaryColor} />
+                            <Text style={[styles.backText, { color: primaryColor }]}>Back</Text>
                         </TouchableOpacity>
-                        <Text style={[styles.headerTitle, { color: textColor }]}>Job Application</Text>
-                        <View style={{ width: 40 }} />
                     </View>
 
                     <ScrollView
@@ -295,21 +294,17 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingVertical: 12,
     },
-    backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    backTextButton: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
+        gap: 4,
     },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
+    backText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
     content: {
         padding: 20,

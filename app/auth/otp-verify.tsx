@@ -1,9 +1,9 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -12,7 +12,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -101,7 +101,7 @@ export default function OTPVerifyScreen() {
   const handleVerify = async () => {
     const code = otp.join('');
     if (code.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter the complete 6-digit code');
+      toast.error('Please enter the complete 6-digit code');
       return;
     }
 
@@ -120,14 +120,14 @@ export default function OTPVerifyScreen() {
       } else {
         const errorMsg = 'The code you entered is incorrect. Please try again.';
         setErrorMessage(errorMsg);
-        Alert.alert('Invalid OTP', errorMsg);
+        toast.error(errorMsg);
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
     } catch (error: any) {
       const errorMsg = error.message || error.error || 'Failed to verify OTP. Please try again.';
       setErrorMessage(errorMsg);
-      Alert.alert('Error', errorMsg);
+      toast.error(errorMsg);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {
@@ -143,11 +143,11 @@ export default function OTPVerifyScreen() {
       setTimer(60);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      Alert.alert('Success', 'OTP has been resent. Please check your email or phone.');
+      toast.success('OTP has been resent. Please check your email or phone.');
     } catch (error: any) {
       const errorMsg = error.message || error.error || 'Failed to resend OTP. Please try again.';
       setErrorMessage(errorMsg);
-      Alert.alert('Error', errorMsg);
+      toast.error(errorMsg);
     }
   };
 

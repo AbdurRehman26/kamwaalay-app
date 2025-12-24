@@ -774,11 +774,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : `image/jpeg`;
 
-      formData.append('photo', {
+      // Append as binary file - React Native requires this specific format
+      formData.append('profile_image', {
         uri: photoUri,
         name: filename,
         type,
       } as any);
+
+      console.log('[AuthContext] Uploading profile photo:', {
+        uri: photoUri.substring(0, 50) + '...',
+        filename,
+        type,
+        endpoint: API_ENDPOINTS.PROFILE.PHOTO,
+      });
 
       const response = await apiService.post(
         API_ENDPOINTS.PROFILE.PHOTO,

@@ -1,9 +1,9 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BusinessProfile, useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -41,12 +41,12 @@ export default function BusinessProfileScreen() {
 
   const handleContinue = async () => {
     if (!businessName.trim()) {
-      Alert.alert('Required', 'Please enter your business name');
+      toast.error('Please enter your business name');
       return;
     }
 
     if (!user?.name) {
-      Alert.alert('Error', 'Owner name is required');
+      toast.error('Owner name is required');
       return;
     }
 
@@ -65,7 +65,7 @@ export default function BusinessProfileScreen() {
       // Navigate to add workers step
       router.push('/onboarding/add-workers');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save business profile');
+      toast.error('Failed to save business profile');
     } finally {
       setIsLoading(false);
     }

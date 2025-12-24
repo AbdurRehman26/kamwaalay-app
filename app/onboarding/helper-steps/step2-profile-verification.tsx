@@ -2,15 +2,15 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { toast } from '@/utils/toast';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface ProfileVerificationData {
@@ -34,7 +34,7 @@ export default function Step2ProfileVerification({
 }: Step2ProfileVerificationProps) {
   const [nicFileUri, setNicFileUri] = useState<string | null>(null);
   const [photoFileUri, setPhotoFileUri] = useState<string | null>(null);
-  
+
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -48,64 +48,42 @@ export default function Step2ProfileVerification({
 
   const handleNICUpload = async () => {
     // TODO: Implement file upload when expo-image-picker and expo-document-picker are installed
-    // For now, this is a placeholder that simulates file selection
-    Alert.alert(
-      'Upload NIC',
-      'File upload will be implemented with expo-image-picker and expo-document-picker',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Simulate Upload',
-          onPress: () => {
-            // Simulate file upload for now
-            const mockFile = {
-              uri: 'file://mock-nic.jpg',
-              name: 'NIC.jpg',
-              type: 'image/jpeg',
-            };
-            setNicFileUri('file://mock-nic.jpg');
-            onChange({
-              ...data,
-              nicFile: mockFile,
-            });
-          },
-        },
-      ]
-    );
+    toast.info('File upload will be implemented with expo-image-picker and expo-document-picker');
+
+    // Simulate file upload for now
+    const mockFile = {
+      uri: 'file://mock-nic.jpg',
+      name: 'NIC.jpg',
+      type: 'image/jpeg',
+    };
+    setNicFileUri('file://mock-nic.jpg');
+    onChange({
+      ...data,
+      nicFile: mockFile,
+    });
   };
 
   const handlePhotoUpload = async () => {
     // TODO: Implement file upload when expo-image-picker is installed
-    // For now, this is a placeholder that simulates file selection
-    Alert.alert(
-      'Upload Photo',
-      'File upload will be implemented with expo-image-picker',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Simulate Upload',
-          onPress: () => {
-            // Simulate file upload for now
-            const mockFile = {
-              uri: 'file://mock-photo.jpg',
-              name: 'Photo.jpg',
-              type: 'image/jpeg',
-            };
-            setPhotoFileUri('file://mock-photo.jpg');
-            onChange({
-              ...data,
-              photoFile: mockFile,
-            });
-          },
-        },
-      ]
-    );
+    toast.info('File upload will be implemented with expo-image-picker');
+
+    // Simulate file upload for now
+    const mockFile = {
+      uri: 'file://mock-photo.jpg',
+      name: 'Photo.jpg',
+      type: 'image/jpeg',
+    };
+    setPhotoFileUri('file://mock-photo.jpg');
+    onChange({
+      ...data,
+      photoFile: mockFile,
+    });
   };
 
   const handleNext = () => {
     // NIC number is still required, but file upload is optional
     if (!data.nicNumber.trim()) {
-      Alert.alert('Required', 'Please enter your NIC number');
+      toast.error('Please enter your NIC number');
       return;
     }
     onNext();
@@ -207,15 +185,15 @@ export default function Step2ProfileVerification({
           <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
             <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
           </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.nextButton,
-                { backgroundColor: primaryColor },
-                !data.nicNumber.trim() && { backgroundColor: textMuted, opacity: 0.5 },
-              ]}
-              onPress={handleNext}
-              disabled={!data.nicNumber.trim()}
-            >
+          <TouchableOpacity
+            style={[
+              styles.nextButton,
+              { backgroundColor: primaryColor },
+              !data.nicNumber.trim() && { backgroundColor: textMuted, opacity: 0.5 },
+            ]}
+            onPress={handleNext}
+            disabled={!data.nicNumber.trim()}
+          >
             <Text style={styles.nextButtonText}>Next</Text>
           </TouchableOpacity>
         </View>

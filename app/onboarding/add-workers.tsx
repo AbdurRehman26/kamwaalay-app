@@ -1,11 +1,11 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Dimensions,
     KeyboardAvoidingView,
     Platform,
@@ -122,17 +122,17 @@ export default function AddWorkersOnboardingScreen() {
 
     const handleAddWorker = () => {
         if (!name.trim()) {
-            Alert.alert('Required', 'Worker name is required');
+            toast.error('Worker name is required');
             return;
         }
 
         if (!phoneNumber.trim()) {
-            Alert.alert('Required', 'Phone number is required');
+            toast.error('Phone number is required');
             return;
         }
 
         if (!cnic.trim()) {
-            Alert.alert('Required', 'CNIC number is required');
+            toast.error('CNIC number is required');
             return;
         }
 
@@ -160,7 +160,7 @@ export default function AddWorkersOnboardingScreen() {
         setReligion('');
         setSelectedLanguages([]);
 
-        Alert.alert('Success', 'Worker added successfully');
+        toast.success('Worker added successfully');
     };
 
     const handleRemoveWorker = (id: string) => {

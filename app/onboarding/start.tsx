@@ -1,11 +1,11 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -85,7 +85,7 @@ export default function OnboardingStartScreen() {
 
   const handleContinue = async () => {
     if (!name.trim()) {
-      Alert.alert('Required', 'Please enter your name');
+      toast.error('Please enter your name');
       return;
     }
 
@@ -167,7 +167,7 @@ export default function OnboardingStartScreen() {
       }
 
       setErrorMessage(extractedErrorMessage);
-      Alert.alert('Update Failed', extractedErrorMessage);
+      toast.error(extractedErrorMessage);
     } finally {
       setIsLoading(false);
     }

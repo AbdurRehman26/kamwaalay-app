@@ -3,13 +3,13 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -221,9 +221,9 @@ export default function EditProfileScreen() {
         setIsUploadingPhoto(true);
         try {
           await uploadProfilePhoto(uri);
-          Alert.alert('Success', 'Profile photo updated successfully');
+          toast.success('Profile photo updated successfully');
         } catch (error: any) {
-          Alert.alert('Upload Failed', error.message || 'Failed to upload photo');
+          toast.error(error.message || 'Failed to upload photo');
           setSelectedImageUri(null); // Reset preview on failure
         } finally {
           setIsUploadingPhoto(false);
@@ -231,19 +231,19 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      toast.error('Failed to pick image');
     }
   };
 
   const handleSave = async () => {
     const finalName = user?.userType === 'business' ? ownerName : name;
     if (!finalName.trim()) {
-      Alert.alert('Error', `${user?.userType === 'business' ? 'Owner name' : 'Name'} is required`);
+      toast.error(`${user?.userType === 'business' ? 'Owner name' : 'Name'} is required`);
       return;
     }
 
     if (user?.userType === 'business' && !businessName.trim()) {
-      Alert.alert('Error', 'Business name is required');
+      toast.error('Business name is required');
       return;
     }
 
@@ -269,11 +269,10 @@ export default function EditProfileScreen() {
       }
 
       await updateUser(profileUpdateData);
-      Alert.alert('Success', 'Profile updated successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      toast.success('Profile updated successfully');
+      router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update profile. Please try again.');
+      toast.error(error.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }

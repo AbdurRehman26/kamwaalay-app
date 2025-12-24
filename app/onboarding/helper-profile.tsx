@@ -2,10 +2,10 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Stepper } from '@/components/ui/stepper';
 import { HelperProfile, useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   Dimensions,
   Modal,
   StyleSheet,
@@ -105,7 +105,7 @@ export default function HelperProfileScreen() {
 
   const handleSubmit = async () => {
     if (!user?.name) {
-      Alert.alert('Error', 'Name is required');
+      toast.error('Name is required');
       return;
     }
 

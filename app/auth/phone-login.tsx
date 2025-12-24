@@ -1,10 +1,10 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Dimensions,
   Image,
   KeyboardAvoidingView,
@@ -72,14 +72,14 @@ export default function PhoneLoginScreen() {
     try {
       // Validate phone number
       if (phoneNumber.length < 10) {
-        Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
+        toast.error('Please enter a valid phone number');
         setIsLoading(false);
         return;
       }
 
       // Validate password if using password auth
       if (authMethod === 'password' && !password.trim()) {
-        Alert.alert('Required', 'Please enter your password');
+        toast.error('Please enter your password');
         setIsLoading(false);
         return;
       }
@@ -129,7 +129,7 @@ export default function PhoneLoginScreen() {
       // Extract backend error message
       const errorMsg = error.message || error.error || 'Login failed. Please try again.';
       setErrorMessage(errorMsg);
-      Alert.alert('Error', errorMsg);
+      toast.error(errorMsg);
       return;
     } finally {
       setIsLoading(false);

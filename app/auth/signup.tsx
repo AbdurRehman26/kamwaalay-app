@@ -1,9 +1,9 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -48,32 +48,32 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     if (!name.trim()) {
-      Alert.alert('Required', 'Please enter your name');
+      toast.error('Please enter your name');
       return;
     }
 
     if (!phoneNumber.trim()) {
-      Alert.alert('Required', 'Please enter your phone number');
+      toast.error('Please enter your phone number');
       return;
     }
 
     if (phoneNumber.length < 10) {
-      Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
+      toast.error('Please enter a valid phone number');
       return;
     }
 
     if (!password.trim()) {
-      Alert.alert('Required', 'Please enter a password');
+      toast.error('Please enter a password');
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert('Invalid Password', 'Password must be at least 8 characters long');
+      toast.error('Password must be at least 8 characters long');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -94,10 +94,10 @@ export default function SignupScreen() {
       // Show success message if provided by backend
       if (result?.message) {
         setSuccessMessage(result.message);
-        Alert.alert('Success', result.message);
+        toast.success(result.message);
       } else {
         setSuccessMessage('Account created successfully! Please verify your OTP.');
-        Alert.alert('Success', 'Account created successfully! Please verify your OTP.');
+        toast.success('Account created successfully! Please verify your OTP.');
       }
 
       // Wait a moment to show the success message, then navigate
@@ -117,7 +117,7 @@ export default function SignupScreen() {
       }
 
       setErrorMessage(extractedErrorMessage);
-      Alert.alert('Signup Failed', extractedErrorMessage);
+      toast.error(extractedErrorMessage);
     } finally {
       setIsLoading(false);
     }

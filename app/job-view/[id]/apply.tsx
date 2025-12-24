@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -158,6 +158,7 @@ export default function JobApplyScreen() {
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+            <Stack.Screen options={{ title: 'Job Application', headerTitle: 'Job Application' }} />
             <View style={[styles.container, { backgroundColor }]}>
                 <SafeAreaView style={styles.safeArea} edges={['top']}>
                     {/* Header */}
@@ -168,7 +169,7 @@ export default function JobApplyScreen() {
                         >
                             <IconSymbol name="xmark" size={20} color={textColor} />
                         </TouchableOpacity>
-                        <Text style={[styles.headerTitle, { color: textColor }]}>Apply</Text>
+                        <Text style={[styles.headerTitle, { color: textColor }]}>Job Application</Text>
                         <View style={{ width: 40 }} />
                     </View>
 

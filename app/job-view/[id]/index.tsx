@@ -27,10 +27,11 @@ interface Job {
   id: string;
   userId: string;
   userName: string;
-  serviceName: string;
-  description: string;
-  location: string;
-  budget?: number;
+    serviceName: string;
+    description: string;
+    location: string;
+    city?: string;
+    budget?: number;
   status: string;
   createdAt: string;
   applicants?: string[];
@@ -150,13 +151,16 @@ export default function JobViewScreen() {
             id: jobData.id?.toString() || id,
             userId: jobData.user_id?.toString() || jobData.user?.id?.toString() || '',
             userName: jobData.user?.name || jobData.name || 'Unknown',
-            serviceName: jobData.service_type
-              ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
-              : jobData.service_name || 'Service',
-            description: jobData.description || jobData.special_requirements || '',
-            location: jobData.area || jobData.location || jobData.location_name || '',
-            budget: jobData.monthly_rate || jobData.budget || jobData.price,
-            status: jobData.status === 'pending' ? 'open' : (jobData.status || 'open'),
+              serviceName: jobData.service_type
+                ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
+                : jobData.service_name || 'Service',
+              description: jobData.description || jobData.special_requirements || '',
+              location: jobData.area || jobData.location || jobData.location_name || '',
+              city: (typeof jobData.city === 'string' ? jobData.city : jobData.city?.name) || 
+                    (typeof jobData.location_city === 'string' ? jobData.location_city : jobData.location_city?.name) || 
+                    'Karachi',
+              budget: jobData.monthly_rate || jobData.budget || jobData.price,
+              status: jobData.status === 'pending' ? 'open' : (jobData.status || 'open'),
             createdAt: jobData.created_at || jobData.createdAt || new Date().toISOString(),
             applicants: jobData.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
               jobData.applicants ||
@@ -417,10 +421,10 @@ export default function JobViewScreen() {
                   <View style={[styles.detailIcon, { backgroundColor: primaryLight }]}>
                     <IconSymbol name="location.fill" size={20} color={primaryColor} />
                   </View>
-                  <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
-                    <Text style={[styles.detailValue, { color: textColor }]}>{request.location}</Text>
-                  </View>
+                    <View style={styles.detailContent}>
+                      <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
+                      <Text style={[styles.detailValue, { color: textColor }]}>{request.location}, {request.city || 'Karachi'}</Text>
+                    </View>
                 </View>
 
                 {request.budget && (

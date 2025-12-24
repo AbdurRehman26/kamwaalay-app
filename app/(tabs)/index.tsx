@@ -112,9 +112,12 @@ export default function HomeScreen() {
           serviceName: booking.service_type
             ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
             : booking.service_name || 'Service',
-          description: booking.special_requirements || booking.description || '',
-          location: booking.area || booking.location || '',
-          budget: booking.monthly_rate || booking.budget || booking.price,
+            description: booking.special_requirements || booking.description || '',
+            location: booking.area || booking.location || '',
+            city: (typeof booking.city === 'string' ? booking.city : booking.city?.name) || 
+                  (typeof booking.location_city === 'string' ? booking.location_city : booking.location_city?.name) || 
+                  'Karachi',
+            budget: booking.monthly_rate || booking.budget || booking.price,
           status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
           createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
           applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
@@ -168,9 +171,12 @@ export default function HomeScreen() {
           serviceName: post.service_type
             ? post.service_type.charAt(0).toUpperCase() + post.service_type.slice(1).replace('_', ' ')
             : post.service_name || 'Service',
-          description: post.description || post.special_requirements || '',
-          location: post.area || post.location || post.location_name || '',
-          budget: post.monthly_rate || post.budget || post.price || 0,
+            description: post.description || post.special_requirements || '',
+            location: post.area || post.location || post.location_name || '',
+            city: (typeof post.city === 'string' ? post.city : post.city?.name) || 
+                  (typeof post.location_city === 'string' ? post.location_city : post.location_city?.name) || 
+                  'Karachi',
+            budget: post.monthly_rate || post.budget || post.price || 0,
           status: post.status === 'pending' ? 'open' : (post.status || 'open'),
           createdAt: post.created_at || post.createdAt || new Date().toISOString(),
           applicants: post.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
@@ -435,14 +441,14 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              {/* Location */}
-              <View style={styles.detailRow}>
-                <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
-                <View>
-                  <Text style={[styles.detailMainText, { color: textColor }]}>{request.location || 'Location not specified'}</Text>
-                  <Text style={[styles.detailSubText, { color: textSecondary }]}>House 123, Street 4, Karachi</Text>
+                {/* Location */}
+                <View style={styles.detailRow}>
+                  <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
+                  <View>
+                    <Text style={[styles.detailMainText, { color: textColor }]}>{request.location || 'Location not specified'}</Text>
+                    <Text style={[styles.detailSubText, { color: textSecondary }]}>{request.city || 'Karachi'}</Text>
+                  </View>
                 </View>
-              </View>
 
               {/* Date */}
               <View style={styles.detailRow}>

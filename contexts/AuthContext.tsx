@@ -124,10 +124,11 @@ export interface Job {
   id: string;
   userId: string;
   userName: string;
-  serviceName: string;
-  description: string;
-  location: string;
-  budget?: number;
+    serviceName: string;
+    description: string;
+    location: string;
+    city?: string;
+    budget?: number;
   workType?: string;
   phone?: string;
   email?: string;

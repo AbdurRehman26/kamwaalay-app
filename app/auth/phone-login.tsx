@@ -18,7 +18,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const DUMMY_PHONE = '9876543210';
+const TEST_ACCOUNTS = {
+  business: '9876543210',
+  helper: '9876543211',
+  user: '9876543212',
+};
 const { width } = Dimensions.get('window');
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -136,8 +140,8 @@ export default function PhoneLoginScreen() {
     }
   };
 
-  const handleUseDummy = () => {
-    setPhoneNumber(DUMMY_PHONE);
+  const handleFillTestAccount = (number: string) => {
+    setPhoneNumber(number);
   };
 
   const isFormValid = () => {
@@ -257,9 +261,30 @@ export default function PhoneLoginScreen() {
               )}
 
               {authMethod === 'otp' && (
-                <TouchableOpacity style={styles.demoLink} onPress={handleUseDummy}>
-                  <Text style={[styles.demoLinkText, { color: primaryColor }]}>Use Demo Account</Text>
-                </TouchableOpacity>
+                <View style={styles.devOptionsContainer}>
+                  <Text style={styles.devOptionsTitle}>DEVELOPER OPTIONS (DEBUG MODE)</Text>
+
+                  <TouchableOpacity
+                    style={[styles.devButton, { backgroundColor: '#2563EB' }]}
+                    onPress={() => handleFillTestAccount(TEST_ACCOUNTS.business)}
+                  >
+                    <Text style={styles.devButtonText}>🏢 Sign in as Test Business</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.devButton, { backgroundColor: '#D97706' }]}
+                    onPress={() => handleFillTestAccount(TEST_ACCOUNTS.helper)}
+                  >
+                    <Text style={styles.devButtonText}>🧹 Sign in as Test Helper</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.devButton, { backgroundColor: '#16A34A' }]}
+                    onPress={() => handleFillTestAccount(TEST_ACCOUNTS.user)}
+                  >
+                    <Text style={styles.devButtonText}>👤 Sign in as Test User</Text>
+                  </TouchableOpacity>
+                </View>
               )}
 
               <TouchableOpacity
@@ -460,14 +485,40 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
-  demoLink: {
-    alignSelf: 'center',
-    marginBottom: 20,
-    padding: 8,
+  devOptionsContainer: {
+    marginTop: 10,
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#1E293B', // Dark slate blue background
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderStyle: 'dashed',
+    alignItems: 'stretch',
+    gap: 12,
   },
-  demoLinkText: {
-    color: '#6366F1',
-    fontSize: 14,
+  devOptionsTitle: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  devButton: {
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  devButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '600',
   },
   submitButton: {

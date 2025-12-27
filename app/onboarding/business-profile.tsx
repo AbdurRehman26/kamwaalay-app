@@ -63,7 +63,7 @@ export default function BusinessProfileScreen() {
 
       await completeOnboarding(profileData);
       // Navigate to add workers step
-      router.push('/onboarding/add-workers');
+      router.push('/onboarding/business');
     } catch (error) {
       toast.error('Failed to save business profile');
     } finally {

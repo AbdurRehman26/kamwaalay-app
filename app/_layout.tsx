@@ -148,6 +148,17 @@ function RootLayoutNav() {
       });
 
       try {
+        // Check for incomplete business onboarding FIRST
+        if (user.userType === 'business' && user.onboardingStatus !== 'completed') {
+          // Business user with incomplete onboarding - force to business verification
+          if (currentPath !== 'onboarding/business') {
+            console.log('[RootLayoutNav] Business onboarding incomplete, redirecting to business verification');
+            router.replace('/onboarding/business');
+            return;
+          }
+          return; // Already on business verification, let them stay
+        }
+
         if (user.onboardingStatus === 'completed') {
           console.log('[RootLayoutNav] Onboarding completed, redirecting to tabs');
           router.replace('/(tabs)');
@@ -174,6 +185,16 @@ function RootLayoutNav() {
         // Navigation error
       }
     }
+    // Business users trying to access non-auth routes without completing onboarding
+    else if (user && user.isVerified !== false && !inAuthGroup &&
+      user.userType === 'business' && user.onboardingStatus !== 'completed') {
+      console.log('[RootLayoutNav] Business trying to access app without onboarding');
+      try {
+        router.replace('/onboarding/business');
+      } catch (error) {
+        // Navigation error
+      }
+    }
     // If user exists and is verified but not in auth group, and is in tabs, that's fine
     // But if user is not verified and somehow got to tabs, redirect to OTP verify
     else if (user && user.isVerified === false && !inAuthGroup) {
@@ -194,6 +215,7 @@ function RootLayoutNav() {
       <Stack.Screen name="onboarding/start" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding/helper-profile" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding/business-profile" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding/business" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
       <Stack.Screen name="profile/bookings" options={{ headerShown: false }} />

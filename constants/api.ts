@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
   // Onboarding
   ONBOARDING: {
     HELPER: '/onboarding/helper',
+    BUSINESS: '/onboarding/business',
   },
 
   // Jobs (for helpers/businesses to browse)
@@ -124,6 +125,7 @@ export const API_ENDPOINTS = {
   // Messages
   MESSAGES: {
     CONVERSATIONS: '/conversations',
+    CREATE_CONVERSATION: '/conversations',
     GET_MESSAGES: '/conversations/:id/messages',
     DELETE_CONVERSATION: '/conversations/:id',
     SEND: '/messages',
@@ -134,6 +136,11 @@ export const API_ENDPOINTS = {
   LOCATIONS: {
     SEARCH: '/locations/search',
     KARACHI_SEARCH: '/karachi-locations/search',
+  },
+
+  // Cities
+  CITIES: {
+    LIST: '/cities',
   },
 
   // Notifications

@@ -1,3 +1,4 @@
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -6,12 +7,14 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -30,6 +33,8 @@ const SERVICE_TYPES = [
   '24/7 Live-in',
   'Other',
 ];
+
+
 
 const WORK_TYPES = [
   'Full Time',
@@ -67,99 +72,163 @@ export default function CreateRequestScreen() {
   const [address, setAddress] = useState('');
   const [specialRequirements, setSpecialRequirements] = useState('');
 
-  // Location State
-  const [selectedLocations, setSelectedLocations] = useState<Location[]>([]);
-  const [locationSearch, setLocationSearch] = useState('');
-  const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  // New Location State
+  // New Location State
+  const [city, setCity] = useState('');
+  const [cities, setCities] = useState<string[]>([]);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [pinLocation, setPinLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    fetchCities();
+  }, []);
+
+  const fetchCities = async () => {
+    try {
+      setIsLoadingCities(true);
+      const response = await apiService.get(API_ENDPOINTS.CITIES.LIST);
+      if (response.success && response.data) {
+        // Assume API returns array of strings or objects with name
+        const cityList = Array.isArray(response.data)
+          ? response.data.map((c: any) => typeof c === 'string' ? c : c.name)
+          : [];
+        setCities(cityList);
+      }
+    } catch (error) {
+      console.log('Error fetching cities:', error);
+    } finally {
+      setIsLoadingCities(false);
+    }
+  };
+
+  // Map State
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: 24.8607,
+    longitude: 67.0011, // Karachi default
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Modal State
-  const [activeSelection, setActiveSelection] = useState<'service' | 'work' | 'location' | null>(null);
+  const [activeSelection, setActiveSelection] = useState<'service' | 'work' | 'city' | null>(null);
 
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Search locations from API when user types
-  useEffect(() => {
-    const searchTimeout = setTimeout(() => {
-      if (locationSearch.trim().length >= 2) {
-        searchLocations(locationSearch.trim());
-      } else if (locationSearch.trim().length === 0) {
-        setFilteredLocations([]);
-      }
-    }, 300); // Debounce for 300ms
-
-    return () => clearTimeout(searchTimeout);
-  }, [locationSearch]);
-
-  const searchLocations = async (query: string) => {
+  const getCurrentLocation = async () => {
     try {
-      setIsLoadingLocations(true);
-
-      const response = await apiService.get(
-        API_ENDPOINTS.LOCATIONS.SEARCH,
-        undefined,
-        { q: query },
-        false
-      );
-
-      if (response.success && response.data) {
-        let locationsData: Location[] = [];
-        if (response.data.locations) {
-          locationsData = Array.isArray(response.data.locations.data)
-            ? response.data.locations.data
-            : (Array.isArray(response.data.locations) ? response.data.locations : []);
-        } else if (Array.isArray(response.data)) {
-          locationsData = response.data;
-        } else if (response.data.data) {
-          locationsData = Array.isArray(response.data.data) ? response.data.data : [];
-        }
-
-        const mappedLocations: Location[] = locationsData.map((loc: any) => ({
-          id: loc.id || loc.location_id || loc.name,
-          name: loc.name || loc.location_name || '',
-          area: loc.area || loc.area_name,
-        }));
-
-        setFilteredLocations(mappedLocations);
-      } else {
-        setFilteredLocations([]);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Allow location access to pin your address on map');
+        return;
       }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const region = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setMapRegion(region);
+      setSelectedCoordinate({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      });
     } catch (error) {
-      setFilteredLocations([]);
-    } finally {
-      setIsLoadingLocations(false);
+      console.log('Error getting location', error);
     }
   };
 
-  const handleLocationSelect = (location: Location) => {
-    // Only allow single location selection as per design implication ("Area *")
-    setSelectedLocations([location]);
-    setLocationSearch(location.area || location.name);
-    setActiveSelection(null);
+  const openMap = () => {
+    setIsMapVisible(true);
+    if (!pinLocation) {
+      getCurrentLocation();
+    } else {
+      setMapRegion({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      setSelectedCoordinate({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude
+      });
+    }
   };
+
+  const handleMapConfirm = async () => {
+    if (!selectedCoordinate) return;
+
+    setIsGeocoding(true);
+    try {
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: selectedCoordinate.latitude,
+        longitude: selectedCoordinate.longitude
+      });
+
+      let addressString = '';
+      if (reverseGeocode.length > 0) {
+        const addr = reverseGeocode[0];
+        addressString = `${addr.street || ''} ${addr.name || ''}, ${addr.city || ''}, ${addr.region || ''}, ${addr.postalCode || ''}`.replace(/\s+/g, ' ').trim();
+      } else {
+        addressString = `${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)}`;
+      }
+
+      setPinLocation({
+        latitude: selectedCoordinate.latitude,
+        longitude: selectedCoordinate.longitude,
+        address: addressString
+      });
+
+      // Update form address field
+      setAddress(addressString);
+
+      // Auto-select city if possible
+      if (reverseGeocode[0]?.city && cities.includes(reverseGeocode[0].city)) {
+        setCity(reverseGeocode[0].city);
+      }
+
+      setIsMapVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get address details');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+
 
   const handleCreate = async () => {
     if (!serviceType) { Alert.alert('Required', 'Please select a service type'); return; }
     if (!workType) { Alert.alert('Required', 'Please select a work type'); return; }
-    if (selectedLocations.length === 0) { Alert.alert('Required', 'Please select an area'); return; }
+    if (!city) { Alert.alert('Required', 'Please select a city'); return; }
     if (!userName.trim()) { Alert.alert('Required', 'Please enter your name'); return; }
     if (!phone.trim()) { Alert.alert('Required', 'Please enter your phone number'); return; }
 
     setIsSubmitting(true);
     try {
-      const locationName = selectedLocations.map((loc) => loc.area || loc.name).join(', ');
-
       await addJob({
         userId: user?.id || 'guest',
         userName: userName,
         serviceName: serviceType,
         description: specialRequirements,
-        location: locationName,
+        location: city, // Use city as location/area
         budget: estimatedSalary ? parseFloat(estimatedSalary) : undefined,
         workType,
         phone,
-        address
+        address,
+        pin_address: pinLocation?.address || address,
+        latitude: pinLocation?.latitude,
+        longitude: pinLocation?.longitude,
       });
 
       Alert.alert('Success', 'Job created successfully', [
@@ -176,7 +245,7 @@ export default function CreateRequestScreen() {
     if (!activeSelection) return null;
 
     let title = '';
-    let options: string[] | Location[] = [];
+    let options: string[] = [];
     let onSelect: (item: any) => void = () => { };
 
     if (activeSelection === 'service') {
@@ -193,10 +262,13 @@ export default function CreateRequestScreen() {
         setWorkType(item);
         setActiveSelection(null);
       };
-    } else if (activeSelection === 'location') {
-      title = 'Select Area';
-      options = filteredLocations;
-      onSelect = handleLocationSelect;
+    } else if (activeSelection === 'city') {
+      title = 'Select City';
+      options = cities;
+      onSelect = (item) => {
+        setCity(item);
+        setActiveSelection(null);
+      };
     }
 
     return (
@@ -215,42 +287,23 @@ export default function CreateRequestScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          {activeSelection === 'location' && (
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: borderColor }}>
-              <TextInput
-                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
-                placeholder="Type to search area..."
-                placeholderTextColor={textMuted}
-                value={locationSearch}
-                onChangeText={setLocationSearch}
-                autoFocus
-              />
-              {isLoadingLocations && (
-                <ActivityIndicator style={styles.loader} size="small" color={primaryColor} />
-              )}
-            </View>
-          )}
-
           <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {activeSelection === 'location' && options.length === 0 && locationSearch.length > 0 && !isLoadingLocations ? (
-              <Text style={{ textAlign: 'center', color: textMuted, marginTop: 20 }}>No locations found</Text>
-            ) : (
-              options.map((item: any, index: number) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.modalItem, { borderBottomColor: borderColor }]}
-                  onPress={() => onSelect(item)}
-                >
-                  <Text style={[styles.modalItemText, { color: textColor }]}>
-                    {activeSelection === 'location' ? (item.area ? item.area : item.name) : item}
-                  </Text>
-                  {((activeSelection === 'service' && serviceType === item) ||
-                    (activeSelection === 'work' && workType === item)) && (
-                      <IconSymbol name="checkmark" size={20} color={primaryColor} />
-                    )}
-                </TouchableOpacity>
-              ))
-            )}
+            {options.map((item: any, index: number) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.modalItem, { borderBottomColor: borderColor }]}
+                onPress={() => onSelect(item)}
+              >
+                <Text style={[styles.modalItemText, { color: textColor }]}>
+                  {item}
+                </Text>
+                {((activeSelection === 'service' && serviceType === item) ||
+                  (activeSelection === 'work' && workType === item) ||
+                  (activeSelection === 'city' && city === item)) && (
+                    <IconSymbol name="checkmark" size={20} color={primaryColor} />
+                  )}
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -323,13 +376,13 @@ export default function CreateRequestScreen() {
             </View>
 
             <View style={styles.col}>
-              <ThemedText style={styles.label}>AREA *</ThemedText>
+              <ThemedText style={styles.label}>CITY *</ThemedText>
               <TouchableOpacity
                 style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
-                onPress={() => setActiveSelection('location')}
+                onPress={() => setActiveSelection('city')}
               >
-                <Text style={[styles.dropdownButtonText, { color: locationSearch ? textColor : textMuted }]} numberOfLines={1}>
-                  {locationSearch || 'Select Area'}
+                <Text style={[styles.dropdownButtonText, { color: city ? textColor : textMuted }]} numberOfLines={1}>
+                  {city || 'Select City'}
                 </Text>
                 <IconSymbol name="chevron.down" size={16} color={textMuted} />
               </TouchableOpacity>
@@ -372,14 +425,23 @@ export default function CreateRequestScreen() {
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>ADDRESS</ThemedText>
             <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
-              placeholder="House 123, Street 4, Karachi"
+              style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor: borderColor, color: textColor, opacity: 0.7 }]}
+              placeholder="Pin location on map to set address"
               placeholderTextColor={textMuted}
               multiline
               numberOfLines={3}
               value={address}
-              onChangeText={setAddress}
+              editable={false}
             />
+            <TouchableOpacity
+              style={[styles.pinButton, { borderColor: primaryColor }]}
+              onPress={openMap}
+            >
+              <IconSymbol name="location.fill" size={16} color={primaryColor} />
+              <Text style={[styles.pinButtonText, { color: primaryColor }]}>
+                {address ? 'Change Location' : 'Pin Location on Map'}
+              </Text>
+            </TouchableOpacity>
             <View style={styles.helperTextContainer}>
               <IconSymbol name="info.circle" size={12} color={textMuted} />
               <Text style={[styles.helperText, { color: textMuted }]}>
@@ -428,6 +490,68 @@ export default function CreateRequestScreen() {
       </ScrollView>
 
       {renderSelectionModal()}
+
+      <Modal
+        visible={isMapVisible}
+        animationType="slide"
+        onRequestClose={() => setIsMapVisible(false)}
+      >
+        <View style={styles.mapContainer}>
+          <MapView
+            provider={PROVIDER_GOOGLE}
+            style={styles.map}
+            region={mapRegion}
+            onRegionChangeComplete={(region) => {
+              setMapRegion(region);
+              // Update selected coordinate to center of map when region changes (simulating crosshair selection)
+              setSelectedCoordinate({
+                latitude: region.latitude,
+                longitude: region.longitude
+              });
+            }}
+            showsUserLocation
+            showsMyLocationButton
+          >
+            {selectedCoordinate && (
+              <Marker
+                coordinate={selectedCoordinate}
+                title="Job Location"
+                draggable
+                onDragEnd={(e) => setSelectedCoordinate(e.nativeEvent.coordinate)}
+              />
+            )}
+          </MapView>
+
+          <View style={[styles.mapOverlay, { bottom: Platform.OS === 'ios' ? 40 : 20 }]}>
+            <Text style={styles.mapInstruction}>Drag marker or move map to position</Text>
+            <View style={styles.mapButtons}>
+              <TouchableOpacity
+                style={[styles.mapButton, styles.cancelButton]}
+                onPress={() => setIsMapVisible(false)}
+              >
+                <Text style={styles.mapButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
+                onPress={handleMapConfirm}
+                disabled={isGeocoding}
+              >
+                {isGeocoding ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={[styles.mapButtonText, { color: '#FFF' }]}>Confirm Location</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Centered Crosshair for precise selection */}
+          <View style={styles.crosshair} pointerEvents="none">
+            <IconSymbol name="plus" size={24} color={primaryColor} />
+          </View>
+        </View>
+      </Modal>
+
     </ThemedView>
   );
 }
@@ -579,5 +703,75 @@ const styles = StyleSheet.create({
   },
   modalItemText: {
     fontSize: 16,
+  },
+  pinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    borderStyle: 'dashed',
+  },
+  pinButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  mapContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  mapInstruction: {
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#333',
+    fontWeight: '600',
+  },
+  mapButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mapButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#E5E7EB',
+  },
+  confirmButton: {
+    // Background color set inline
+  },
+  mapButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#374151',
+  },
+  crosshair: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -12,
+    marginLeft: -12,
   },
 });

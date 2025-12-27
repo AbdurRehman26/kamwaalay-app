@@ -1,5 +1,4 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
@@ -36,7 +35,7 @@ export default function WorkersListScreen() {
     return (
         <View style={[styles.container, { backgroundColor }]}>
 
-            <ScrollView 
+            <ScrollView
                 style={[styles.scrollView, { backgroundColor }]}
                 showsHorizontalScrollIndicator={false}
                 horizontal={false}
@@ -49,17 +48,6 @@ export default function WorkersListScreen() {
                 {/* Decorative Background Elements */}
                 <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
                 <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-                {/* Header Background */}
-                <View style={styles.headerBackground}>
-                    <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-                        <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={() => router.push('/workers/add')}
-                        >
-                            <IconSymbol name="plus.circle.fill" size={32} color="#FFFFFF" />
-                        </TouchableOpacity>
-                    </View>
-                </View>
 
                 {/* Content */}
                 <View style={styles.contentContainer}>
@@ -145,7 +133,7 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         paddingHorizontal: 20,
-        marginTop: -60,
+        paddingTop: 20,
     },
     emptyStateCard: {
         backgroundColor: '#FFFFFF',

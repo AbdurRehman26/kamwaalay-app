@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@/constants/api';
 import { apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Job, useAuth } from './AuthContext';
 
 interface AppContextType {
@@ -294,6 +294,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         phone: requestData.phone || '',
         email: requestData.email || '',
         address: requestData.address,
+        pin_address: requestData.pin_address,
+        latitude: requestData.latitude,
+        longitude: requestData.longitude,
         special_requirements: requestData.description,
         start_date: requestData.startDate,
         start_time: requestData.startTime,
@@ -403,6 +406,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         applyToJob,
         getJobs: () => Array.isArray(jobs) ? jobs : [],
         getHelpers: () => Array.isArray(helpers) ? helpers : [],
+        refreshJobs: loadData,
       }}
     >
       {children}

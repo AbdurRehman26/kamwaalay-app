@@ -46,23 +46,6 @@ export default function BusinessDashboardScreen() {
             {/* Decorative Background Elements */}
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <View>
-                        <ThemedText type="title" style={styles.title}>
-                            Dashboard
-                        </ThemedText>
-                        <ThemedText style={styles.subtitle}>
-                            Overview of your agency
-                        </ThemedText>
-                    </View>
-                    <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={() => router.push('/workers/add')}
-                    >
-                        <IconSymbol name="plus.circle.fill" size={32} color="#6366F1" />
-                    </TouchableOpacity>
-                </View>
 
                 <ScrollView
                     style={[styles.scrollView, { backgroundColor }]}

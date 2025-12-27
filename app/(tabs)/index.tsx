@@ -112,13 +112,13 @@ export default function HomeScreen() {
           serviceName: booking.service_type
             ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
             : booking.service_name || 'Service',
-            description: booking.special_requirements || booking.description || '',
-            location: booking.area || booking.location || '',
-            city: (typeof booking.city === 'string' ? booking.city : booking.city?.name) || 
-                  (typeof booking.location_city === 'string' ? booking.location_city : booking.location_city?.name) || 
-                  'Karachi',
-            workType: booking.work_type,
-            budget: booking.monthly_rate || booking.budget || booking.price,
+          description: booking.special_requirements || booking.description || '',
+          location: booking.area || booking.location || '',
+          city: (typeof booking.city === 'string' ? booking.city : booking.city?.name) ||
+            (typeof booking.location_city === 'string' ? booking.location_city : booking.location_city?.name) ||
+            'Karachi',
+          workType: booking.work_type,
+          budget: booking.monthly_rate || booking.budget || booking.price,
           status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
           createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
           applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
@@ -172,13 +172,13 @@ export default function HomeScreen() {
           serviceName: post.service_type
             ? post.service_type.charAt(0).toUpperCase() + post.service_type.slice(1).replace('_', ' ')
             : post.service_name || 'Service',
-            description: post.description || post.special_requirements || '',
-            location: post.area || post.location || post.location_name || '',
-            city: (typeof post.city === 'string' ? post.city : post.city?.name) || 
-                  (typeof post.location_city === 'string' ? post.location_city : post.location_city?.name) || 
-                  'Karachi',
-            workType: post.work_type,
-            budget: post.monthly_rate || post.budget || post.price || 0,
+          description: post.description || post.special_requirements || '',
+          location: post.area || post.location || post.location_name || '',
+          city: (typeof post.city === 'string' ? post.city : post.city?.name) ||
+            (typeof post.location_city === 'string' ? post.location_city : post.location_city?.name) ||
+            'Karachi',
+          workType: post.work_type,
+          budget: post.monthly_rate || post.budget || post.price || 0,
           status: post.status === 'pending' ? 'open' : (post.status || 'open'),
           createdAt: post.created_at || post.createdAt || new Date().toISOString(),
           applicants: post.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
@@ -385,89 +385,89 @@ export default function HomeScreen() {
       });
     };
 
-      // Format posted date
-      const formatPostedDate = (dateString: string) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return `Posted ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      };
+    // Format posted date
+    const formatPostedDate = (dateString: string) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return `Posted ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    };
 
-      const formatWorkType = (type?: string) => {
-        if (!type) return 'Part Time';
-        return type
-          .split(/[_\s]/)
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-      };
+    const formatWorkType = (type?: string) => {
+      if (!type) return 'Part Time';
+      return type
+        .split(/[_\s]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    };
 
-      return (
-        <View key={request.id} style={styles.cardWrapper}>
-          <TouchableOpacity
-            style={[styles.card, { backgroundColor: cardBg, borderColor: borderColor, borderWidth: 1 }]}
-            onPress={() => handleCardPress(request.id)}
-            activeOpacity={0.9}
+    return (
+      <View key={request.id} style={styles.cardWrapper}>
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: cardBg, borderColor: borderColor, borderWidth: 1 }]}
+          onPress={() => handleCardPress(request.id)}
+          activeOpacity={0.9}
+        >
+          {/* Gradient Header */}
+          <LinearGradient
+            colors={[primaryColor, '#9333ea']} // Keeping purple as brand but using primary for start
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.cardHeaderGradient}
           >
-            {/* Gradient Header */}
-            <LinearGradient
-              colors={[primaryColor, '#9333ea']} // Keeping purple as brand but using primary for start
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.cardHeaderGradient}
-            >
-              <View style={styles.headerContent}>
-                <View style={styles.serviceTag}>
-                  <Text style={styles.serviceTagText}>{request.serviceName?.toUpperCase()}</Text>
-                </View>
-                <View style={[styles.statusTag, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <Text style={[styles.statusTagText, { color: '#FCD34D' }]}>
-                    {request.status?.toUpperCase() || 'PENDING'}
-                  </Text>
+            <View style={styles.headerContent}>
+              <View style={styles.serviceTag}>
+                <Text style={styles.serviceTagText}>{request.serviceName?.toUpperCase()}</Text>
+              </View>
+              <View style={[styles.statusTag, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Text style={[styles.statusTagText, { color: '#FCD34D' }]}>
+                  {request.status?.toUpperCase() || 'PENDING'}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          {/* Card Body */}
+          <View style={styles.cardBody}>
+            {/* User Info */}
+            <View style={styles.userInfoRow}>
+              <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
+                <Text style={[styles.avatarText, { color: primaryColor }]}>
+                  {(request.userName || 'U').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.userMeta}>
+                <Text style={[styles.userNameText, { color: textColor }]}>{request.userName || 'Unknown User'}</Text>
+                <Text style={[styles.postedDateText, { color: textSecondary }]}>{formatPostedDate(request.createdAt)}</Text>
+              </View>
+            </View>
+
+            {/* Job Details */}
+            <View style={styles.detailsContainer}>
+              {/* Job Type (Placeholder if not available) */}
+              <View style={styles.detailRow}>
+                <IconSymbol name="briefcase.fill" size={18} color={textMuted} />
+                <View style={[styles.jobTypeTag, { backgroundColor: secondaryLight }]}>
+                  <Text style={[styles.jobTypeText, { color: textSecondary }]}>{formatWorkType(request.workType)}</Text>
                 </View>
               </View>
-            </LinearGradient>
 
-            {/* Card Body */}
-            <View style={styles.cardBody}>
-              {/* User Info */}
-              <View style={styles.userInfoRow}>
-                <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
-                  <Text style={[styles.avatarText, { color: primaryColor }]}>
-                    {(request.userName || 'U').charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.userMeta}>
-                  <Text style={[styles.userNameText, { color: textColor }]}>{request.userName || 'Unknown User'}</Text>
-                  <Text style={[styles.postedDateText, { color: textSecondary }]}>{formatPostedDate(request.createdAt)}</Text>
+              {/* Location */}
+              <View style={styles.detailRow}>
+                <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
+                <View>
+                  <Text style={[styles.detailMainText, { color: textColor }]}>{request.city || 'Karachi'}</Text>
+                  {request.location ? (
+                    <Text style={[styles.detailSubText, { color: textSecondary }]}>{request.location}</Text>
+                  ) : null}
                 </View>
               </View>
 
-              {/* Job Details */}
-              <View style={styles.detailsContainer}>
-                {/* Job Type (Placeholder if not available) */}
-                <View style={styles.detailRow}>
-                  <IconSymbol name="briefcase.fill" size={18} color={textMuted} />
-                  <View style={[styles.jobTypeTag, { backgroundColor: secondaryLight }]}>
-                    <Text style={[styles.jobTypeText, { color: textSecondary }]}>{formatWorkType(request.workType)}</Text>
-                  </View>
-                </View>
-
-                    {/* Location */}
-                    <View style={styles.detailRow}>
-                      <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
-                      <View>
-                        <Text style={[styles.detailMainText, { color: textColor }]}>{request.city || 'Karachi'}</Text>
-                        {request.location ? (
-                          <Text style={[styles.detailSubText, { color: textSecondary }]}>{request.location}</Text>
-                        ) : null}
-                      </View>
-                    </View>
-
-                {/* Date */}
-                <View style={styles.detailRow}>
-                  <IconSymbol name="calendar" size={18} color="#F87171" />
-                  <Text style={[styles.detailMainText, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
-                </View>
+              {/* Date */}
+              <View style={styles.detailRow}>
+                <IconSymbol name="calendar" size={18} color="#F87171" />
+                <Text style={[styles.detailMainText, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
               </View>
+            </View>
 
             {/* Special Requirements Box */}
             <View style={[styles.requirementsBox, { backgroundColor: backgroundColor, borderColor: borderColor }]}>

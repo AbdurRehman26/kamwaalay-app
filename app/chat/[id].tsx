@@ -64,6 +64,7 @@ export default function ChatDetailScreen() {
   const initializeChat = async () => {
     let convId: string | null = null;
     let recipId: string | null = null;
+    let resolvedName: string | null = name ? decodeURIComponent(name as string) : null;
 
     if (type === 'conversation') {
       convId = id as string;
@@ -71,36 +72,56 @@ export default function ChatDetailScreen() {
     } else {
       // Type is 'user' (or undefined), so id is the recipientId
       recipId = id as string;
-      // Try to find existing conversation
+    }
+
+    // If we have a recipient but no conversation, create or get existing conversation
+    if (!convId && recipId) {
       try {
-        const response = await apiService.get(API_ENDPOINTS.MESSAGES.CONVERSATIONS, undefined, undefined, true);
-        if (response.success && response.data?.conversations) {
-          const existingConv = response.data.conversations.find(
-            (c: any) => c.other_user?.id?.toString() === recipId
-          );
-          if (existingConv) {
-            convId = existingConv.id.toString();
+        const response = await apiService.post(
+          API_ENDPOINTS.MESSAGES.CREATE_CONVERSATION,
+          { recipient_id: parseInt(recipId) },
+          undefined,
+          true
+        );
+        if (response.success && response.data?.conversation) {
+          convId = response.data.conversation.id.toString();
+          if (!resolvedName && response.data.conversation.other_user?.name) {
+            resolvedName = response.data.conversation.other_user.name;
           }
         }
       } catch (error) {
-        console.error('Error finding conversation:', error);
+        console.error('Error creating/getting conversation:', error);
+      }
+    } else if (convId && !resolvedName) {
+      // We have a conversation ID but no name, fetch conversations to get the name
+      try {
+        const response = await apiService.get(API_ENDPOINTS.MESSAGES.CONVERSATIONS, undefined, undefined, true);
+        if (response.success && response.data?.conversations) {
+          const existingConv = response.data.conversations.find((c: any) => c.id.toString() === convId);
+          if (existingConv?.other_user?.name) {
+            resolvedName = existingConv.other_user.name;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching conversation details:', error);
       }
     }
 
     setConversationId(convId);
     setRecipientId(recipId);
 
+    if (resolvedName) {
+      setChatUserName(resolvedName);
+    } else {
+      // Fallback if name still not found
+      setChatUserName('User');
+    }
+
     if (convId) {
       fetchMessages(convId);
     } else {
       setMessages([]);
       setIsLoading(false);
-    }
-
-    // Set name if not provided
-    if (!name && recipId) {
-      // Fetch user details to get name (omitted for brevity, using fallback)
-      setChatUserName('User');
     }
   };
 
@@ -179,16 +200,17 @@ export default function ChatDetailScreen() {
       );
 
       if (response.success) {
-        // If this was a new conversation, we now have a conversation ID (implicitly, or we need to fetch it)
-        // The response might contain the message with conversation_id
-        if (!conversationId && response.data?.conversation_id) {
-          setConversationId(response.data.conversation_id.toString());
+        // If this was a new conversation, get the conversation ID from the response
+        // API returns { message: {...}, conversation: { id: ... } }
+        const newConvId = response.data?.conversation?.id?.toString();
+        if (!conversationId && newConvId) {
+          setConversationId(newConvId);
         }
         // Refresh messages to get the real ID and timestamp
         if (conversationId) {
           fetchMessages(conversationId);
-        } else if (response.data?.conversation_id) {
-          fetchMessages(response.data.conversation_id.toString());
+        } else if (newConvId) {
+          fetchMessages(newConvId);
         }
       } else {
         // Handle error (maybe remove optimistic message or show error)

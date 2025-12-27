@@ -37,12 +37,15 @@ function formatPhoneNumberWithCountryCode(phone: string): string {
 
 /**
  * Helper function to extract onboarding status from API response
- * Handles both boolean fields (is_onboarded, onboarded) and status strings (onboarding_status, onboardingStatus)
+ * Handles both boolean fields (is_onboarded, onboarded, onboarding_complete) and status strings (onboarding_status, onboardingStatus)
  */
 function extractOnboardingStatus(apiData: any, fallback: OnboardingStatus = 'not_started'): OnboardingStatus {
-  // Check for the new field first
+  // Check for the onboarding_complete field first (API standard)
   if (apiData?.onboarding_complete === true) {
     return 'completed';
+  }
+  if (apiData?.onboarding_complete === false) {
+    return 'not_started';
   }
 
   // Check for boolean fields (is_onboarded, onboarded)
@@ -124,15 +127,18 @@ export interface Job {
   id: string;
   userId: string;
   userName: string;
-    serviceName: string;
-    description: string;
-    location: string;
-    city?: string;
-    budget?: number;
+  serviceName: string;
+  description: string;
+  location: string;
+  city?: string;
+  budget?: number;
   workType?: string;
   phone?: string;
   email?: string;
   address?: string;
+  pin_address?: string;
+  latitude?: number;
+  longitude?: number;
   startDate?: string;
   startTime?: string;
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';

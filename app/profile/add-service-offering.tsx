@@ -26,11 +26,7 @@ const WORK_TYPES = [
   { id: 'part_time', name: 'Part Time' },
 ];
 
-interface Location {
-  id: number | string;
-  name: string;
-  area?: string;
-}
+
 
 interface ServiceType {
   id: string | number;
@@ -58,16 +54,10 @@ export default function AddServiceOfferingScreen() {
 
   // Form state
   const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>([]);
-  const [selectedLocations, setSelectedLocations] = useState<Location[]>([]);
   const [workType, setWorkType] = useState('full_time');
   const [monthlyRate, setMonthlyRate] = useState('');
   const [description, setDescription] = useState('');
 
-  // Location search state
-  const [locationSearch, setLocationSearch] = useState('');
-  const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -78,19 +68,7 @@ export default function AddServiceOfferingScreen() {
     }
   }, [id, isEditMode]);
 
-  // Location search effect
-  useEffect(() => {
-    const searchTimeout = setTimeout(() => {
-      if (locationSearch.trim().length >= 2) {
-        searchLocations(locationSearch.trim());
-      } else if (locationSearch.trim().length === 0) {
-        setFilteredLocations([]);
-        setShowLocationDropdown(false);
-      }
-    }, 300);
 
-    return () => clearTimeout(searchTimeout);
-  }, [locationSearch]);
   const loadServiceListing = async () => {
     try {
       setIsLoading(true);
@@ -118,21 +96,7 @@ export default function AddServiceOfferingScreen() {
           setSelectedServiceTypes([found ? found.id.toString() : type]);
         }
 
-        // Set locations
-        if (listing.location_details && Array.isArray(listing.location_details)) {
-          const locations: Location[] = listing.location_details.map((loc: any) => ({
-            id: loc.id || loc.location_id || loc.name,
-            name: loc.display_text || loc.area || loc.area_name || loc.name || '',
-            area: loc.area || loc.area_name || loc.name || '',
-          }));
-          setSelectedLocations(locations);
-        } else if (listing.location) {
-          setSelectedLocations([{
-            id: listing.location.id || listing.location.name,
-            name: listing.location.name || listing.location.area || '',
-            area: listing.location.area || listing.location.name || '',
-          }]);
-        }
+
 
         if (listing.work_type) setWorkType(listing.work_type);
         if (listing.monthly_rate) setMonthlyRate(listing.monthly_rate.toString());
@@ -146,59 +110,7 @@ export default function AddServiceOfferingScreen() {
     }
   };
 
-  const searchLocations = async (query: string) => {
-    try {
-      setIsLoadingLocations(true);
-      setShowLocationDropdown(true);
 
-      const response = await apiService.get(
-        API_ENDPOINTS.LOCATIONS.SEARCH,
-        undefined,
-        { q: query },
-        false
-      );
-
-      if (response.success && response.data) {
-        let locationsData: Location[] = [];
-
-        if (response.data.locations) {
-          locationsData = Array.isArray(response.data.locations.data)
-            ? response.data.locations.data
-            : (Array.isArray(response.data.locations) ? response.data.locations : []);
-        } else if (Array.isArray(response.data)) {
-          locationsData = response.data;
-        } else if (response.data.data) {
-          locationsData = Array.isArray(response.data.data) ? response.data.data : [];
-        }
-
-        const mappedLocations: Location[] = locationsData.map((loc: any) => ({
-          id: loc.id || loc.location_id || loc.name,
-          name: loc.name || loc.location_name || '',
-          area: loc.area || loc.area_name || loc.name || '',
-        }));
-
-        setFilteredLocations(mappedLocations);
-      } else {
-        setFilteredLocations([]);
-      }
-    } catch (error) {
-      setFilteredLocations([]);
-    } finally {
-      setIsLoadingLocations(false);
-    }
-  };
-
-  const handleLocationSelect = (location: Location) => {
-    if (!selectedLocations.find((loc) => loc.id === location.id)) {
-      setSelectedLocations([...selectedLocations, location]);
-    }
-    setLocationSearch('');
-    setShowLocationDropdown(false);
-  };
-
-  const handleLocationRemove = (locationId: number | string) => {
-    setSelectedLocations(selectedLocations.filter((loc) => loc.id !== locationId));
-  };
 
   const toggleServiceType = (serviceId: string) => {
     const isSelected = selectedServiceTypes.includes(serviceId);
@@ -214,16 +126,12 @@ export default function AddServiceOfferingScreen() {
       Alert.alert('Required', 'Please select at least one service type');
       return;
     }
-    if (selectedLocations.length === 0) {
-      Alert.alert('Required', 'Please select at least one location');
-      return;
-    }
+
 
     try {
       setIsSubmitting(true);
 
-      // Prepare location IDs
-      const locationIds = selectedLocations.map((loc) => loc.id);
+
 
       let response;
       if (isEditMode && id) {
@@ -232,7 +140,6 @@ export default function AddServiceOfferingScreen() {
           API_ENDPOINTS.SERVICE_LISTINGS.UPDATE,
           {
             service_types: selectedServiceTypes,
-            locations: locationIds,
             work_type: workType,
             monthly_rate: monthlyRate ? parseFloat(monthlyRate) : null,
             description: description || null,
@@ -247,7 +154,6 @@ export default function AddServiceOfferingScreen() {
           API_ENDPOINTS.SERVICE_LISTINGS.CREATE,
           {
             service_types: selectedServiceTypes,
-            locations: locationIds,
             work_type: workType,
             monthly_rate: monthlyRate ? parseFloat(monthlyRate) : null,
             description: description || null,
@@ -357,69 +263,7 @@ export default function AddServiceOfferingScreen() {
                 </View>
               </View>
 
-              {/* Locations */}
-              <View style={[styles.inputGroup, { zIndex: 10 }]}>
-                <Text style={[styles.label, { color: textColor }]}>
-                  Select Locations <Text style={styles.required}>*</Text>
-                </Text>
-                <Text style={[styles.instruction, { color: textSecondary }]}>
-                  Add locations for this offer. You can add multiple locations.
-                </Text>
 
-                {/* Selected Locations */}
-                {selectedLocations.length > 0 && (
-                  <View style={styles.selectedLocationsContainer}>
-                    {selectedLocations.map((loc, index) => (
-                      <View key={loc.id || `location-${index}`} style={[styles.selectedLocationTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
-                        <Text style={[styles.selectedLocationTagText, { color: primaryColor }]}>
-                          {loc.area || loc.name}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => handleLocationRemove(loc.id)}
-                          style={styles.removeTagButton}
-                        >
-                          <IconSymbol name="xmark.circle.fill" size={16} color="#EF4444" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Location Search */}
-                <View style={[styles.locationSearchContainer, { backgroundColor: cardBg, borderColor }]}>
-                  <IconSymbol name="magnifyingglass" size={20} color={textMuted} style={styles.searchIcon} />
-                  <TextInput
-                    style={[styles.locationInput, { color: textColor }]}
-                    placeholder="Search location..."
-                    placeholderTextColor={textMuted}
-                    value={locationSearch}
-                    onChangeText={setLocationSearch}
-                  />
-                  {isLoadingLocations && (
-                    <ActivityIndicator size="small" color={primaryColor} style={styles.loader} />
-                  )}
-                </View>
-
-                {/* Location Dropdown */}
-                {showLocationDropdown && filteredLocations.length > 0 && (
-                  <View style={[styles.locationDropdown, { backgroundColor: cardBg, borderColor }]}>
-                    <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
-                      {filteredLocations.map((loc, index) => (
-                        <TouchableOpacity
-                          key={loc.id || `filtered-location-${index}`}
-                          style={[styles.locationDropdownItem, { borderBottomColor: borderColor }]}
-                          onPress={() => handleLocationSelect(loc)}
-                        >
-                          <IconSymbol name="mappin.circle.fill" size={20} color={primaryColor} />
-                          <Text style={[styles.locationDropdownText, { color: textColor }]}>
-                            {loc.area || loc.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
 
               {/* Work Type */}
               <View style={styles.inputGroup}>
@@ -487,7 +331,7 @@ export default function AddServiceOfferingScreen() {
               <TouchableOpacity
                 style={[
                   styles.addButton,
-                  (selectedServiceTypes.length === 0 || selectedLocations.length === 0)
+                  (selectedServiceTypes.length === 0)
                     ? {
                       backgroundColor: borderColor,
                       opacity: 0.5,
@@ -500,7 +344,7 @@ export default function AddServiceOfferingScreen() {
                     },
                 ]}
                 onPress={handleAddService}
-                disabled={selectedServiceTypes.length === 0 || selectedLocations.length === 0 || isSubmitting}
+                disabled={selectedServiceTypes.length === 0 || isSubmitting}
               >
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
@@ -508,12 +352,12 @@ export default function AddServiceOfferingScreen() {
                   <>
                     <Text style={[
                       styles.addButtonText,
-                      (selectedServiceTypes.length === 0 || selectedLocations.length === 0) && { opacity: 0.7 }
+                      (selectedServiceTypes.length === 0) && { opacity: 0.7 }
                     ]}>{isEditMode ? 'Update Service' : 'Add Service'}</Text>
                     <IconSymbol
                       name="plus"
                       size={20}
-                      color={(selectedServiceTypes.length === 0 || selectedLocations.length === 0) ? textMuted : "#FFFFFF"}
+                      color={(selectedServiceTypes.length === 0) ? textMuted : "#FFFFFF"}
                     />
                   </>
                 )}
@@ -621,75 +465,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  selectedLocationsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  selectedLocationTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 8,
-    borderWidth: 1,
-  },
-  selectedLocationTagText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  removeTagButton: {
-    padding: 2,
-  },
-  locationSearchContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    minHeight: 50,
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  locationInput: {
-    flex: 1,
-    paddingVertical: 16,
-    fontSize: 16,
-    minHeight: 50,
-  },
-  loader: {
-    marginLeft: 12,
-  },
-  locationDropdown: {
-    maxHeight: 200,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  locationDropdownScroll: {
-    maxHeight: 200,
-  },
-  locationDropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    gap: 12,
-  },
-  locationDropdownText: {
-    fontSize: 16,
-    fontWeight: '500',
   },
   workTypeContainer: {
     flexDirection: 'row',

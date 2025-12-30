@@ -42,10 +42,10 @@ interface JobPost {
   userId?: string | number;
   userName?: string;
   serviceName?: string;
-    description?: string;
-    location?: string;
-    city?: string;
-    budget?: number;
+  description?: string;
+  location?: string;
+  city?: string;
+  budget?: number;
   status?: string;
   createdAt?: string;
   applicants?: string[];
@@ -201,13 +201,13 @@ export default function JobPostsScreen() {
           serviceName: post.service_type
             ? post.service_type.charAt(0).toUpperCase() + post.service_type.slice(1).replace('_', ' ')
             : post.service_name || 'Service',
-            description: post.description || post.special_requirements || '',
-            location: post.area || post.location || post.location_name || '',
-            city: (typeof post.city === 'string' ? post.city : post.city?.name) || 
-                  (typeof post.location_city === 'string' ? post.location_city : post.location_city?.name) || 
-                  'Karachi',
-            workType: post.work_type,
-            budget: post.monthly_rate || post.budget || post.price || 0,
+          description: post.description || post.special_requirements || '',
+          location: post.area || post.location || post.location_name || '',
+          city: (typeof post.city === 'string' ? post.city : post.city?.name) ||
+            (typeof post.location_city === 'string' ? post.location_city : post.location_city?.name) ||
+            'Karachi',
+          workType: post.work_type,
+          budget: post.monthly_rate || post.budget || post.price || 0,
           status: post.status === 'pending' ? 'open' : (post.status || 'open'),
           createdAt: post.created_at || post.createdAt || new Date().toISOString(),
           applicants: post.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
@@ -456,13 +456,13 @@ export default function JobPostsScreen() {
 
               {/* Location */}
               <View style={styles.detailRow}>
-                  <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
-                    <View>
-                      <Text style={[styles.detailMainText, { color: textColor }]}>{request.city || 'Karachi'}</Text>
-                      {request.location ? (
-                        <Text style={[styles.detailSubText, { color: textMuted }]}>{request.location}</Text>
-                      ) : null}
-                    </View>
+                <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
+                <View>
+                  <Text style={[styles.detailMainText, { color: textColor }]}>{request.city || 'Karachi'}</Text>
+                  {request.location ? (
+                    <Text style={[styles.detailSubText, { color: textMuted }]}>{request.location}</Text>
+                  ) : null}
+                </View>
               </View>
 
               {/* Date */}
@@ -598,7 +598,7 @@ export default function JobPostsScreen() {
                 { color: textSecondary },
                 selectedTab === 'my' && { color: '#FFFFFF' }
               ]}>
-                My Requests ({myRequests.length})
+                My Jobs ({myRequests.length})
               </Text>
             </TouchableOpacity>
           ) : (

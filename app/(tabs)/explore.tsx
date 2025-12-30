@@ -89,6 +89,8 @@ interface Helper {
   religion?: string;
   age?: number;
   languages?: string[];
+  total_workers?: number;
+  address?: string;
 }
 
 interface Location {
@@ -99,7 +101,8 @@ interface Location {
 
 interface FilterState {
   services: string[];
-  locations: string[];
+  city: string | null;
+  nearMe: boolean;
   minExperience: number | null;
   minRating: number | null;
 }
@@ -112,7 +115,7 @@ export default function ExploreScreen() {
   const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
   const themeColors = Colors[isDark ? 'dark' : 'light'];
-  const [mainTab, setMainTab] = useState<'helpers' | 'service-providers'>('service-providers');
+  const [mainTab, setMainTab] = useState<'helpers'>('helpers');
 
   // Tab-specific search queries
   const [searchQueryHelpers, setSearchQueryHelpers] = useState('');
@@ -129,23 +132,27 @@ export default function ExploreScreen() {
   // Tab-specific filter states
   const [filtersHelpers, setFiltersHelpers] = useState<FilterState>({
     services: [],
-    locations: [],
+    city: null,
+    nearMe: false,
     minExperience: null,
     minRating: null,
   });
   const [filtersServices, setFiltersServices] = useState<FilterState>({
     services: [],
-    locations: [],
+    city: null,
+    nearMe: false,
     minExperience: null,
     minRating: null,
   });
 
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [locationSearch, setLocationSearch] = useState('');
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  const [cities, setCities] = useState<{ id: number; name: string }[]>([]);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
   const [helpersFromAPI, setHelpersFromAPI] = useState<Helper[]>([]);
+  const [serviceListingsFromAPI, setServiceListingsFromAPI] = useState<Helper[]>([]);
   const [isLoadingHelpers, setIsLoadingHelpers] = useState(false);
+  const [isLoadingServiceListings, setIsLoadingServiceListings] = useState(false);
   const serviceProviders = getHelpers(); // Service listings from AppContext
 
   // Get current tab's state
@@ -161,13 +168,38 @@ export default function ExploreScreen() {
   // Get service filter from route params
   const routeParams = useLocalSearchParams();
   const serviceFilter = routeParams?.service as string | undefined;
+  const serviceTypeId = routeParams?.service_type_id as string | undefined;
 
   // Fetch helpers from API when helpers tab is selected
   useEffect(() => {
+    fetchCities();
     if (mainTab === 'helpers') {
       fetchHelpersFromAPI();
+      // Clear filters when switching tabs (unless it's the initial load with params, but here we just clear on tab switch event really)
+      // Actually, we should probably clear only if we are manually switching. 
+      // But the requirement is "Switching tab should ... clear the filters completely".
+      // We can do this in the onPress handlers for tabs instead to be cleaner? 
+      // Or here? If we do it here, it might conflict with params on load?
+      // On load, mainTab is initialized. Route params are read.
+      // If we switch TABS, we want to clear.
+
+      // Let's rely on the tab onPress to clear filters.
     }
   }, [mainTab]);
+
+  const fetchCities = async () => {
+    try {
+      setIsLoadingCities(true);
+      const response = await apiService.get(API_ENDPOINTS.CITIES.LIST);
+      if (response.success && Array.isArray(response.data)) {
+        setCities(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+    } finally {
+      setIsLoadingCities(false);
+    }
+  };
 
   const fetchHelpersFromAPI = async () => {
     try {
@@ -176,8 +208,6 @@ export default function ExploreScreen() {
         API_ENDPOINTS.HELPERS.LIST,
         undefined,
         {
-          sort_by: 'rating',
-          user_type: 'all',
           page: '1',
         },
         false
@@ -214,8 +244,189 @@ export default function ExploreScreen() {
     }
   };
 
+  // Service listings fetch removed - now only showing helpers
+
+  // Pre-select the service filter based on service_type_id or service param
+  useEffect(() => {
+    let matchedServiceName: string | null = null;
+
+    // First, try to match by service_type_id
+    if (serviceTypeId && serviceTypes.length > 0) {
+      const matchingService = serviceTypes.find((t: any) => t.id == serviceTypeId);
+      if (matchingService) {
+        matchedServiceName = matchingService.name;
+      }
+    }
+
+    // If no match by ID, try to match by service name param
+    if (!matchedServiceName && serviceFilter && serviceTypes.length > 0) {
+      // Try exact match first
+      let matchingService = serviceTypes.find((t: any) =>
+        t.name.toLowerCase() === serviceFilter.toLowerCase()
+      );
+      // If not exact, try partial match (e.g., "domestic_helper" matches "Domestic Helper")
+      if (!matchingService) {
+        const normalizedFilter = serviceFilter.toLowerCase().replace(/_/g, ' ');
+        matchingService = serviceTypes.find((t: any) =>
+          t.name.toLowerCase() === normalizedFilter ||
+          t.name.toLowerCase().replace(/\s+/g, '_') === serviceFilter.toLowerCase()
+        );
+      }
+      if (matchingService) {
+        matchedServiceName = matchingService.name;
+      }
+    }
+
+    // Update both filter states if we found a match
+    if (matchedServiceName) {
+      const updateFilter = (prev: FilterState) => {
+        if (prev.services.length === 1 && prev.services[0] === matchedServiceName) {
+          return prev;
+        }
+        return {
+          ...prev,
+          services: [matchedServiceName!]
+        };
+      };
+
+      setFiltersHelpers(updateFilter);
+      setFiltersServices(updateFilter);
+    }
+  }, [serviceTypeId, serviceFilter, serviceTypes]);
+
+  const fetchServiceListingsFromAPI = async () => {
+    // Determine the service ID to filter by
+    let filterServiceId = serviceTypeId;
+
+    // If a service filter is selected in the internal state, look up its ID
+    if (filtersServices.services.length > 0 && serviceTypes.length > 0) {
+      const selectedServiceName = filtersServices.services[0];
+      const selectedServiceObj = serviceTypes.find((t: any) => t.name.toLowerCase() === selectedServiceName.toLowerCase());
+      if (selectedServiceObj) {
+        filterServiceId = selectedServiceObj.id;
+      }
+    }
+
+    if (!filterServiceId) {
+      // If no filter, we might want to fetch all listings or handle differently.
+      // For now, let's allow fetching all if no specific filter is set, 
+      // OR return if we strictly strictly want a filtered view.
+      // The user's request implies "switched to or filter is selected", so let's try to fetch even if no ID is there??
+      // But the API might require it or return everything. Let's fetch all if no ID.
+      // Actually, currently explore defaults to useApp() data if no API call. 
+      // But let's support API fetch without ID if needed.
+      // If we want to rely on serviceTypeId ONLY, we return.
+      // But if user manually filters, we need that ID.
+
+      // If no filter selected, we fetch all listings (empty query params)
+
+      // Update: If we have an ID, we fetch from API. If not, we might fall back to context?
+      // Let's stick to the prompt: filter is selected -> API call.
+
+      // If no filter selected, we fetch all listings (empty query params)
+    }
+
+    try {
+      setIsLoadingServiceListings(true);
+      const queryParams: any = {};
+
+      if (filterServiceId) {
+        queryParams.service_type_id = filterServiceId;
+      }
+
+      const response = await apiService.get(
+        API_ENDPOINTS.SERVICE_LISTINGS.LIST,
+        undefined,
+        queryParams,
+        false
+      );
+
+      if (response.success && response.data) {
+        let listings = [];
+        if (response.data.listings) {
+          if (response.data.listings.data) {
+            listings = Array.isArray(response.data.listings.data) ? response.data.listings.data : [];
+          } else {
+            listings = Array.isArray(response.data.listings) ? response.data.listings : [];
+          }
+        } else if (response.data.service_listings) {
+          listings = Array.isArray(response.data.service_listings.data)
+            ? response.data.service_listings.data
+            : (Array.isArray(response.data.service_listings) ? response.data.service_listings : []);
+        } else if (Array.isArray(response.data)) {
+          listings = response.data;
+        } else if (response.data.data) {
+          listings = Array.isArray(response.data.data) ? response.data.data : [];
+        }
+
+        // Map to Helper format
+        const mappedListings = listings
+          .filter((listing: any) => listing.user)
+          .map((listing: any) => {
+            const user = listing.user;
+            let experience = 0;
+            const expRaw = user.profileData?.experience || user.experience;
+            if (typeof expRaw === 'number') experience = expRaw;
+            else if (typeof expRaw === 'string') {
+              const match = expRaw.match(/(\d+)/);
+              if (match) experience = parseInt(match[1], 10);
+            }
+
+            return {
+              id: listing.id,
+              name: user.name,
+              user: user,
+              bio: user.profileData?.bio || user.bio || listing.description || '',
+              experience_years: experience,
+              services: listing.service_types && Array.isArray(listing.service_types)
+                ? listing.service_types.map((st: string) => ({
+                  id: listing.id,
+                  service_type: st,
+                  monthly_rate: listing.monthly_rate,
+                  location_id: listing.location_id,
+                  location: listing.location,
+                  area: listing.area
+                }))
+                : (listing.service_type ? [{
+                  id: listing.id,
+                  service_type: listing.service_type,
+                  monthly_rate: listing.monthly_rate,
+                  location_id: listing.location_id,
+                  location: listing.location,
+                  area: listing.area
+                }] : []),
+              area: listing.area || listing.location?.name || '',
+              rating: user.rating || 0,
+              reviews_count: user.reviews_count || 0,
+              profile_image: user.profile_image,
+              role: user.user_type || user.role || 'helper',
+              location_details: listing.location_details,
+              locations: listing.locations,
+              religion: user.profileData?.religion || user.religion,
+              gender: user.profileData?.gender || user.gender,
+              age: user.profileData?.age || user.age,
+              languages: user.profileData?.languages || user.languages
+            };
+          });
+
+        setServiceListingsFromAPI(mappedListings);
+      } else {
+        setServiceListingsFromAPI([]);
+      }
+    } catch (error) {
+      console.error('Error fetching service listings:', error);
+      setServiceListingsFromAPI([]);
+    } finally {
+      setIsLoadingServiceListings(false);
+    }
+  };
+
   // Get current data source based on main tab
-  const currentData = mainTab === 'helpers' ? helpersFromAPI : serviceProviders;
+  // Get current data source based on main tab
+  // Always use API data for service-providers tab now, as we fetch on tab switch
+  const currentData = mainTab === 'helpers'
+    ? helpersFromAPI
+    : serviceListingsFromAPI;
 
   // Extract unique services from current data, but prefer using the Master List from AppContext
   const availableServices = useMemo(() => {
@@ -239,103 +450,9 @@ export default function ExploreScreen() {
     return Array.from(serviceSet).sort();
   }, [currentData, serviceTypes]);
 
-  // Extract unique locations from current data
-  const availableLocationsFromHelpers = useMemo(() => {
-    const locationSet = new Set<string>();
-    currentData.forEach((helper: Helper) => {
-      if (helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
-        helper.location_details.forEach((loc) => {
-          const locationName = loc.name || loc.location_name || '';
-          const area = loc.area || loc.area_name || '';
-          if (locationName && area) {
-            locationSet.add(`${locationName}, ${area}`);
-          } else if (locationName) {
-            locationSet.add(locationName);
-          } else if (area) {
-            locationSet.add(area);
-          }
-        });
-      }
-      if (helper.locations && Array.isArray(helper.locations)) {
-        helper.locations.forEach((loc) => {
-          if (loc) locationSet.add(loc);
-        });
-      }
-      if (helper.services && helper.services.length > 0) {
-        helper.services.forEach((service) => {
-          if (service.location?.name) {
-            locationSet.add(service.location.name);
-          }
-          if (service.area) {
-            locationSet.add(service.area);
-          }
-        });
-      }
-      if (helper.area) {
-        locationSet.add(helper.area);
-      }
-    });
-    return Array.from(locationSet).sort();
-  }, [currentData]);
 
-  // Search locations from API
-  const searchLocations = async (query: string) => {
-    if (query.trim().length < 2) {
-      setLocations([]);
-      return;
-    }
 
-    try {
-      setIsLoadingLocations(true);
-      const response = await apiService.get(
-        API_ENDPOINTS.LOCATIONS.SEARCH,
-        undefined,
-        { q: query },
-        false
-      );
 
-      if (response.success && response.data) {
-        let locationsData: Location[] = [];
-
-        if (response.data.locations) {
-          locationsData = Array.isArray(response.data.locations.data)
-            ? response.data.locations.data
-            : (Array.isArray(response.data.locations) ? response.data.locations : []);
-        } else if (Array.isArray(response.data)) {
-          locationsData = response.data;
-        } else if (response.data.data) {
-          locationsData = Array.isArray(response.data.data) ? response.data.data : [];
-        }
-
-        const mappedLocations: Location[] = locationsData.map((loc: any) => ({
-          id: loc.id || loc.location_id || loc.name,
-          name: loc.name || loc.location_name || '',
-          area: loc.area || loc.area_name,
-        }));
-
-        setLocations(mappedLocations);
-      } else {
-        setLocations([]);
-      }
-    } catch (error) {
-      setLocations([]);
-    } finally {
-      setIsLoadingLocations(false);
-    }
-  };
-
-  // Debounce location search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (locationSearch.trim()) {
-        searchLocations(locationSearch);
-      } else {
-        setLocations([]);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [locationSearch]);
 
   // For helpers/businesses, redirect to requests tab (which shows jobs)
   useEffect(() => {
@@ -588,13 +705,104 @@ export default function ExploreScreen() {
     return `${serviceNames.slice(0, 2).join(', ')} +${serviceNames.length - 2} more`;
   };
 
-  // Helper function to format locations as "x, x +2 more"
-  const formatLocationsText = (locations: string[]): string => {
-    if (locations.length === 0) return '';
-    if (locations.length <= 2) {
-      return locations.join(', ');
+
+  // Helper function to get all services for a helper
+  const getAllServices = (helper: Helper): string[] => {
+    let services: string[] = [];
+    // Check service_listings first (for helpers)
+    if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
+      services = helper.service_listings.map((s) => {
+        const serviceType = s.service_type || '';
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+      });
     }
-    return `${locations.slice(0, 2).join(', ')} +${locations.length - 2} more`;
+    // Fallback to services
+    else if (helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
+      services = helper.services.map((s) => {
+        const serviceType = s.service_type || '';
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+      });
+    }
+    return [...new Set(services)];
+  };
+
+  // Helper function to get all locations for a helper
+  const getAllLocations = (helper: Helper): string[] => {
+    const locationList: string[] = [];
+    const seenLocations = new Set<string>();
+
+    // Helper function to add unique location
+    const addUniqueLocation = (location: string) => {
+      if (location) {
+        const locationLower = location.toLowerCase().trim();
+        if (!seenLocations.has(locationLower)) {
+          seenLocations.add(locationLower);
+          locationList.push(location);
+        }
+      }
+    };
+
+    // First, check service_listings for helpers (primary source)
+    if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
+      for (let i = 0; i < helper.service_listings.length; i++) {
+        const serviceListing = helper.service_listings[i];
+        if (serviceListing.location_details && Array.isArray(serviceListing.location_details)) {
+          for (let j = 0; j < serviceListing.location_details.length; j++) {
+            const loc = serviceListing.location_details[j];
+            const locationName = loc.name || loc.location_name || '';
+            const area = loc.area || loc.area_name || '';
+            if (locationName && area) {
+              addUniqueLocation(`${locationName}, ${area}`);
+            } else if (locationName) {
+              addUniqueLocation(locationName);
+            } else if (area) {
+              addUniqueLocation(area);
+            }
+          }
+        }
+      }
+    }
+
+    // Check for location_details (primary source for helpers from API)
+    if (locationList.length === 0 && helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
+      helper.location_details.forEach((loc) => {
+        const locationName = loc.name || loc.location_name || '';
+        const area = loc.area || loc.area_name || '';
+        if (locationName && area) {
+          addUniqueLocation(`${locationName}, ${area}`);
+        } else if (locationName) {
+          addUniqueLocation(locationName);
+        } else if (area) {
+          addUniqueLocation(area);
+        }
+      });
+    }
+
+    // Fallback to locations array
+    if (locationList.length === 0 && helper.locations && Array.isArray(helper.locations)) {
+      helper.locations.forEach((loc) => {
+        if (loc) addUniqueLocation(loc);
+      });
+    }
+
+    // Fallback to services locations
+    if (locationList.length === 0 && helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
+      helper.services.forEach((service) => {
+        if (service.location?.name) {
+          addUniqueLocation(service.location.name);
+        }
+        if (service.area) {
+          addUniqueLocation(service.area);
+        }
+      });
+    }
+
+    // Check if area is at helper level
+    if (locationList.length === 0 && helper.area) {
+      addUniqueLocation(helper.area);
+    }
+
+    return locationList;
   };
 
   // Render card for any provider (helper or business)
@@ -615,235 +823,6 @@ export default function ExploreScreen() {
     const apiRole = (item.role || item.user_type || (item as any).userType || '').toLowerCase();
     const phoneNumber = getPhoneNumber(item);
     const isHelper = apiRole === 'helper';
-
-    // Distinct card design for Service Listings (Services Tab)
-    if (mainTab === 'service-providers') {
-      return (
-        <TouchableOpacity
-          key={providerId}
-          style={[
-            styles.helperCard,
-            {
-              backgroundColor: themeColors.card,
-              borderColor: themeColors.border,
-              shadowColor: themeColors.shadow,
-              padding: 0, // Reset padding for strict control, we'll use inner views
-              overflow: 'hidden' // Ensure footer respects border radius
-            }
-          ]}
-          onPress={() => {
-            const serviceId = getPrimaryServiceId(item);
-            if (serviceId) {
-              router.push(`/service/${serviceId}`);
-            } else {
-              const profileType = apiRole === 'business' ? 'business' : 'helper';
-              router.push(`/profile/${profileType}/${providerId}` as any);
-            }
-          }}
-          activeOpacity={0.95}
-        >
-          {/* Main Service Content */}
-          <View style={{ padding: 18, paddingBottom: 14 }}>
-            {/* Header: Title & Price */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: '700',
-                  color: themeColors.text,
-                  marginBottom: 6,
-                  lineHeight: 26,
-                  textTransform: 'capitalize'
-                }}>
-                  {service || 'Service'}{' Services'}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <IconSymbol name="mappin.and.ellipse" size={14} color={themeColors.textSecondary} />
-                  <Text style={{ fontSize: 14, color: themeColors.textSecondary }} numberOfLines={1}>
-                    {locations[0] || 'Remote'}
-                  </Text>
-                </View>
-              </View>
-
-              {price > 0 && (
-                <View style={{
-                  backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#ECFDF5',
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  borderRadius: 10,
-                  alignItems: 'flex-end',
-                  borderWidth: 1,
-                  borderColor: isDark ? 'rgba(34, 197, 94, 0.3)' : '#A7F3D0'
-                }}>
-                  <Text style={{ fontSize: 11, color: isDark ? '#4ADE80' : '#15803D', fontWeight: '600', marginBottom: 1 }}>Starting</Text>
-                  <Text style={{ fontSize: 16, color: isDark ? '#4ADE80' : '#15803D', fontWeight: '700' }}>
-                    {(price >= 1000 ? (price / 1000).toFixed(0) + 'k' : price)}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Description / Bio */}
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.textSecondary,
-              lineHeight: 22,
-              marginBottom: 16
-            }} numberOfLines={2}>
-              {bio || `Professional ${service.toLowerCase()} services tailored to your specific needs. High quality work guaranteed.`}
-            </Text>
-
-
-
-            {/* Skills / Features Chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {getAllServices(item).slice(0, 4).map((s, i) => (
-                <View key={i} style={{
-                  backgroundColor: themeColors.backgroundSecondary,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: themeColors.border
-                }}>
-                  <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '500' }}>{s}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Footer: Provider Info & Quick Actions */}
-          <View style={{
-            backgroundColor: themeColors.primary, // Colorful footer
-            paddingVertical: 12,
-            paddingHorizontal: 18,
-            borderTopWidth: 1,
-            borderTopColor: themeColors.border,
-            gap: 12, // Gap between rows
-          }}>
-            {/* Top Footer Row: Provider & Actions */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              {/* Provider */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <View style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18, // Circle
-                  backgroundColor: 'rgba(255,255,255,0.2)', // Semi-transparent white
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.3)'
-                }}>
-                  {item.profile_image ? (
-                    <Image source={{ uri: item.profile_image }} style={{ width: 36, height: 36 }} />
-                  ) : (
-                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
-                      {providerName.charAt(0).toUpperCase()}
-                    </Text>
-                  )}
-                </View>
-
-                <View>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }} numberOfLines={1}>
-                    {providerName}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <IconSymbol name="star.fill" size={12} color="#F59E0B" />
-                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' }}>
-                      {rating.toFixed(1)} <Text style={{ fontSize: 11, fontWeight: '400' }}>({reviewsCount})</Text>
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Actions */}
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: 'rgba(255,255,255,0.15)', // Glassy effect
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.2)'
-                  }}
-                  onPress={(e) => handleCall(phoneNumber, e)}
-                >
-                  <IconSymbol name="phone.fill" size={16} color="#FFFFFF" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: 'rgba(255,255,255,0.15)', // Glassy effect
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.2)'
-                  }}
-                  onPress={(e) => handleWhatsApp(phoneNumber, e)}
-                >
-                  <FontAwesome name="whatsapp" size={18} color="#25D366" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: '#FFFFFF', // White button for contrast
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}
-                  onPress={(e) => handleInAppMessage(providerId, providerName, e)}
-                >
-                  <MaterialIcons name="message" size={18} color={themeColors.primary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Bottom Footer Row: Demographics */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 }}>
-              {(item.gender || (item.user as any)?.gender) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <FontAwesome name="user" size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{item.gender || (item.user as any)?.gender}</Text>
-                </View>
-              )}
-              {item.religion && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <FontAwesome name="moon-o" size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{typeof item.religion === 'object' ? (item.religion as any).label : item.religion}</Text>
-                </View>
-              )}
-              {(Array.isArray(item.languages) && item.languages.length > 0) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <MaterialIcons name="chat" size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-                    {item.languages.length} Language{item.languages.length > 1 ? 's' : ''}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </TouchableOpacity>
-      );
-    }
 
     // Default design for Helpers
     return (
@@ -898,36 +877,59 @@ export default function ExploreScreen() {
               fontSize: 12,
               fontWeight: '600',
               letterSpacing: 1,
-              opacity: 0.8
-            }}>{service.toUpperCase()}</Text>
+              textTransform: 'uppercase',
+              opacity: 0.9
+            }}>
+              {role}
+            </Text>
           </View>
 
+          {/* Verification Badge (if verified) */}
           {isVerified && (
-            <View style={{ position: 'absolute', top: 12, right: 12 }}>
-              <IconSymbol name="checkmark.seal.fill" size={16} color="#FFFFFF" />
+            <View style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              <IconSymbol name="checkmark.circle.fill" size={14} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>VERIFIED</Text>
             </View>
           )}
         </View>
 
         {/* Content Body */}
-        <View style={{ paddingHorizontal: 20, marginTop: -32 }}>
-          {/* Profile Header (Avatar & Rating) */}
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 20 }}>
-            {/* Avatar - Overlapping Header */}
+        <View style={{ padding: 20, paddingTop: 60 }}>
+          {/* Avatar - Floating Overlay */}
+          <View style={{
+            position: 'absolute',
+            top: -40, // Pull up into header
+            left: 20,
+            zIndex: 10
+          }}>
             <View style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
+              width: 80,
+              height: 80,
+              borderRadius: 40,
               backgroundColor: themeColors.card,
-              padding: 4,
-              marginRight: 16,
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4
+              padding: 4, // Border width
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 8
             }}>
-              <View style={{ flex: 1, borderRadius: 32, overflow: 'hidden', backgroundColor: themeColors.backgroundTertiary, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{
+                flex: 1,
+                borderRadius: 36,
+                backgroundColor: themeColors.backgroundSecondary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden'
+              }}>
                 {item.profile_image ? (
                   <Image source={{ uri: item.profile_image }} style={{ width: '100%', height: '100%' }} />
                 ) : (
@@ -1062,104 +1064,6 @@ export default function ExploreScreen() {
     );
   };
 
-  // Helper function to get all services for a helper
-  const getAllServices = (helper: Helper): string[] => {
-    let services: string[] = [];
-    // Check service_listings first (for helpers)
-    if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
-      services = helper.service_listings.map((s) => {
-        const serviceType = s.service_type || '';
-        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
-      });
-    }
-    // Fallback to services
-    else if (helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
-      services = helper.services.map((s) => {
-        const serviceType = s.service_type || '';
-        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
-      });
-    }
-    return [...new Set(services)];
-  };
-
-  // Helper function to get all locations for a helper
-  const getAllLocations = (helper: Helper): string[] => {
-    const locationList: string[] = [];
-    const seenLocations = new Set<string>();
-
-    // Helper function to add unique location
-    const addUniqueLocation = (location: string) => {
-      if (location) {
-        const locationLower = location.toLowerCase().trim();
-        if (!seenLocations.has(locationLower)) {
-          seenLocations.add(locationLower);
-          locationList.push(location);
-        }
-      }
-    };
-
-    // First, check service_listings for helpers (primary source)
-    if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
-      for (let i = 0; i < helper.service_listings.length; i++) {
-        const serviceListing = helper.service_listings[i];
-        if (serviceListing.location_details && Array.isArray(serviceListing.location_details)) {
-          for (let j = 0; j < serviceListing.location_details.length; j++) {
-            const loc = serviceListing.location_details[j];
-            const locationName = loc.name || loc.location_name || '';
-            const area = loc.area || loc.area_name || '';
-            if (locationName && area) {
-              addUniqueLocation(`${locationName}, ${area}`);
-            } else if (locationName) {
-              addUniqueLocation(locationName);
-            } else if (area) {
-              addUniqueLocation(area);
-            }
-          }
-        }
-      }
-    }
-
-    // Check for location_details (primary source for helpers from API)
-    if (locationList.length === 0 && helper.location_details && Array.isArray(helper.location_details) && helper.location_details.length > 0) {
-      helper.location_details.forEach((loc) => {
-        const locationName = loc.name || loc.location_name || '';
-        const area = loc.area || loc.area_name || '';
-        if (locationName && area) {
-          addUniqueLocation(`${locationName}, ${area}`);
-        } else if (locationName) {
-          addUniqueLocation(locationName);
-        } else if (area) {
-          addUniqueLocation(area);
-        }
-      });
-    }
-
-    // Fallback to locations array
-    if (locationList.length === 0 && helper.locations && Array.isArray(helper.locations)) {
-      helper.locations.forEach((loc) => {
-        if (loc) addUniqueLocation(loc);
-      });
-    }
-
-    // Fallback to services locations
-    if (locationList.length === 0 && helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
-      helper.services.forEach((service) => {
-        if (service.location?.name) {
-          addUniqueLocation(service.location.name);
-        }
-        if (service.area) {
-          addUniqueLocation(service.area);
-        }
-      });
-    }
-
-    // Check if area is at helper level
-    if (locationList.length === 0 && helper.area) {
-      addUniqueLocation(helper.area);
-    }
-
-    return locationList;
-  };
 
   // Get filtered providers based on tab selection
   const getFilteredByTab = () => {
@@ -1229,20 +1133,22 @@ export default function ExploreScreen() {
       getAllServices(h).some((s) => filters.services.includes(s));
 
     // Filter by selected locations
-    const matchesLocations = filters.locations.length === 0 ||
-      getAllLocations(h).some((loc) =>
-        filters.locations.some((filterLoc) =>
-          loc.toLowerCase().includes(filterLoc.toLowerCase()) ||
-          filterLoc.toLowerCase().includes(loc.toLowerCase())
-        )
-      );
+    const matchesCity = !filters.city ||
+      (h.location_details?.some(l => l.name === filters.city) ?? false) ||
+      (h.services?.some(s => s.location?.name === filters.city) ?? false) ||
+      (h.locations?.includes(filters.city ?? '') ?? false);
+
+    // For now, Near Me is a placeholder for filtering logic or API parameter
+    // If we wanted local filtering, we'd need lat/long. 
+    // Assuming API handles it or we just show all if no lat/long available locally.
+    const matchesNearMe = !filters.nearMe || true;
 
     // Filter by minimum experience
     const matchesExperience = filters.minExperience === null ||
       (h.experience_years !== undefined && h.experience_years >= filters.minExperience);
 
     return matchesRole && matchesSearch && matchesServiceFilter && matchesServices &&
-      matchesLocations && matchesExperience;
+      matchesCity && matchesNearMe && matchesExperience;
   });
 
   // Count active filters for current tab
@@ -1252,7 +1158,8 @@ export default function ExploreScreen() {
     let count = 0;
     if (currentRoleFilter !== 'all') count++;
     if (currentFilters.services.length > 0) count++;
-    if (currentFilters.locations.length > 0) count++;
+    if (currentFilters.city !== null) count++;
+    if (currentFilters.nearMe) count++;
     if (currentFilters.minExperience !== null) count++;
     return count;
   }, [mainTab, filtersHelpers, filtersServices, selectedFilterHelpers, selectedFilterServices]);
@@ -1260,7 +1167,8 @@ export default function ExploreScreen() {
   const clearFilters = () => {
     setFilters({
       services: [],
-      locations: [],
+      city: null,
+      nearMe: false,
       minExperience: null,
       minRating: null,
     });
@@ -1328,46 +1236,20 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Main Tabs */}
-        <View style={[styles.mainTabs, { borderBottomColor: themeColors.border }]}>
-          <TouchableOpacity
-            style={[styles.mainTabButton, mainTab === 'helpers' && styles.mainTabButtonActive]}
-            onPress={() => setMainTab('helpers')}
-          >
-            <Text style={[
-              styles.mainTabText,
-              { color: isDark ? '#94A3B8' : '#8E8E93' },
-              mainTab === 'helpers' && { color: themeColors.primary, fontWeight: '600' }
-            ]}>
-              Helpers
-            </Text>
-            {mainTab === 'helpers' && <View style={[styles.tabIndicator, { backgroundColor: themeColors.primary }]} />}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.mainTabButton, mainTab === 'service-providers' && styles.mainTabButtonActive]}
-            onPress={() => setMainTab('service-providers')}
-          >
-            <Text style={[
-              styles.mainTabText,
-              { color: isDark ? '#94A3B8' : '#8E8E93' },
-              mainTab === 'service-providers' && { color: themeColors.primary, fontWeight: '600' }
-            ]}>
-              Services
-            </Text>
-            {mainTab === 'service-providers' && <View style={[styles.tabIndicator, { backgroundColor: themeColors.primary }]} />}
-          </TouchableOpacity>
-        </View>
+        {/* Tab header - Services tab removed, only Helpers now */}
 
         {/* Results */}
         <View style={styles.results}>
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              {mainTab === 'helpers' ? 'Helpers' : 'Services'} ({filteredProviders.length})
+              Helpers ({filteredProviders.length})
             </ThemedText>
-            {isLoadingHelpers && mainTab === 'helpers' ? (
+            {isLoadingHelpers ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#6366F1" />
-                <ThemedText style={styles.loadingText}>Loading helpers...</ThemedText>
+                <ThemedText style={styles.loadingText}>
+                  Loading helpers...
+                </ThemedText>
               </View>
             ) : filteredProviders.length > 0 ? (
               filteredProviders.map((provider: Helper) => renderProviderCard(provider))
@@ -1376,8 +1258,8 @@ export default function ExploreScreen() {
                 <IconSymbol name="person.fill" size={48} color="#CCCCCC" />
                 <ThemedText style={styles.emptyText}>
                   {searchQuery.trim() || serviceFilter
-                    ? `No ${mainTab === 'helpers' ? 'helpers' : 'services'} found matching your search`
-                    : `No ${mainTab === 'helpers' ? 'helpers' : 'services'} available at the moment`}
+                    ? 'No helpers found matching your search'
+                    : 'No helpers available at the moment'}
                 </ThemedText>
               </View>
             )}
@@ -1402,44 +1284,46 @@ export default function ExploreScreen() {
             </View>
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              {/* Type/Role Filter */}
-              <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
-                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Type</ThemedText>
-                <View style={styles.chipContainer}>
-                  {[
-                    { id: 'all', label: 'All' },
-                    { id: 'helper', label: 'Helpers' },
-                    { id: 'business', label: 'Businesses' }
-                  ].map((option) => (
-                    <TouchableOpacity
-                      key={option.id}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: selectedFilter === option.id
-                            ? themeColors.primary
-                            : (isDark ? '#334155' : '#F5F5F5'),
-                          borderColor: selectedFilter === option.id
-                            ? themeColors.primary
-                            : (isDark ? '#475569' : '#E0E0E0')
-                        }
-                      ]}
-                      onPress={() => setSelectedFilter(option.id as any)}
-                    >
-                      <Text style={[
-                        styles.chipText,
-                        {
-                          color: selectedFilter === option.id
-                            ? '#FFFFFF'
-                            : (isDark ? '#CBD5E1' : '#666666')
-                        }
-                      ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+              {/* Type/Role Filter - Only show for Helpers tab */}
+              {mainTab === 'helpers' && (
+                <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
+                  <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Type</ThemedText>
+                  <View style={styles.chipContainer}>
+                    {[
+                      { id: 'all', label: 'All' },
+                      { id: 'helper', label: 'Helpers' },
+                      { id: 'business', label: 'Businesses' }
+                    ].map((option) => (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: selectedFilter === option.id
+                              ? themeColors.primary
+                              : (isDark ? '#334155' : '#F5F5F5'),
+                            borderColor: selectedFilter === option.id
+                              ? themeColors.primary
+                              : (isDark ? '#475569' : '#E0E0E0')
+                          }
+                        ]}
+                        onPress={() => setSelectedFilter(option.id as any)}
+                      >
+                        <Text style={[
+                          styles.chipText,
+                          {
+                            color: selectedFilter === option.id
+                              ? '#FFFFFF'
+                              : (isDark ? '#CBD5E1' : '#666666')
+                          }
+                        ]}>
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
+              )}
 
               {/* Services Filter */}
               <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
@@ -1463,8 +1347,8 @@ export default function ExploreScreen() {
                         setFilters((prev) => ({
                           ...prev,
                           services: prev.services.includes(service)
-                            ? prev.services.filter((s) => s !== service)
-                            : [...prev.services, service],
+                            ? [] // Deselect if already selected
+                            : [service], // Select only this one (single selection)
                         }));
                       }}
                     >
@@ -1483,78 +1367,175 @@ export default function ExploreScreen() {
                 </View>
               </View>
 
-              {/* Locations Filter */}
+              {/* Cities and Near Me Filter */}
               <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
-                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Locations</ThemedText>
-                <TextInput
+                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>City & Location</ThemedText>
+
+                {/* Near Me Toggle */}
+                <TouchableOpacity
                   style={[
-                    styles.locationSearchInput,
+                    styles.chip,
                     {
-                      backgroundColor: isDark ? '#334155' : '#F5F5F5',
-                      color: isDark ? '#F8FAFC' : '#000000'
+                      backgroundColor: filters.nearMe
+                        ? themeColors.primary
+                        : (isDark ? '#334155' : '#F5F5F5'),
+                      borderColor: filters.nearMe
+                        ? themeColors.primary
+                        : (isDark ? '#475569' : '#E0E0E0'),
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                      alignSelf: 'flex-start'
                     }
                   ]}
-                  placeholder="Search locations..."
-                  placeholderTextColor={isDark ? '#94A3B8' : '#999999'}
-                  value={locationSearch}
-                  onChangeText={setLocationSearch}
-                />
-                {isLoadingLocations && (
-                  <ActivityIndicator size="small" color={themeColors.primary} style={styles.loadingIndicator} />
-                )}
-                <View style={styles.chipContainer}>
-                  {/* Show available locations from helpers */}
-                  {availableLocationsFromHelpers.map((location) => (
-                    <TouchableOpacity
-                      key={location}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: filters.locations.includes(location)
-                            ? themeColors.primary
-                            : (isDark ? '#334155' : '#F5F5F5'),
-                          borderColor: filters.locations.includes(location)
-                            ? themeColors.primary
-                            : (isDark ? '#475569' : '#E0E0E0')
-                        }
-                      ]}
-                      onPress={() => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          locations: prev.locations.includes(location)
-                            ? prev.locations.filter((l) => l !== location)
-                            : [...prev.locations, location],
-                        }));
-                      }}
-                    >
-                      <Text style={[
-                        styles.chipText,
-                        {
-                          color: filters.locations.includes(location)
-                            ? '#FFFFFF'
-                            : (isDark ? '#CBD5E1' : '#666666')
-                        }
-                      ]}>
-                        {location}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                  {/* Show API search results - show all locations from API */}
-                  {locations.map((location) => {
-                    const locationDisplayName = location.area
-                      ? `${location.name}, ${location.area}`
-                      : location.name;
-                    const locationKey = `${location.id}-${locationDisplayName}`;
-                    return (
+                  onPress={() => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      nearMe: !prev.nearMe,
+                      city: !prev.nearMe ? null : prev.city // Clear city if Near Me is enabled, optional
+                    }));
+                  }}
+                >
+                  <IconSymbol name="location.fill" size={16} color={filters.nearMe ? '#FFFFFF' : (isDark ? '#CBD5E1' : '#666666')} style={{ marginRight: 6 }} />
+                  <Text style={[
+                    styles.chipText,
+                    {
+                      color: filters.nearMe
+                        ? '#FFFFFF'
+                        : (isDark ? '#CBD5E1' : '#666666')
+                    }
+                  ]}>
+                    Pin Near Me
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Cities Searchable Dropdown */}
+                <View style={{ marginBottom: 12 }}>
+                  <TextInput
+                    style={[
+                      styles.locationSearchInput,
+                      {
+                        backgroundColor: isDark ? '#334155' : '#F5F5F5',
+                        color: isDark ? '#F8FAFC' : '#000000',
+                        marginBottom: 8
+                      }
+                    ]}
+                    placeholder="Search city..."
+                    placeholderTextColor={isDark ? '#94A3B8' : '#999999'}
+                    value={citySearch}
+                    onChangeText={setCitySearch}
+                  />
+
+                  {/* Selected City Chip (if any) */}
+                  {filters.city && (
+                    <View style={{ flexDirection: 'row', marginBottom: 8 }}>
                       <TouchableOpacity
-                        key={locationKey}
                         style={[
                           styles.chip,
                           {
-                            backgroundColor: filters.locations.includes(locationDisplayName)
+                            backgroundColor: themeColors.primary,
+                            borderColor: themeColors.primary,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingRight: 8
+                          }
+                        ]}
+                        onPress={() => setFilters(prev => ({ ...prev, city: null }))}
+                      >
+                        <Text style={[styles.chipText, { color: '#FFFFFF', marginRight: 4 }]}>
+                          {filters.city}
+                        </Text>
+                        <IconSymbol name="xmark" size={12} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Cities List */}
+                  <View style={{
+                    maxHeight: 200,
+                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: isDark ? '#334155' : '#F0F0F0',
+                    overflow: 'hidden'
+                  }}>
+                    <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 200 }}>
+                      {cities
+                        .filter(c =>
+                          !citySearch.trim() ||
+                          c.name.toLowerCase().includes(citySearch.toLowerCase())
+                        )
+                        .map((city, index) => {
+                          const isSelected = filters.city === city.name;
+                          return (
+                            <TouchableOpacity
+                              key={city.id}
+                              style={{
+                                paddingVertical: 12,
+                                paddingHorizontal: 16,
+                                borderBottomWidth: index === cities.length - 1 ? 0 : 1,
+                                borderBottomColor: isDark ? '#334155' : '#F0F0F0',
+                                backgroundColor: isSelected
+                                  ? (isDark ? '#334155' : '#F5F5F5')
+                                  : 'transparent',
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                opacity: filters.nearMe ? 0.5 : 1
+                              }}
+                              disabled={filters.nearMe}
+                              onPress={() => {
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  city: city.name,
+                                }));
+                                setCitySearch(''); // Clear search on selection
+                              }}
+                            >
+                              <Text style={{
+                                fontSize: 14,
+                                color: isSelected
+                                  ? themeColors.primary
+                                  : (isDark ? '#CBD5E1' : '#334155'),
+                                fontWeight: isSelected ? '600' : '400'
+                              }}>
+                                {city.name}
+                              </Text>
+                              {isSelected && (
+                                <IconSymbol name="checkmark" size={16} color={themeColors.primary} />
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      {cities.length === 0 && !isLoadingCities && (
+                        <View style={{ padding: 16, alignItems: 'center' }}>
+                          <Text style={{ color: isDark ? '#94A3B8' : '#666666' }}>No cities found</Text>
+                        </View>
+                      )}
+                      {isLoadingCities && (
+                        <ActivityIndicator size="small" color={themeColors.primary} style={{ margin: 12 }} />
+                      )}
+                    </ScrollView>
+                  </View>
+                </View>
+              </View>
+
+
+              {/* Experience Filter - Only show for Helpers tab */}
+              {mainTab === 'helpers' && (
+                <View style={[styles.filterSection, { borderBottomColor: 'transparent' }]}>
+                  <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Minimum Experience (Years)</ThemedText>
+                  <View style={styles.experienceContainer}>
+                    {[0, 1, 2, 3, 5, 10].map((years) => (
+                      <TouchableOpacity
+                        key={years}
+                        style={[
+                          styles.experienceChip,
+                          {
+                            backgroundColor: filters.minExperience === years
                               ? themeColors.primary
                               : (isDark ? '#334155' : '#F5F5F5'),
-                            borderColor: filters.locations.includes(locationDisplayName)
+                            borderColor: filters.minExperience === years
                               ? themeColors.primary
                               : (isDark ? '#475569' : '#E0E0E0')
                           }
@@ -1562,67 +1543,25 @@ export default function ExploreScreen() {
                         onPress={() => {
                           setFilters((prev) => ({
                             ...prev,
-                            locations: prev.locations.includes(locationDisplayName)
-                              ? prev.locations.filter((l) => l !== locationDisplayName)
-                              : [...prev.locations, locationDisplayName],
+                            minExperience: prev.minExperience === years ? null : years,
                           }));
                         }}
                       >
                         <Text style={[
-                          styles.chipText,
+                          styles.experienceChipText,
                           {
-                            color: filters.locations.includes(locationDisplayName)
+                            color: filters.minExperience === years
                               ? '#FFFFFF'
                               : (isDark ? '#CBD5E1' : '#666666')
                           }
                         ]}>
-                          {locationDisplayName}
+                          {years === 0 ? 'Any' : `${years}+`}
                         </Text>
                       </TouchableOpacity>
-                    );
-                  })}
+                    ))}
+                  </View>
                 </View>
-              </View>
-
-              {/* Experience Filter */}
-              <View style={[styles.filterSection, { borderBottomColor: 'transparent' }]}>
-                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Minimum Experience (Years)</ThemedText>
-                <View style={styles.experienceContainer}>
-                  {[0, 1, 2, 3, 5, 10].map((years) => (
-                    <TouchableOpacity
-                      key={years}
-                      style={[
-                        styles.experienceChip,
-                        {
-                          backgroundColor: filters.minExperience === years
-                            ? themeColors.primary
-                            : (isDark ? '#334155' : '#F5F5F5'),
-                          borderColor: filters.minExperience === years
-                            ? themeColors.primary
-                            : (isDark ? '#475569' : '#E0E0E0')
-                        }
-                      ]}
-                      onPress={() => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          minExperience: prev.minExperience === years ? null : years,
-                        }));
-                      }}
-                    >
-                      <Text style={[
-                        styles.experienceChipText,
-                        {
-                          color: filters.minExperience === years
-                            ? '#FFFFFF'
-                            : (isDark ? '#CBD5E1' : '#666666')
-                        }
-                      ]}>
-                        {years === 0 ? 'Any' : `${years}+`}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+              )}
 
             </ScrollView>
 

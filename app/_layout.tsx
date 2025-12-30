@@ -2,11 +2,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { SplashScreen as CustomSplashScreen } from '@/components/splash-screen';
 import { AppProvider } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -281,34 +280,14 @@ function ThemedApp({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
-  const [showCustomSplash, setShowCustomSplash] = useState(true);
-
-  useEffect(() => {
-    // Hide native splash screen as soon as custom splash is mounted
-    // This ensures smooth transition from native to custom splash
-    const timer = setTimeout(() => {
-      SplashScreen.hideAsync().catch(() => {
-        // Ignore errors if splash screen is already hidden
-      });
-    }, 100); // Small delay to ensure custom splash is rendered
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <SafeAreaProvider>
       <CustomThemeProvider>
         <AuthProvider>
           <AppProvider>
+            <SplashHider />
             <ThemedApp>
-              {showCustomSplash && (
-                <CustomSplashScreen
-                  onFinish={() => {
-                    setShowCustomSplash(false);
-                  }}
-                />
-              )}
-              {!showCustomSplash && <RootLayoutNav />}
+              <RootLayoutNav />
             </ThemedApp>
           </AppProvider>
         </AuthProvider>
@@ -316,3 +295,20 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+// Component to hide splash screen when auth is ready
+function SplashHider() {
+  const { isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) {
+      // Hide splash screen once auth loading is complete
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors if splash screen is already hidden
+      });
+    }
+  }, [isLoading]);
+
+  return null;
+}
+

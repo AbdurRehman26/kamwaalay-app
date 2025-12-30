@@ -1,10 +1,8 @@
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
-import * as ExpoLocation from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -12,7 +10,6 @@ import {
     Alert,
     Dimensions,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     ScrollView,
     StyleSheet,
@@ -78,16 +75,7 @@ export default function AddWorkerScreen() {
     // Service Types
     const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
-    // Pin Location
-    const [pinLocation, setPinLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-    const [pinAddress, setPinAddress] = useState<string>('');
-    const [showMapModal, setShowMapModal] = useState(false);
-    const [mapRegion, setMapRegion] = useState<Region>({
-        latitude: 24.8607,
-        longitude: 67.0011,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-    });
+
 
     // Professional Details
     const [experienceYears, setExperienceYears] = useState('');
@@ -108,50 +96,7 @@ export default function AddWorkerScreen() {
 
     useEffect(() => {
         fetchLanguages();
-        getCurrentLocation();
     }, []);
-
-    const getCurrentLocation = async () => {
-        try {
-            const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                return;
-            }
-            const location = await ExpoLocation.getCurrentPositionAsync({});
-            setMapRegion({
-                ...mapRegion,
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-            });
-        } catch (error) {
-            console.error('Error getting location:', error);
-        }
-    };
-
-    const reverseGeocode = async (latitude: number, longitude: number) => {
-        try {
-            const results = await ExpoLocation.reverseGeocodeAsync({ latitude, longitude });
-            if (results && results.length > 0) {
-                const addr = results[0];
-                const parts = [addr.name, addr.street, addr.district, addr.city].filter(Boolean);
-                return parts.join(', ') || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-            }
-        } catch (error) {
-            console.error('Reverse geocode error:', error);
-        }
-        return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-    };
-
-    const handleMapPress = async (event: any) => {
-        const { latitude, longitude } = event.nativeEvent.coordinate;
-        setPinLocation({ latitude, longitude });
-        const address = await reverseGeocode(latitude, longitude);
-        setPinAddress(address);
-    };
-
-    const confirmPinLocation = () => {
-        setShowMapModal(false);
-    };
 
     const fetchLanguages = async () => {
         try {
@@ -247,9 +192,6 @@ export default function AddWorkerScreen() {
                 full_name: fullName.trim(),
                 phone: phone.trim(),
                 service_types: selectedServices,
-                pin_address: pinAddress,
-                latitude: pinLocation?.latitude,
-                longitude: pinLocation?.longitude,
                 experience_years: parseInt(experienceYears),
                 age: parseInt(age),
                 gender,
@@ -271,8 +213,6 @@ export default function AddWorkerScreen() {
                         setFullName('');
                         setPhone('');
                         setSelectedServices([]);
-                        setPinLocation(null);
-                        setPinAddress('');
                         setExperienceYears('');
                         setAge('');
                         setGender('');
@@ -355,9 +295,9 @@ export default function AddWorkerScreen() {
                         <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
                         {/* Service Types */}
-                        <Text style={[styles.sectionTitle, { color: textColor }]}>Services & Location</Text>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>Services</Text>
                         <Text style={[styles.sectionDescription, { color: textSecondary }]}>
-                            Select the services this worker can provide and their service areas.
+                            Select the services this worker can provide.
                         </Text>
 
                         <View style={styles.inputGroup}>
@@ -385,32 +325,6 @@ export default function AddWorkerScreen() {
                                     );
                                 })}
                             </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: textColor }]}>Service Location <Text style={styles.required}>*</Text></Text>
-
-                            {/* Pin Location Display */}
-                            {pinAddress ? (
-                                <View style={[styles.pinLocationDisplay, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
-                                    <IconSymbol name="mappin.and.ellipse" size={20} color={primaryColor} />
-                                    <Text style={[styles.pinAddressText, { color: primaryColor }]} numberOfLines={2}>
-                                        {pinAddress}
-                                    </Text>
-                                    <TouchableOpacity onPress={() => setShowMapModal(true)}>
-                                        <Text style={[styles.changeButton, { color: primaryColor }]}>Change</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                <TouchableOpacity
-                                    style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}
-                                    onPress={() => setShowMapModal(true)}
-                                >
-                                    <IconSymbol name="mappin.and.ellipse" size={20} color={textMuted} style={styles.inputIcon} />
-                                    <Text style={[styles.inputText, { color: textMuted }]}>Tap to select location on map</Text>
-                                    <IconSymbol name="chevron.right" size={20} color={textMuted} />
-                                </TouchableOpacity>
-                            )}
                         </View>
 
                         <View style={[styles.divider, { backgroundColor: borderColor }]} />
@@ -649,44 +563,6 @@ export default function AddWorkerScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Map Modal */}
-            <Modal visible={showMapModal} animationType="slide">
-                <View style={[styles.mapModalContainer, { paddingTop: insets.top }]}>
-                    <View style={styles.mapHeader}>
-                        <TouchableOpacity onPress={() => setShowMapModal(false)}>
-                            <IconSymbol name="xmark" size={24} color={textColor} />
-                        </TouchableOpacity>
-                        <Text style={[styles.mapTitle, { color: textColor }]}>Select Location</Text>
-                        <TouchableOpacity onPress={confirmPinLocation} disabled={!pinLocation}>
-                            <Text style={[styles.mapConfirmText, { color: pinLocation ? primaryColor : textMuted }]}>Done</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <MapView
-                        style={styles.map}
-                        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-                        region={mapRegion}
-                        onRegionChangeComplete={setMapRegion}
-                        onPress={handleMapPress}
-                    >
-                        {pinLocation && (
-                            <Marker coordinate={pinLocation} />
-                        )}
-                    </MapView>
-                    {pinAddress ? (
-                        <View style={[styles.mapAddressBar, { backgroundColor: cardBg }]}>
-                            <IconSymbol name="mappin.and.ellipse" size={20} color={primaryColor} />
-                            <Text style={[styles.mapAddressText, { color: textColor }]} numberOfLines={2}>
-                                {pinAddress}
-                            </Text>
-                        </View>
-                    ) : (
-                        <View style={[styles.mapAddressBar, { backgroundColor: cardBg }]}>
-                            <Text style={[styles.mapAddressText, { color: textMuted }]}>Tap on the map to select a location</Text>
-                        </View>
-                    )}
-                </View>
-            </Modal>
         </View>
     );
 }
@@ -931,59 +807,5 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '500',
     },
-    // Pin location styles
-    pinLocationDisplay: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        gap: 12,
-    },
-    pinAddressText: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    changeButton: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    // Map modal styles
-    mapModalContainer: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    mapHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-    },
-    mapTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    mapConfirmText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    map: {
-        flex: 1,
-    },
-    mapAddressBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        gap: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
-    },
-    mapAddressText: {
-        flex: 1,
-        fontSize: 14,
-    },
+
 });

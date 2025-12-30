@@ -316,7 +316,10 @@ export default function HomeScreen() {
         onPress={() => {
           router.push({
             pathname: '/(tabs)/explore',
-            params: { service: item.slug }
+            params: {
+              service: item.slug,
+              service_type_id: item.id
+            }
           });
         }}
       >

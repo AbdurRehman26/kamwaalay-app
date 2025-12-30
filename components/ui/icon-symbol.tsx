@@ -66,6 +66,13 @@ const MAPPING = {
   'checkmark.seal.fill': 'verified',
   'mappin.and.ellipse': 'place',
   'bolt.fill': 'flash-on',
+  'plus': 'add',
+  'pencil': 'edit',
+  'sun.max.fill': 'wb-sunny',
+  'moon.fill': 'nightlight-round',
+  'circle.lefthalf.filled': 'brightness-medium',
+  'person.3.fill': 'groups',
+  'exclamationmark.triangle.fill': 'warning',
 } as IconMapping;
 
 /**

@@ -64,19 +64,6 @@ export const API_ENDPOINTS = {
     // Documentation: https://www.kamwaalay.com/api/documentation#/JobPosts/ba5c4f4528269686e482bf236a91d5d4
   },
 
-  // Bookings (service requests created by users)
-  BOOKINGS: {
-    LIST: '/bookings', // User's own bookings
-    CREATE_FORM: '/bookings/create', // Get form data
-    CREATE: '/bookings', // Create new booking
-    GET: '/bookings/:id',
-    UPDATE: '/bookings/:id',
-    DELETE: '/bookings/:id',
-    APPLY: '/bookings/:id/apply', // Apply to a booking
-    REVIEW: '/bookings/:id/review',
-    CREATE_REVIEW: '/bookings/:id/review/create',
-  },
-
   // Job Applications
   JOB_APPLICATIONS: {
     LIST: '/job-applications',

@@ -124,7 +124,6 @@ function RootLayoutNav() {
     // If user exists but is not verified, redirect to OTP verify screen
     // But ONLY if we're not on login/signup screens (allow users to login fresh)
     else if (user && user.isVerified === false) {
-      console.log('[RootLayoutNav] User not verified, redirecting to OTP');
       // Don't redirect if user is on login or signup screens - let them login fresh
       if (currentPath === 'auth/phone-login' || currentPath === 'auth/signup') {
         // User is on login/signup screen - don't redirect, let them login
@@ -141,17 +140,11 @@ function RootLayoutNav() {
     }
     // If user exists and is verified, and is in auth group, redirect to appropriate screen
     else if (user && user.isVerified !== false && inAuthGroup) {
-      console.log('[RootLayoutNav] User verified in auth/onboarding group', {
-        onboardingStatus: user.onboardingStatus,
-        userType: user.userType
-      });
-
       try {
         // Check for incomplete business onboarding FIRST
         if (user.userType === 'business' && user.onboardingStatus !== 'completed') {
           // Business user with incomplete onboarding - force to business verification
           if (currentPath !== 'onboarding/business') {
-            console.log('[RootLayoutNav] Business onboarding incomplete, redirecting to business verification');
             router.replace('/onboarding/business');
             return;
           }
@@ -159,7 +152,6 @@ function RootLayoutNav() {
         }
 
         if (user.onboardingStatus === 'completed') {
-          console.log('[RootLayoutNav] Onboarding completed, redirecting to tabs');
           router.replace('/(tabs)');
           return;
         }
@@ -171,13 +163,10 @@ function RootLayoutNav() {
         }
 
         if (user.onboardingStatus === 'in_progress') {
-          console.log('[RootLayoutNav] Onboarding in progress, redirecting to start');
           router.replace('/onboarding/start');
         } else if (user.userType) {
-          console.log('[AuthContext] User has type but no onboarding yet, redirecting to start');
           router.replace('/onboarding/start');
         } else {
-          console.log('[AuthContext] No user type, redirecting to user-type selection');
           router.replace('/auth/user-type');
         }
       } catch (error) {
@@ -187,7 +176,6 @@ function RootLayoutNav() {
     // Business users trying to access non-auth routes without completing onboarding
     else if (user && user.isVerified !== false && !inAuthGroup &&
       user.userType === 'business' && user.onboardingStatus !== 'completed') {
-      console.log('[RootLayoutNav] Business trying to access app without onboarding');
       try {
         router.replace('/onboarding/business');
       } catch (error) {
@@ -231,10 +219,11 @@ function RootLayoutNav() {
       <Stack.Screen name="job/create" options={{ headerShown: false }} />
       <Stack.Screen name="job/edit/[id]" options={{ headerShown: false, title: 'Edit Job' }} />
       <Stack.Screen name="job-view/[id]/index" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications" options={{ headerShown: false }} />
       <Stack.Screen
         name="business/dashboard"
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Business Dashboard',
           headerBackTitle: "",
         }}
@@ -242,7 +231,7 @@ function RootLayoutNav() {
       <Stack.Screen
         name="workers/index"
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'All Workers',
           headerBackTitle: "",
         }}
@@ -250,7 +239,7 @@ function RootLayoutNav() {
       <Stack.Screen
         name="workers/add"
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Add New Worker',
           headerBackTitle: "",
         }}

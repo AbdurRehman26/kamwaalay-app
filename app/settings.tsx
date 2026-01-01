@@ -7,9 +7,11 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
+  Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -27,6 +29,8 @@ export default function SettingsScreen() {
   const iconColor = useThemeColor({}, 'icon');
   const textSecondary = useThemeColor({}, 'textSecondary');
 
+  const insets = useSafeAreaInsets();
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -36,178 +40,181 @@ export default function SettingsScreen() {
         horizontal={false}
         contentContainerStyle={{ width: '100%' }}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color={iconColor} />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.title}>
-            Settings
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </View>
-
-        {/* Theme Settings */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Appearance
-          </ThemedText>
-          <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
-            <View style={styles.settingLeft}>
-              <IconSymbol
-                name={colorScheme === 'dark' ? 'moon.fill' : 'sun.max.fill'}
-                size={24}
-                color={iconColor}
-              />
-              <ThemedText style={styles.settingLabel}>Theme</ThemedText>
-            </View>
-          </View>
-          <View style={styles.themeOptions}>
-            <TouchableOpacity
-              style={[
-                styles.themeOption,
-                { backgroundColor: cardBg, borderColor },
-                themeMode === 'light' && { borderColor: primaryColor, borderWidth: 2 }
-              ]}
-              onPress={() => setThemeMode('light')}
-            >
-              <IconSymbol name="sun.max.fill" size={20} color={iconColor} />
-              <ThemedText style={styles.themeOptionText}>Light</ThemedText>
+        {/* Header Background */}
+        <View style={styles.headerBackground}>
+          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.themeOption,
-                { backgroundColor: cardBg, borderColor },
-                themeMode === 'dark' && { borderColor: primaryColor, borderWidth: 2 }
-              ]}
-              onPress={() => setThemeMode('dark')}
-            >
-              <IconSymbol name="moon.fill" size={20} color={iconColor} />
-              <ThemedText style={styles.themeOptionText}>Dark</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.themeOption,
-                { backgroundColor: cardBg, borderColor },
-                themeMode === 'auto' && { borderColor: primaryColor, borderWidth: 2 }
-              ]}
-              onPress={() => setThemeMode('auto')}
-            >
-              <IconSymbol name="circle.lefthalf.filled" size={20} color={iconColor} />
-              <ThemedText style={styles.themeOptionText}>Auto</ThemedText>
-            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Settings</Text>
+            <View style={{ width: 40 }} />
           </View>
         </View>
 
-        {/* Notification Settings */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Notifications
-          </ThemedText>
-          <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="bell.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.settingLabel}>Push Notifications</ThemedText>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: borderColor, true: primaryColor }}
-            />
-          </View>
-        </View>
-
-        {/* Business Section - Only for business users */}
-        {user?.userType === 'business' && (
+        {/* Content Container */}
+        <View style={styles.contentContainer}>
+          {/* Theme Settings */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Business
+              Appearance
+            </ThemedText>
+            <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
+              <View style={styles.settingLeft}>
+                <IconSymbol
+                  name={colorScheme === 'dark' ? 'moon.fill' : 'sun.max.fill'}
+                  size={24}
+                  color={iconColor}
+                />
+                <ThemedText style={styles.settingLabel}>Theme</ThemedText>
+              </View>
+            </View>
+            <View style={styles.themeOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.themeOption,
+                  { backgroundColor: cardBg, borderColor },
+                  themeMode === 'light' && { borderColor: primaryColor, borderWidth: 2 }
+                ]}
+                onPress={() => setThemeMode('light')}
+              >
+                <IconSymbol name="sun.max.fill" size={20} color={iconColor} />
+                <ThemedText style={styles.themeOptionText}>Light</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.themeOption,
+                  { backgroundColor: cardBg, borderColor },
+                  themeMode === 'dark' && { borderColor: primaryColor, borderWidth: 2 }
+                ]}
+                onPress={() => setThemeMode('dark')}
+              >
+                <IconSymbol name="moon.fill" size={20} color={iconColor} />
+                <ThemedText style={styles.themeOptionText}>Dark</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.themeOption,
+                  { backgroundColor: cardBg, borderColor },
+                  themeMode === 'auto' && { borderColor: primaryColor, borderWidth: 2 }
+                ]}
+                onPress={() => setThemeMode('auto')}
+              >
+                <IconSymbol name="circle.lefthalf.filled" size={20} color={iconColor} />
+                <ThemedText style={styles.themeOptionText}>Auto</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Notification Settings */}
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Notifications
+            </ThemedText>
+            <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
+              <View style={styles.settingLeft}>
+                <IconSymbol name="bell.fill" size={24} color={iconColor} />
+                <ThemedText style={styles.settingLabel}>Push Notifications</ThemedText>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={setNotificationsEnabled}
+                trackColor={{ false: borderColor, true: primaryColor }}
+              />
+            </View>
+          </View>
+
+          {/* Business Section - Only for business users */}
+          {user?.userType === 'business' && (
+            <View style={styles.section}>
+              <ThemedText type="subtitle" style={styles.sectionTitle}>
+                Business
+              </ThemedText>
+              <TouchableOpacity
+                style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
+                onPress={() => router.push('/business/dashboard')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <IconSymbol name="chart.bar.fill" size={24} color={iconColor} />
+                  <ThemedText style={styles.menuItemText}>Business Dashboard</ThemedText>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color={textSecondary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
+                onPress={() => router.push('/workers')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <IconSymbol name="person.2.fill" size={24} color={iconColor} />
+                  <ThemedText style={styles.menuItemText}>Manage Workers</ThemedText>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color={textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Account Settings */}
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Account
             </ThemedText>
             <TouchableOpacity
               style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
-              onPress={() => router.push('/business/dashboard')}
+              onPress={() => router.push('/profile/edit')}
             >
               <View style={styles.menuItemLeft}>
-                <IconSymbol name="chart.bar.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.menuItemText}>Business Dashboard</ThemedText>
+                <IconSymbol name="person.fill" size={24} color={iconColor} />
+                <ThemedText style={styles.menuItemText}>Edit Profile</ThemedText>
               </View>
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
-              onPress={() => router.push('/workers')}
+              onPress={() => router.push('/settings/change-password')}
             >
               <View style={styles.menuItemLeft}>
-                <IconSymbol name="person.2.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.menuItemText}>Manage Workers</ThemedText>
+                <IconSymbol name="lock.fill" size={24} color={iconColor} />
+                <ThemedText style={styles.menuItemText}>Change Password</ThemedText>
               </View>
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
           </View>
-        )}
 
-        {/* Account Settings */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Account
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.push('/profile/edit')}
-          >
-            <View style={styles.menuItemLeft}>
-              <IconSymbol name="person.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.menuItemText}>Edit Profile</ThemedText>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.push('/settings/change-password')}
-          >
-            <View style={styles.menuItemLeft}>
-              <IconSymbol name="lock.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.menuItemText}>Change Password</ThemedText>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* App Settings */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            App
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.push('/about')}
-          >
-            <View style={styles.menuItemLeft}>
-              <IconSymbol name="info.circle.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.menuItemText}>About</ThemedText>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.push('/terms')}
-          >
-            <View style={styles.menuItemLeft}>
-              <IconSymbol name="doc.text.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.menuItemText}>Terms & Conditions</ThemedText>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.push('/privacy')}
-          >
-            <View style={styles.menuItemLeft}>
-              <IconSymbol name="hand.raised.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.menuItemText}>Privacy Policy</ThemedText>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={textSecondary} />
-          </TouchableOpacity>
+          {/* App Settings */}
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              App
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
+              onPress={() => router.push('/about')}
+            >
+              <View style={styles.menuItemLeft}>
+                <IconSymbol name="info.circle.fill" size={24} color={iconColor} />
+                <ThemedText style={styles.menuItemText}>About</ThemedText>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
+              onPress={() => router.push('/terms')}
+            >
+              <View style={styles.menuItemLeft}>
+                <IconSymbol name="doc.text.fill" size={24} color={iconColor} />
+                <ThemedText style={styles.menuItemText}>Terms & Conditions</ThemedText>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
+              onPress={() => router.push('/privacy')}
+            >
+              <View style={styles.menuItemLeft}>
+                <IconSymbol name="hand.raised.fill" size={24} color={iconColor} />
+                <ThemedText style={styles.menuItemText}>Privacy Policy</ThemedText>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={textSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </ThemedView>
@@ -223,19 +230,37 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   section: {
-    paddingHorizontal: 20,
     marginBottom: 32,
   },
   sectionTitle: {

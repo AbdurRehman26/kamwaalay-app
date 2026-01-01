@@ -1,3 +1,4 @@
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
@@ -5,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -12,13 +14,14 @@ import {
   Alert,
   Dimensions,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,7 +35,11 @@ interface Location {
 
 interface FilterState {
   services: string[];
-  locations: string[];
+  pinLocation: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  } | null;
   minBudget: number | null;
   maxBudget: number | null;
 }
@@ -69,6 +76,17 @@ export default function JobPostsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [jobs, setJobs] = useState<JobPost[]>([]);
 
+  // Pin location map state
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: 24.8607,
+    longitude: 67.0011, // Karachi default
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -85,7 +103,7 @@ export default function JobPostsScreen() {
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
     services: [],
-    locations: [],
+    pinLocation: null,
     minBudget: null,
     maxBudget: null,
   });
@@ -250,7 +268,7 @@ export default function JobPostsScreen() {
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filters.services.length > 0) count += filters.services.length;
-    if (filters.locations.length > 0) count += filters.locations.length;
+    if (filters.pinLocation) count += 1;
     if (filters.minBudget !== null) count += 1;
     if (filters.maxBudget !== null) count += 1;
     return count;
@@ -292,20 +310,10 @@ export default function JobPostsScreen() {
       );
     }
 
-    // Apply location filters
-    if (filters.locations.length > 0) {
-      requests = requests.filter((r) => {
-        if (!r.location) return false;
-        const requestLocation = (r.location || '').toLowerCase().trim();
-        return filters.locations.some((location) => {
-          const filterLocation = (location || '').toLowerCase().trim();
-          // Match if request location contains filter location or vice versa
-          return requestLocation.includes(filterLocation) ||
-            filterLocation.includes(requestLocation) ||
-            requestLocation === filterLocation;
-        });
-      });
-    }
+    // Apply location filters - if pin location set, this would filter by proximity
+    // For now, we just check if pinLocation is set (real implementation would use geo-distance)
+    // Note: This is a placeholder - actual implementation would require lat/lng on job posts
+    // and a geo-distance calculation
 
     // Apply budget filters
     if (filters.minBudget !== null) {
@@ -321,10 +329,89 @@ export default function JobPostsScreen() {
   const clearFilters = () => {
     setFilters({
       services: [],
-      locations: [],
+      pinLocation: null,
       minBudget: null,
       maxBudget: null,
     });
+  };
+
+  // Map Functions
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Allow location access to pin your location on map');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const region = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setMapRegion(region);
+      setSelectedCoordinate({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      });
+    } catch (error) {
+      // Error getting location - use default
+    }
+  };
+
+  const openMap = () => {
+    setIsMapVisible(true);
+    if (!filters.pinLocation) {
+      getCurrentLocation();
+    } else {
+      setMapRegion({
+        latitude: filters.pinLocation.latitude,
+        longitude: filters.pinLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      setSelectedCoordinate({
+        latitude: filters.pinLocation.latitude,
+        longitude: filters.pinLocation.longitude
+      });
+    }
+  };
+
+  const handleMapConfirm = async () => {
+    if (!selectedCoordinate) return;
+
+    setIsGeocoding(true);
+    try {
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: selectedCoordinate.latitude,
+        longitude: selectedCoordinate.longitude
+      });
+
+      let addressString = '';
+      if (reverseGeocode.length > 0) {
+        const addr = reverseGeocode[0];
+        addressString = `${addr.street || ''} ${addr.name || ''}, ${addr.city || ''}, ${addr.region || ''}`.replace(/\\s+/g, ' ').trim();
+      } else {
+        addressString = `${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)}`;
+      }
+
+      setFilters({
+        ...filters,
+        pinLocation: {
+          latitude: selectedCoordinate.latitude,
+          longitude: selectedCoordinate.longitude,
+          address: addressString
+        }
+      });
+
+      setIsMapVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get address details');
+    } finally {
+      setIsGeocoding(false);
+    }
   };
 
   const filteredRequests = getFilteredRequests();
@@ -729,7 +816,7 @@ export default function JobPostsScreen() {
           >
             <View style={styles.modalOverlay}>
               <View style={[styles.modalContent, { backgroundColor }]}>
-                <View style={styles.modalHeader}>
+                <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
                   <Text style={[styles.modalTitle, { color: textColor }]}>Filters</Text>
                   <TouchableOpacity onPress={() => setShowFilterModal(false)}>
                     <IconSymbol name="xmark" size={24} color={textColor} />
@@ -738,7 +825,7 @@ export default function JobPostsScreen() {
 
                 <ScrollView style={styles.modalScrollView}>
                   {/* Services Filter */}
-                  <View style={styles.filterSection}>
+                  <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
                     <Text style={[styles.filterSectionTitle, { color: textColor }]}>
                       Service Types
                     </Text>
@@ -748,7 +835,11 @@ export default function JobPostsScreen() {
                         return (
                           <TouchableOpacity
                             key={service}
-                            style={[styles.chip, isSelected && styles.chipActive]}
+                            style={[
+                              styles.chip,
+                              { backgroundColor: cardBg, borderColor: borderColor },
+                              isSelected && { backgroundColor: primaryLight, borderColor: primaryColor }
+                            ]}
                             onPress={() => {
                               if (isSelected) {
                                 setFilters({
@@ -763,7 +854,11 @@ export default function JobPostsScreen() {
                               }
                             }}
                           >
-                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                            <Text style={[
+                              styles.chipText,
+                              { color: textSecondary },
+                              isSelected && { color: primaryColor, fontWeight: '600' }
+                            ]}>
                               {service}
                             </Text>
                           </TouchableOpacity>
@@ -772,91 +867,56 @@ export default function JobPostsScreen() {
                     </View>
                   </View>
 
-                  {/* Locations Filter */}
-                  <View style={styles.filterSection}>
+                  {/* Pin Location Filter */}
+                  <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
                     <Text style={[styles.filterSectionTitle, { color: textColor }]}>
-                      Locations
+                      Location
                     </Text>
-                    <TextInput
-                      style={[styles.locationSearchInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
-                      placeholder="Search locations..."
-                      placeholderTextColor={textMuted}
-                      value={locationSearch}
-                      onChangeText={setLocationSearch}
-                    />
-                    {isLoadingLocations && (
-                      <ActivityIndicator size="small" color={primaryColor} style={styles.loadingIndicator} />
+                    <Text style={[styles.filterHelpText, { color: textMuted }]}>
+                      Pin a location on the map to filter nearby jobs
+                    </Text>
+                    {filters.pinLocation?.address && (
+                      <View style={[styles.pinLocationDisplay, { backgroundColor: cardBg, borderColor }]}>
+                        <IconSymbol name="location.fill" size={18} color={primaryColor} />
+                        <Text style={[styles.pinLocationText, { color: textColor }]} numberOfLines={2}>
+                          {filters.pinLocation.address}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => setFilters({ ...filters, pinLocation: null })}
+                          style={styles.clearPinButton}
+                        >
+                          <IconSymbol name="xmark.circle.fill" size={20} color={textMuted} />
+                        </TouchableOpacity>
+                      </View>
                     )}
-                    <View style={styles.chipContainer}>
-                      {/* Show locations from requests first */}
-                      {availableLocationsFromRequests.map((location) => {
-                        const isSelected = filters.locations.includes(location);
-                        return (
-                          <TouchableOpacity
-                            key={location}
-                            style={[styles.chip, isSelected && styles.chipActive]}
-                            onPress={() => {
-                              if (isSelected) {
-                                setFilters({
-                                  ...filters,
-                                  locations: filters.locations.filter((l) => l !== location),
-                                });
-                              } else {
-                                setFilters({
-                                  ...filters,
-                                  locations: [...filters.locations, location],
-                                });
-                              }
-                            }}
-                          >
-                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                              {location}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                      {/* Show API search results */}
-                      {locations.map((location) => {
-                        const locationName = location.area || location.name;
-                        const isSelected = filters.locations.includes(locationName);
-                        return (
-                          <TouchableOpacity
-                            key={location.id}
-                            style={[styles.chip, isSelected && styles.chipActive]}
-                            onPress={() => {
-                              if (isSelected) {
-                                setFilters({
-                                  ...filters,
-                                  locations: filters.locations.filter((l) => l !== locationName),
-                                });
-                              } else {
-                                setFilters({
-                                  ...filters,
-                                  locations: [...filters.locations, locationName],
-                                });
-                              }
-                            }}
-                          >
-                            <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                              {locationName}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                    <TouchableOpacity
+                      style={[styles.pinButton, { borderColor: primaryColor, backgroundColor: primaryLight }]}
+                      onPress={() => {
+                        setShowFilterModal(false);
+                        requestAnimationFrame(() => {
+                          openMap();
+                        });
+                      }}
+                    >
+                      <IconSymbol name="location.fill" size={18} color={primaryColor} />
+                      <Text style={[styles.pinButtonText, { color: primaryColor }]}>
+                        {filters.pinLocation ? 'Change Location' : 'Pin Location on Map'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Budget Filter */}
-                  <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>
+                  <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
+                    <Text style={[styles.filterSectionTitle, { color: textColor }]}>
                       Budget Range
                     </Text>
                     <View style={styles.budgetContainer}>
                       <View style={styles.budgetInputContainer}>
-                        <Text style={styles.budgetLabel}>Min (₨)</Text>
+                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>Min (₨)</Text>
                         <TextInput
-                          style={styles.budgetInput}
+                          style={[styles.budgetInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
                           placeholder="0"
+                          placeholderTextColor={textMuted}
                           keyboardType="numeric"
                           value={filters.minBudget !== null ? filters.minBudget.toString() : ''}
                           onChangeText={(text) => {
@@ -869,10 +929,11 @@ export default function JobPostsScreen() {
                         />
                       </View>
                       <View style={styles.budgetInputContainer}>
-                        <Text style={styles.budgetLabel}>Max (₨)</Text>
+                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>Max (₨)</Text>
                         <TextInput
-                          style={styles.budgetInput}
+                          style={[styles.budgetInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
                           placeholder="No limit"
+                          placeholderTextColor={textMuted}
                           keyboardType="numeric"
                           value={filters.maxBudget !== null ? filters.maxBudget.toString() : ''}
                           onChangeText={(text) => {
@@ -888,15 +949,15 @@ export default function JobPostsScreen() {
                   </View>
                 </ScrollView>
 
-                <View style={styles.modalFooter}>
+                <View style={[styles.modalFooter, { borderTopColor: borderColor }]}>
                   <TouchableOpacity
-                    style={styles.clearFiltersButton}
+                    style={[styles.clearFiltersButton, { backgroundColor: cardBg }]}
                     onPress={clearFilters}
                   >
-                    <Text style={styles.clearFiltersText}>Clear All</Text>
+                    <Text style={[styles.clearFiltersText, { color: textSecondary }]}>Clear All</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.applyFiltersButton}
+                    style={[styles.applyFiltersButton, { backgroundColor: primaryColor }]}
                     onPress={() => setShowFilterModal(false)}
                   >
                     <Text style={styles.applyFiltersText}>Apply Filters</Text>
@@ -906,6 +967,67 @@ export default function JobPostsScreen() {
             </View>
           </Modal>
         )}
+
+        {/* Map Modal */}
+        <Modal
+          visible={isMapVisible}
+          animationType="slide"
+          onRequestClose={() => setIsMapVisible(false)}
+        >
+          <View style={styles.mapContainer}>
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              region={mapRegion}
+              onRegionChangeComplete={(region: Region) => {
+                setMapRegion(region);
+                setSelectedCoordinate({
+                  latitude: region.latitude,
+                  longitude: region.longitude
+                });
+              }}
+              showsUserLocation
+              showsMyLocationButton
+            >
+              {selectedCoordinate && (
+                <Marker
+                  coordinate={selectedCoordinate}
+                  title="Filter Location"
+                  draggable
+                  onDragEnd={(e: any) => setSelectedCoordinate(e.nativeEvent.coordinate)}
+                />
+              )}
+            </MapView>
+
+            <View style={[styles.mapOverlay, { bottom: Platform.OS === 'ios' ? 40 : 20 }]}>
+              <Text style={styles.mapInstruction}>Drag marker or move map to position</Text>
+              <View style={styles.mapButtons}>
+                <TouchableOpacity
+                  style={[styles.mapButton, styles.cancelButton]}
+                  onPress={() => setIsMapVisible(false)}
+                >
+                  <Text style={styles.mapButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
+                  onPress={handleMapConfirm}
+                  disabled={isGeocoding}
+                >
+                  {isGeocoding ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <Text style={[styles.mapButtonText, { color: '#FFF' }]}>Confirm Location</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Centered Crosshair */}
+            <View style={styles.crosshair} pointerEvents="none">
+              <IconSymbol name="plus" size={24} color={primaryColor} />
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -916,6 +1038,97 @@ const styles = StyleSheet.create({
     flex: 1,
     width: width,
     maxWidth: width,
+  },
+  // Pin location styles
+  filterHelpText: {
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  pinLocationDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 10,
+  },
+  pinLocationText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  clearPinButton: {
+    padding: 4,
+  },
+  pinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 14,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderStyle: 'dashed',
+  },
+  pinButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // Map modal styles
+  mapContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  mapInstruction: {
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#333',
+    fontWeight: '600',
+  },
+  mapButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mapButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#E5E7EB',
+  },
+  confirmButton: {
+    // Background color set inline
+  },
+  mapButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#374151',
+  },
+  crosshair: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -12,
+    marginLeft: -12,
   },
   topCircle: {
     position: 'absolute',

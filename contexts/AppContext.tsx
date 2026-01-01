@@ -101,9 +101,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             listings = Array.isArray(listingsResponse.data.data) ? listingsResponse.data.data : [];
           }
 
-          console.log('📋 Total service listings fetched:', listings.length);
-
-          // Map each listing to a helper format (no grouping)
           const helpers = listings
             .filter((listing: any) => listing.user) // Only include listings with user data
             .map((listing: any) => {
@@ -228,8 +225,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               };
             });
 
-          console.log('👥 Service listings displayed as cards:', helpers.length);
-
           setHelpers(helpers);
           await AsyncStorage.setItem('helpers', JSON.stringify(helpers));
         } else {
@@ -283,65 +278,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addJob = async (requestData: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => {
     try {
-      // Call API to create booking (job)
-      // According to API docs, bookings are created via /api/bookings (POST)
-      // Map our request data to API format
-      const apiData = {
-        service_type: requestData.serviceName?.toLowerCase() || 'maid',
-        work_type: requestData.workType || 'full_time',
-        area: requestData.location,
-        name: requestData.userName,
-        phone: requestData.phone || '',
-        email: requestData.email || '',
-        address: requestData.address,
-        pin_address: requestData.pin_address,
-        latitude: requestData.latitude,
-        longitude: requestData.longitude,
-        special_requirements: requestData.description,
-        start_date: requestData.startDate,
-        start_time: requestData.startTime,
+      // Fallback to local creation
+      const newRequest: Job = {
+        ...requestData,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        status: 'open',
+        applicants: [],
       };
+      const updated = [...jobs, newRequest];
+      setJobs(updated);
+      await AsyncStorage.setItem('jobs', JSON.stringify(updated));
 
-      const response = await apiService.post(
-        API_ENDPOINTS.BOOKINGS.CREATE,
-        apiData
-      );
-
-      if (response.success && response.data) {
-        // Map API booking response to app Job format
-        const booking = response.data.booking || response.data;
-        const newRequest: Job = {
-          id: booking.id?.toString() || Date.now().toString(),
-          userId: booking.user_id?.toString() || booking.user?.id?.toString() || '',
-          userName: booking.user?.name || booking.name || 'Unknown',
-          serviceName: booking.service_type
-            ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
-            : 'Service',
-          description: booking.special_requirements || booking.description || '',
-          location: booking.area || booking.location || '',
-          budget: booking.monthly_rate || booking.budget || booking.price,
-          status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
-          createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
-          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString()) ||
-            booking.applicants ||
-            [],
-        };
-        const updated = [...jobs, newRequest];
-        setJobs(updated);
-        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
-      } else {
-        // Fallback to local creation
-        const newRequest: Job = {
-          ...requestData,
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString(),
-          status: 'open',
-          applicants: [],
-        };
-        const updated = [...jobs, newRequest];
-        setJobs(updated);
-        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
-      }
     } catch (error) {
       // Add job error
       // Fallback to local creation
@@ -360,29 +308,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const applyToJob = async (requestId: string, applicantId: string) => {
     try {
-      // According to API docs, applications are made via /api/bookings/{id}/apply
-      const response = await apiService.post(
-        API_ENDPOINTS.BOOKINGS.APPLY.replace(':id', requestId),
-        { applicantId }
-      );
-
-      if (response.success && response.data) {
-        // Update local state with API response
-        const updated = jobs.map((req) =>
-          req.id === requestId ? response.data : req
-        );
-        setJobs(updated);
-        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
-      } else {
-        // Fallback to local update
-        const updated = jobs.map((req) =>
+      const updated = jobs.map((req) =>
           req.id === requestId
-            ? { ...req, applicants: [...req.applicants, applicantId] }
-            : req
-        );
-        setJobs(updated);
-        await AsyncStorage.setItem('jobs', JSON.stringify(updated));
-      }
+              ? { ...req, applicants: [...req.applicants, applicantId] }
+              : req
+      );
+      setJobs(updated);
+      await AsyncStorage.setItem('jobs', JSON.stringify(updated));
     } catch (error) {
       // Apply to job error
       // Fallback to local update

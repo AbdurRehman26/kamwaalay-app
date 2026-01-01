@@ -32,7 +32,6 @@ interface Helper {
   user?: {
     id: string | number;
     name?: string;
-    email?: string;
     phone_number?: string;
     phoneNumber?: string;
   };
@@ -379,14 +378,17 @@ export default function ExploreScreen() {
               bio: user.profileData?.bio || user.bio || listing.description || '',
               experience_years: experience,
               services: listing.service_types && Array.isArray(listing.service_types)
-                ? listing.service_types.map((st: string) => ({
-                  id: listing.id,
-                  service_type: st,
-                  monthly_rate: listing.monthly_rate,
-                  location_id: listing.location_id,
-                  location: listing.location,
-                  area: listing.area
-                }))
+                ? listing.service_types.map((st: any) => {
+                  const serviceTypeName = typeof st === 'object' && st ? (st.name || st.label || st.slug || '') : st;
+                  return {
+                    id: listing.id,
+                    service_type: serviceTypeName,
+                    monthly_rate: listing.monthly_rate,
+                    location_id: listing.location_id,
+                    location: listing.location,
+                    area: listing.area
+                  };
+                })
                 : (listing.service_type ? [{
                   id: listing.id,
                   service_type: listing.service_type,
@@ -441,8 +443,12 @@ export default function ExploreScreen() {
       if (helper.services && helper.services.length > 0) {
         helper.services.forEach((service) => {
           if (service.service_type) {
-            const serviceType = service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ');
-            serviceSet.add(serviceType);
+            const st = service.service_type;
+            const rawType = typeof st === 'object' && st ? ((st as any).name || (st as any).label || (st as any).slug || '') : st;
+            if (typeof rawType === 'string') {
+              const serviceType = rawType.charAt(0).toUpperCase() + rawType.slice(1).replace(/_/g, ' ');
+              serviceSet.add(serviceType);
+            }
           }
         });
       }
@@ -491,8 +497,11 @@ export default function ExploreScreen() {
     }
     // Fallback to service type or default
     if (helper.services && helper.services.length > 0) {
-      const serviceType = helper.services[0].service_type || '';
-      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+      const st = helper.services[0].service_type || '';
+      const serviceType = typeof st === 'object' && st ? ((st as any).name || (st as any).label || (st as any).slug || '') : st;
+      if (typeof serviceType === 'string') {
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace(/_/g, ' ');
+      }
     }
     return 'Helper';
   };
@@ -501,13 +510,19 @@ export default function ExploreScreen() {
   const getPrimaryService = (helper: Helper) => {
     // Check service_listings first (for helpers)
     if (helper.service_listings && helper.service_listings.length > 0) {
-      const serviceType = helper.service_listings[0].service_type || '';
-      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+      const st = helper.service_listings[0].service_type || '';
+      const serviceType = typeof st === 'object' && st ? ((st as any).name || (st as any).label || (st as any).slug || '') : st;
+      if (typeof serviceType === 'string') {
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace(/_/g, ' ');
+      }
     }
     // Fallback to services
     if (helper.services && helper.services.length > 0) {
-      const serviceType = helper.services[0].service_type || '';
-      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+      const serviceTypeRaw = helper.services[0].service_type || '';
+      const serviceType = typeof serviceTypeRaw === 'object' && serviceTypeRaw ? ((serviceTypeRaw as any).name || (serviceTypeRaw as any).label || (serviceTypeRaw as any).slug || '') : serviceTypeRaw;
+      if (typeof serviceType === 'string') {
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace(/_/g, ' ');
+      }
     }
     return 'Service Provider';
   };
@@ -695,9 +710,13 @@ export default function ExploreScreen() {
   const formatServicesText = (helper: Helper): string => {
     if (!helper.services || helper.services.length === 0) return '';
     const serviceNames = helper.services.map((s) => {
-      const serviceType = s.service_type || '';
-      return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
-    });
+      const st = s.service_type || '';
+      const serviceType = typeof st === 'object' && st ? ((st as any).name || (st as any).label || (st as any).slug || '') : st;
+      if (typeof serviceType === 'string') {
+        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace(/_/g, ' ');
+      }
+      return '';
+    }).filter(Boolean);
 
     if (serviceNames.length <= 2) {
       return serviceNames.join(', ');
@@ -712,15 +731,23 @@ export default function ExploreScreen() {
     // Check service_listings first (for helpers)
     if (helper.service_listings && Array.isArray(helper.service_listings) && helper.service_listings.length > 0) {
       services = helper.service_listings.map((s) => {
-        const serviceType = s.service_type || '';
-        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
-      });
+        const st = s.service_type || '';
+        const serviceType = typeof st === 'object' && st ? ((st as any).name || (st as any).label || (st as any).slug || '') : st;
+        if (typeof serviceType === 'string') {
+          return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace(/_/g, ' ');
+        }
+        return '';
+      }).filter(Boolean);
     }
     // Fallback to services
     else if (helper.services && Array.isArray(helper.services) && helper.services.length > 0) {
       services = helper.services.map((s) => {
-        const serviceType = s.service_type || '';
-        return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace('_', ' ');
+        const st = s.service_type || '';
+        const serviceType = typeof st === 'object' && st ? ((st as any).name || (st as any).label || (st as any).slug || '') : st;
+        if (typeof serviceType === 'string') {
+          return serviceType.charAt(0).toUpperCase() + serviceType.slice(1).replace(/_/g, ' ');
+        }
+        return '';
       });
     }
     return [...new Set(services)];
@@ -882,6 +909,13 @@ export default function ExploreScreen() {
             }}>
               {role}
             </Text>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, opacity: 0.9 }}>
+              <IconSymbol name="mappin.and.ellipse" size={12} color="#FFFFFF" />
+              <Text style={{ fontSize: 12, color: '#FFFFFF', flex: 1 }} numberOfLines={1}>
+                {item.address || (item as any).pin_address || (locations.length > 0 ? locations[0] : 'Remote')}
+              </Text>
+            </View>
           </View>
 
           {/* Verification Badge (if verified) */}
@@ -940,22 +974,6 @@ export default function ExploreScreen() {
               </View>
             </View>
 
-            {/* Rating & Location (Name removed from here) */}
-            <View style={{ flex: 1, paddingBottom: 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <IconSymbol name="star.fill" size={14} color="#F59E0B" />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: themeColors.textSecondary }}>{rating.toFixed(1)}</Text>
-                </View>
-                <Text style={{ color: themeColors.border }}>|</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <IconSymbol name="mappin.and.ellipse" size={12} color={themeColors.textSecondary} />
-                  <Text style={{ fontSize: 13, color: themeColors.textSecondary }} numberOfLines={1}>
-                    {locations.length > 0 ? locations[0] : 'Remote'}
-                  </Text>
-                </View>
-              </View>
-            </View>
           </View>
 
           {/* ID Details Grid */}
@@ -967,28 +985,42 @@ export default function ExploreScreen() {
             borderWidth: 1,
             borderColor: themeColors.border
           }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-              <View style={{ width: '45%' }}>
-                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Religion</Text>
-                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.religion ? (typeof item.religion === 'object' ? (item.religion as any).label : item.religion) : '-'}</Text>
+            {apiRole === 'business' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Total Workers</Text>
+                  <Text style={{ fontSize: 16, color: themeColors.text, fontWeight: '700' }}>
+                    {item.total_workers || 0}
+                  </Text>
+                </View>
+                <IconSymbol name="person.2.fill" size={24} color={themeColors.primary} style={{ opacity: 0.5 }} />
               </View>
-              <View style={{ width: '45%' }}>
-                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Languages</Text>
-                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
-                  {Array.isArray(item.languages) && item.languages.length > 0 ? `${item.languages.length} Spoken` : '-'}
-                </Text>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <View style={{ width: '45%' }}>
-                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Age</Text>
-                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.age ? `${item.age} Years` : '-'}</Text>
-              </View>
-              <View style={{ width: '45%' }}>
-                <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Exp.</Text>
-                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{experience || 'Entry'}</Text>
-              </View>
-            </View>
+            ) : (
+              <>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <View style={{ width: '45%' }}>
+                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Religion</Text>
+                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.religion ? (typeof item.religion === 'object' ? (item.religion as any).label : item.religion) : '-'}</Text>
+                  </View>
+                  <View style={{ width: '45%' }}>
+                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Languages</Text>
+                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+                      {Array.isArray(item.languages) && item.languages.length > 0 ? `${item.languages.length} Spoken` : '-'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <View style={{ width: '45%' }}>
+                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Age</Text>
+                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.age ? `${item.age} Years` : '-'}</Text>
+                  </View>
+                  <View style={{ width: '45%' }}>
+                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Exp.</Text>
+                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{experience || 'Entry'}</Text>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
 
           {/* Skills */}
@@ -1032,10 +1064,19 @@ export default function ExploreScreen() {
         }}>
           {/* Price */}
           <View>
-            <Text style={{ fontSize: 11, color: themeColors.textSecondary }}>Starting Rate</Text>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: themeColors.primary }}>
-              {price > 0 ? `₨${(price / 1000).toFixed(0)}k` : 'N/A'} <Text style={{ fontSize: 12, fontWeight: 'normal', color: themeColors.textSecondary }}>/mo</Text>
-            </Text>
+            {apiRole !== 'business' && (
+              <>
+                <Text style={{ fontSize: 11, color: themeColors.textSecondary }}>Starting Rate</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: themeColors.primary }}>
+                  {price > 0 ? `₨${(price / 1000).toFixed(0)}k` : 'N/A'} <Text style={{ fontSize: 12, fontWeight: 'normal', color: themeColors.textSecondary }}>/mo</Text>
+                </Text>
+              </>
+            )}
+            {apiRole === 'business' && (
+              <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontWeight: '500' }}>
+                Business Account
+              </Text>
+            )}
           </View>
 
           <View style={{ flexDirection: 'row', gap: 12 }}>

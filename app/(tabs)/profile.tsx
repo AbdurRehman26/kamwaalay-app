@@ -75,7 +75,7 @@ export default function ProfileScreen() {
     },
     {
       id: 'bookings',
-      title: 'My Bookings',
+      title: 'Job Applications',
       icon: 'calendar',
       onPress: () => router.push('/profile/bookings'),
     },

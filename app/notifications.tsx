@@ -6,6 +6,7 @@ import { Notification, notificationService } from '@/services/notification.servi
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
+  Dimensions,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -37,6 +39,9 @@ export default function NotificationsScreen() {
   const borderColor = useThemeColor({}, 'border');
   const iconColor = useThemeColor({}, 'icon');
   const iconMuted = useThemeColor({}, 'iconMuted');
+
+  const insets = useSafeAreaInsets();
+  const { width } = Dimensions.get('window');
 
   const fetchNotifications = async () => {
     try {
@@ -164,83 +169,87 @@ export default function NotificationsScreen() {
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: borderColor }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={primaryColor} />
-        </TouchableOpacity>
-        <ThemedText type="title" style={[styles.title, { color: textColor }]}>
-          Notifications
-        </ThemedText>
-        <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.actionButton}>
-          <IconSymbol name="checkmark.circle" size={24} color={primaryColor} />
-        </TouchableOpacity>
-      </View>
 
-      {loading && !refreshing ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={primaryColor} />
-        </View>
-      ) : error && notifications.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <ThemedText style={{ color: textColor }}>{error}</ThemedText>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: primaryColor }]} onPress={fetchNotifications}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          horizontal={false}
-          contentContainerStyle={{ width: '100%' }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          <View style={styles.notifications}>
-            {notifications.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <IconSymbol name="bell.slash" size={48} color={iconMuted} />
-                <ThemedText style={[styles.emptyText, { color: textSecondary }]}>No notifications yet</ThemedText>
-              </View>
-            ) : (
-              notifications.map((notification) => (
-                <TouchableOpacity
-                  key={notification.id}
-                  style={[
-                    styles.notificationItem,
-                    { backgroundColor: cardBg, borderColor, shadowColor: textColor },
-                    !notification.read && { backgroundColor: primaryLight, borderColor: primaryColor },
-                  ]}
-                  onPress={() => handleMarkAsRead(notification.id)}
-                >
-                  <View style={styles.notificationIcon}>
-                    <IconSymbol
-                      name={getIconName(notification.type)}
-                      size={24}
-                      color={getIconColor(notification.type)}
-                    />
-                  </View>
-                  <View style={styles.notificationContent}>
-                    <ThemedText type="subtitle" style={[styles.notificationTitle, { color: textColor }]}>
-                      {notification.title}
-                    </ThemedText>
-                    <ThemedText style={[styles.notificationMessage, { color: textSecondary }]}>
-                      {notification.message}
-                    </ThemedText>
-                    <ThemedText style={[styles.notificationTime, { color: textMuted }]}>
-                      {formatTimeAgo(notification.createdAt)}
-                    </ThemedText>
-                  </View>
-                  {!notification.read && <View style={[styles.unreadDot, { backgroundColor: primaryColor }]} />}
-                </TouchableOpacity>
-              ))
-            )}
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        contentContainerStyle={{ width: '100%', flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
+        }
+      >
+        {/* Header Background */}
+        <View style={styles.headerBackground}>
+          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.actionButton}>
+              <IconSymbol name="checkmark.circle" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-      )}
+        </View>
+
+        {/* Content Container */}
+        <View style={styles.contentContainer}>
+          {loading && !refreshing ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color={primaryColor} />
+            </View>
+          ) : error && notifications.length === 0 ? (
+            <View style={styles.centerContainer}>
+              <ThemedText style={{ color: textColor }}>{error}</ThemedText>
+              <TouchableOpacity style={[styles.retryButton, { backgroundColor: primaryColor }]} onPress={fetchNotifications}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.notifications}>
+              {notifications.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <IconSymbol name="bell.slash" size={48} color={iconMuted} />
+                  <ThemedText style={[styles.emptyText, { color: textSecondary }]}>No notifications yet</ThemedText>
+                </View>
+              ) : (
+                notifications.map((notification) => (
+                  <TouchableOpacity
+                    key={notification.id}
+                    style={[
+                      styles.notificationItem,
+                      { backgroundColor: cardBg, borderColor, shadowColor: textColor },
+                      !notification.read && { backgroundColor: primaryLight, borderColor: primaryColor },
+                    ]}
+                    onPress={() => handleMarkAsRead(notification.id)}
+                  >
+                    <View style={styles.notificationIcon}>
+                      <IconSymbol
+                        name={getIconName(notification.type)}
+                        size={24}
+                        color={getIconColor(notification.type)}
+                      />
+                    </View>
+                    <View style={styles.notificationContent}>
+                      <ThemedText type="subtitle" style={[styles.notificationTitle, { color: textColor }]}>
+                        {notification.title}
+                      </ThemedText>
+                      <ThemedText style={[styles.notificationMessage, { color: textSecondary }]}>
+                        {notification.message}
+                      </ThemedText>
+                      <ThemedText style={[styles.notificationTime, { color: textMuted }]}>
+                        {formatTimeAgo(notification.createdAt)}
+                      </ThemedText>
+                    </View>
+                    {!notification.read && <View style={[styles.unreadDot, { backgroundColor: primaryColor }]} />}
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -249,34 +258,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    padding: 4,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'center',
-  },
   scrollView: {
     flex: 1,
     width: '100%',
+  },
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  actionButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: 100,
   },
   notifications: {
     padding: 20,

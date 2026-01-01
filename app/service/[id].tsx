@@ -178,9 +178,17 @@ export default function ServiceDetailScreen() {
 
     const serviceTypes = (() => {
         if (service.service_types && Array.isArray(service.service_types) && service.service_types.length > 0) {
-            return service.service_types;
+            // Check if array contains strings or objects
+            return service.service_types.map((t: any) => {
+                if (typeof t === 'string') return t;
+                if (typeof t === 'object' && t) return t.name || t.label || t.slug || 'Service';
+                return 'Service';
+            });
         } else if (service.service_type) {
-            return [service.service_type];
+            const t = service.service_type;
+            if (typeof t === 'string') return [t];
+            if (typeof t === 'object' && t) return [t.name || t.label || t.slug || 'Service'];
+            return [String(t)];
         } else {
             return ['Service'];
         }
@@ -240,7 +248,7 @@ export default function ServiceDetailScreen() {
                     {/* Hero Header */}
                     <View style={{ backgroundColor: primaryColor, paddingHorizontal: 20, paddingTop: insets.top + 10, paddingBottom: 60 }}>
                         {/* Nav */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                             <TouchableOpacity
                                 onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)/explore')}
                                 style={{
@@ -251,7 +259,8 @@ export default function ServiceDetailScreen() {
                             >
                                 <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
                             </TouchableOpacity>
-                            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginLeft: 16 }}>Service Details</Text>
+                            <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Service Details</Text>
+                            <View style={{ width: 40 }} />
                         </View>
 
                         {/* Service Title & Price */}
@@ -423,7 +432,12 @@ export default function ServiceDetailScreen() {
                                                 <IconSymbol name="wrench.fill" size={20} color={primaryColor} />
                                             </View>
                                             <Text style={{ fontSize: 14, fontWeight: '700', color: textColor, marginBottom: 4 }} numberOfLines={2}>
-                                                {item.service_type || 'Service'}
+                                                {(() => {
+                                                    const st = item.service_type || 'Service';
+                                                    if (typeof st === 'string') return st;
+                                                    if (typeof st === 'object' && st) return st.name || st.label || st.slug || 'Service';
+                                                    return 'Service';
+                                                })()}
                                             </Text>
                                             <Text style={{ fontSize: 13, color: primaryColor, fontWeight: '600' }}>
                                                 View Details

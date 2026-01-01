@@ -1,19 +1,19 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FAQ_ITEMS = [
   {
@@ -59,7 +59,7 @@ export default function HelpScreen() {
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
   const [contactMessage, setContactMessage] = useState('');
   const [contactSubject, setContactSubject] = useState('');
-  
+
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -68,6 +68,8 @@ export default function HelpScreen() {
   const primaryColor = useThemeColor({}, 'primary');
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
+
+  const insets = useSafeAreaInsets();
 
   const handleEmailSupport = () => {
     const email = 'support@kamwaalay.com';
@@ -95,106 +97,109 @@ export default function HelpScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: borderColor }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={primaryColor} />
-          </TouchableOpacity>
-          <ThemedText type="title" style={[styles.title, { color: textColor }]}>
-            Help & Support
-          </ThemedText>
-          <View style={{ width: 24 }} />
+        {/* Header Background */}
+        <View style={styles.headerBackground}>
+          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Help & Support</Text>
+            <View style={{ width: 40 }} />
+          </View>
         </View>
 
-        {/* Send Message Section */}
-        <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
-          <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-            Send us a Message
-          </ThemedText>
-          <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>Subject</ThemedText>
-            <TextInput
-              style={[styles.input, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
-              value={contactSubject}
-              onChangeText={setContactSubject}
-              placeholder="Enter subject"
-              placeholderTextColor={textMuted}
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>Message</ThemedText>
-            <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
-              value={contactMessage}
-              onChangeText={setContactMessage}
-              placeholder="Describe your issue or question..."
-              placeholderTextColor={textMuted}
-              multiline
-              numberOfLines={5}
-              textAlignVertical="top"
-            />
-          </View>
-          <TouchableOpacity style={[styles.sendButton, { backgroundColor: primaryColor }]} onPress={handleEmailSupport}>
-            <Text style={styles.sendButtonText}>Send Message</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* FAQ Section */}
-        <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
-          <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-            Frequently Asked Questions
-          </ThemedText>
-          {FAQ_ITEMS.map((item) => (
-            <View key={item.id} style={[styles.faqItem, { borderColor }]}>
-              <TouchableOpacity
-                style={[styles.faqQuestion, { backgroundColor: backgroundColor }]}
-                onPress={() => toggleFAQ(item.id)}
-              >
-                <ThemedText style={[styles.faqQuestionText, { color: textColor }]}>{item.question}</ThemedText>
-                <IconSymbol
-                  name={expandedFAQ === item.id ? 'chevron.up' : 'chevron.down'}
-                  size={20}
-                  color={primaryColor}
-                />
-              </TouchableOpacity>
-              {expandedFAQ === item.id && (
-                <View style={[styles.faqAnswer, { backgroundColor: cardBg, borderTopColor: borderColor }]}>
-                  <ThemedText style={[styles.faqAnswerText, { color: textSecondary }]}>{item.answer}</ThemedText>
-                </View>
-              )}
+        {/* Content Container */}
+        <View style={styles.contentContainer}>
+          {/* Send Message Section */}
+          <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
+              Send us a Message
+            </ThemedText>
+            <View style={styles.inputGroup}>
+              <ThemedText style={[styles.label, { color: textColor }]}>Subject</ThemedText>
+              <TextInput
+                style={[styles.input, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
+                value={contactSubject}
+                onChangeText={setContactSubject}
+                placeholder="Enter subject"
+                placeholderTextColor={textMuted}
+              />
             </View>
-          ))}
-        </View>
+            <View style={styles.inputGroup}>
+              <ThemedText style={[styles.label, { color: textColor }]}>Message</ThemedText>
+              <TextInput
+                style={[styles.input, styles.textArea, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
+                value={contactMessage}
+                onChangeText={setContactMessage}
+                placeholder="Describe your issue or question..."
+                placeholderTextColor={textMuted}
+                multiline
+                numberOfLines={5}
+                textAlignVertical="top"
+              />
+            </View>
+            <TouchableOpacity style={[styles.sendButton, { backgroundColor: primaryColor }]} onPress={handleEmailSupport}>
+              <Text style={styles.sendButtonText}>Send Message</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Additional Resources */}
-        <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
-          <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-            Additional Resources
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.resourceItem, { backgroundColor: backgroundColor, borderColor }]}
-            onPress={() => router.push('/terms')}
-          >
-            <IconSymbol name="doc.text.fill" size={24} color={primaryColor} />
-            <ThemedText style={[styles.resourceText, { color: textColor }]}>Terms & Conditions</ThemedText>
-            <IconSymbol name="chevron.right" size={20} color={textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.resourceItem, { backgroundColor: backgroundColor, borderColor }]}
-            onPress={() => router.push('/privacy')}
-          >
-            <IconSymbol name="hand.raised.fill" size={24} color={primaryColor} />
-            <ThemedText style={[styles.resourceText, { color: textColor }]}>Privacy Policy</ThemedText>
-            <IconSymbol name="chevron.right" size={20} color={textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.resourceItem, { backgroundColor: backgroundColor, borderColor }]}
-            onPress={() => router.push('/about')}
-          >
-            <IconSymbol name="info.circle.fill" size={24} color={primaryColor} />
-            <ThemedText style={[styles.resourceText, { color: textColor }]}>About Kamwaalay</ThemedText>
-            <IconSymbol name="chevron.right" size={20} color={textMuted} />
-          </TouchableOpacity>
+          {/* FAQ Section */}
+          <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
+              Frequently Asked Questions
+            </ThemedText>
+            {FAQ_ITEMS.map((item) => (
+              <View key={item.id} style={[styles.faqItem, { borderColor }]}>
+                <TouchableOpacity
+                  style={[styles.faqQuestion, { backgroundColor: backgroundColor }]}
+                  onPress={() => toggleFAQ(item.id)}
+                >
+                  <ThemedText style={[styles.faqQuestionText, { color: textColor }]}>{item.question}</ThemedText>
+                  <IconSymbol
+                    name={expandedFAQ === item.id ? 'chevron.up' : 'chevron.down'}
+                    size={20}
+                    color={primaryColor}
+                  />
+                </TouchableOpacity>
+                {expandedFAQ === item.id && (
+                  <View style={[styles.faqAnswer, { backgroundColor: cardBg, borderTopColor: borderColor }]}>
+                    <ThemedText style={[styles.faqAnswerText, { color: textSecondary }]}>{item.answer}</ThemedText>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+
+          {/* Additional Resources */}
+          <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
+            <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
+              Additional Resources
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.resourceItem, { backgroundColor: backgroundColor, borderColor }]}
+              onPress={() => router.push('/terms')}
+            >
+              <IconSymbol name="doc.text.fill" size={24} color={primaryColor} />
+              <ThemedText style={[styles.resourceText, { color: textColor }]}>Terms & Conditions</ThemedText>
+              <IconSymbol name="chevron.right" size={20} color={textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.resourceItem, { backgroundColor: backgroundColor, borderColor }]}
+              onPress={() => router.push('/privacy')}
+            >
+              <IconSymbol name="hand.raised.fill" size={24} color={primaryColor} />
+              <ThemedText style={[styles.resourceText, { color: textColor }]}>Privacy Policy</ThemedText>
+              <IconSymbol name="chevron.right" size={20} color={textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.resourceItem, { backgroundColor: backgroundColor, borderColor }]}
+              onPress={() => router.push('/about')}
+            >
+              <IconSymbol name="info.circle.fill" size={24} color={primaryColor} />
+              <ThemedText style={[styles.resourceText, { color: textColor }]}>About Kamwaalay</ThemedText>
+              <IconSymbol name="chevron.right" size={20} color={textMuted} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -208,22 +213,33 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  backButton: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
     flex: 1,
     textAlign: 'center',
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+    marginTop: 16,
   },
   section: {
     padding: 20,

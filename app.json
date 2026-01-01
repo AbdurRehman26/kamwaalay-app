@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.kamwaalay.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/icon.png"

@@ -2,6 +2,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -82,18 +83,32 @@ export default function AddServiceOfferingScreen() {
       if (response.success && response.data) {
         const listing = response.data.listing || response.data.service_listing || response.data;
 
-        // Set service types
-        if (listing.service_types && Array.isArray(listing.service_types)) {
-          // Map service type names to IDs if possible, or use as is
-          const mappedTypes = listing.service_types.map((type: string) => {
-            const found = serviceTypes.find(t => t.name === type || t.id.toString() === type);
-            return found ? found.id.toString() : type;
+        // Set service types - API returns array of objects with {id, name, slug, icon}
+        if (listing.service_types && Array.isArray(listing.service_types) && listing.service_types.length > 0) {
+          // Extract IDs from service type objects (API expects IDs, not slugs)
+          const ids = listing.service_types.map((st: any) => {
+            // Handle both object format and string/number format
+            if (typeof st === 'object' && st.id) {
+              return st.id.toString();
+            }
+            // If it's already a number or numeric string, use it directly
+            if (typeof st === 'number' || !isNaN(Number(st))) {
+              return st.toString();
+            }
+            // Fallback: if it's a slug, try to find matching ID
+            if (typeof st === 'string') {
+              const found = serviceTypes.find(t => t.slug === st || t.name === st);
+              return found ? found.id.toString() : st;
+            }
+            return st;
           });
-          setSelectedServiceTypes(mappedTypes);
+          setSelectedServiceTypes(ids);
         } else if (listing.service_type) {
+          // Fallback to single service_type string/slug
           const type = listing.service_type;
-          const found = serviceTypes.find(t => t.name === type || t.id.toString() === type);
-          setSelectedServiceTypes([found ? found.id.toString() : type]);
+          const found = serviceTypes.find(t => t.name === type || t.slug === type);
+          const id = found ? found.id.toString() : type;
+          setSelectedServiceTypes([id]);
         }
 
 
@@ -164,19 +179,11 @@ export default function AddServiceOfferingScreen() {
       }
 
       if (response.success) {
-        Alert.alert('Success', isEditMode ? 'Service offering updated successfully' : 'Service offering added successfully', [
-          {
-            text: 'OK',
-            onPress: () => {
-              // wrapper to ensure navigation works after alert closes
-              setTimeout(() => {
-                router.back();
-              }, 500);
-            },
-          },
-        ]);
+        toast.success(isEditMode ? 'Service offering updated successfully' : 'Service offering added successfully');
+        // Redirect to service offerings listing page
+        router.replace('/profile/service-offerings');
       } else {
-        Alert.alert('Error', response.message || response.error || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
+        toast.error(response.message || response.error || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
       }
     } catch (error: any) {
       console.error('Error saving service offering:', error);
@@ -235,7 +242,8 @@ export default function AddServiceOfferingScreen() {
                 </Text>
                 <View style={styles.serviceTypesContainer}>
                   {serviceTypes.map((service: ServiceType) => {
-                    const serviceId = service.slug.toString();
+                    // Use ID for selection (API expects IDs)
+                    const serviceId = service.id.toString();
                     const isSelected = selectedServiceTypes.includes(serviceId);
                     return (
                       <TouchableOpacity

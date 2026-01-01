@@ -83,62 +83,6 @@ export default function HomeScreen() {
     }
   };
 
-  const loadMyJobs = useCallback(async () => {
-    try {
-      setIsLoadingRequests(true);
-      const response = await apiService.get(
-        API_ENDPOINTS.BOOKINGS.LIST,
-        undefined,
-        undefined,
-        true
-      );
-
-      if (response.success && response.data) {
-        let rawBookings = [];
-        if (response.data.bookings) {
-          rawBookings = Array.isArray(response.data.bookings.data)
-            ? response.data.bookings.data
-            : (Array.isArray(response.data.bookings) ? response.data.bookings : []);
-        } else if (Array.isArray(response.data)) {
-          rawBookings = response.data;
-        } else if (response.data.data) {
-          rawBookings = Array.isArray(response.data.data) ? response.data.data : [];
-        }
-
-        const requests: Job[] = rawBookings.map((booking: any) => ({
-          id: booking.id?.toString() || Date.now().toString(),
-          userId: booking.user_id?.toString() || booking.user?.id?.toString() || user?.id || '',
-          userName: booking.user?.name || booking.name || user?.name || 'Unknown',
-          serviceName: booking.service_type
-            ? booking.service_type.charAt(0).toUpperCase() + booking.service_type.slice(1).replace('_', ' ')
-            : booking.service_name || 'Service',
-          description: booking.special_requirements || booking.description || '',
-          location: booking.area || booking.location || '',
-          city: (typeof booking.city === 'string' ? booking.city : booking.city?.name) ||
-            (typeof booking.location_city === 'string' ? booking.location_city : booking.location_city?.name) ||
-            'Karachi',
-          workType: booking.work_type,
-          budget: booking.monthly_rate || booking.budget || booking.price,
-          status: (booking.status === 'pending' ? 'open' : booking.status) || 'open',
-          createdAt: booking.created_at || booking.createdAt || new Date().toISOString(),
-          applicants: booking.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
-            booking.applicants ||
-            [],
-        }));
-
-        setMyJobs(requests);
-      } else {
-        const contextRequests = jobs.filter((r) => r.userId === user?.id);
-        setMyJobs(contextRequests);
-      }
-    } catch (error) {
-      const contextRequests = jobs.filter((r) => r.userId === user?.id);
-      setMyJobs(contextRequests);
-    } finally {
-      setIsLoadingRequests(false);
-    }
-  }, [user?.id, jobs]);
-
   // Fetch job opportunities for "New Opportunities" section
   const loadOpportunities = useCallback(async () => {
     try {
@@ -246,12 +190,6 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    if (user?.userType === 'user' && user?.id) {
-      loadMyJobs();
-    }
-  }, [user?.id, user?.userType, loadMyJobs]);
-
-  useEffect(() => {
     if (user?.id) {
       loadOpportunities();
     }
@@ -271,13 +209,13 @@ export default function HomeScreen() {
     setRefreshing(true);
     const promises = [fetchUnreadCount(), loadServiceTypes()];
     if (user?.userType === 'user') {
-      promises.push(loadMyJobs(), loadFeaturedHelpers());
+      promises.push(loadFeaturedHelpers());
     } else if (user?.userType === 'helper' || user?.userType === 'business') {
       promises.push(loadOpportunities());
     }
     await Promise.all(promises);
     setRefreshing(false);
-  }, [fetchUnreadCount, loadMyJobs, loadOpportunities, loadFeaturedHelpers, loadServiceTypes, user?.userType]);
+  }, [fetchUnreadCount, loadOpportunities, loadFeaturedHelpers, loadServiceTypes, user?.userType]);
 
   if (isAuthLoading) {
     return (

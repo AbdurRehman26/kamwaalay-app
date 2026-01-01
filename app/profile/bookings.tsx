@@ -1,5 +1,4 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,13 +6,13 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -99,7 +98,7 @@ export default function BookingsScreen() {
         return 'Cancelled';
       case 'all':
       default:
-        return 'All Bookings';
+        return 'All Applications';
     }
   };
 
@@ -164,8 +163,8 @@ export default function BookingsScreen() {
               {booking.status === 'in_progress'
                 ? 'Active'
                 : booking.status === 'completed'
-                ? 'Completed'
-                : 'Cancelled'}
+                  ? 'Completed'
+                  : 'Cancelled'}
             </Text>
           </View>
         </View>
@@ -220,7 +219,7 @@ export default function BookingsScreen() {
     <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
       <ScrollView
-        style={[styles.scrollView, { backgroundColor }]} 
+        style={[styles.scrollView, { backgroundColor }]}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         horizontal={false}
@@ -237,7 +236,7 @@ export default function BookingsScreen() {
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <ThemedText style={styles.headerTitle}>My Bookings</ThemedText>
+            <ThemedText style={styles.headerTitle}>My Job Applications</ThemedText>
             <View style={{ width: 40 }} />
           </View>
         </View>
@@ -246,87 +245,87 @@ export default function BookingsScreen() {
         <View style={styles.contentContainer}>
           {/* Search and Filter Bar */}
           <View style={styles.searchFilterContainer}>
-        <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-          <IconSymbol name="magnifyingglass" size={20} color={iconMuted} />
-          <TextInput
-            style={[styles.searchInput, { color: textColor }]}
-            placeholder="Search bookings..."
-            placeholderTextColor={textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <IconSymbol name="xmark.circle.fill" size={20} color={iconMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
-          onPress={() => setShowFilterDropdown(!showFilterDropdown)}
-        >
-          <IconSymbol name="slider.horizontal.3" size={18} color={selectedTab !== 'all' ? primaryColor : iconMuted} />
-          <Text style={[styles.filterButtonText, { color: selectedTab !== 'all' ? primaryColor : textSecondary }]}>
-            {getFilterLabel()}
-          </Text>
-          <IconSymbol name="chevron.down" size={14} color={iconMuted} />
-        </TouchableOpacity>
-      </View>
+            <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+              <IconSymbol name="magnifyingglass" size={20} color={iconMuted} />
+              <TextInput
+                style={[styles.searchInput, { color: textColor }]}
+                placeholder="Search applications..."
+                placeholderTextColor={textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <IconSymbol name="xmark.circle.fill" size={20} color={iconMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
 
-      {/* Filter Dropdown */}
-      {showFilterDropdown && (
-        <View style={[styles.filterDropdown, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-          <TouchableOpacity
-            style={[styles.filterOption, selectedTab === 'all' && { backgroundColor: primaryLight }]}
-            onPress={() => {
-              setSelectedTab('all');
-              setShowFilterDropdown(false);
-            }}
-          >
-            <Text style={[styles.filterOptionText, { color: selectedTab === 'all' ? primaryColor : textColor }]}>
-              All Bookings ({allBookings.length})
-            </Text>
-            {selectedTab === 'all' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterOption, selectedTab === 'active' && { backgroundColor: primaryLight }]}
-            onPress={() => {
-              setSelectedTab('active');
-              setShowFilterDropdown(false);
-            }}
-          >
-            <Text style={[styles.filterOptionText, { color: selectedTab === 'active' ? primaryColor : textColor }]}>
-              Active ({activeBookings.length})
-            </Text>
-            {selectedTab === 'active' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterOption, selectedTab === 'completed' && { backgroundColor: primaryLight }]}
-            onPress={() => {
-              setSelectedTab('completed');
-              setShowFilterDropdown(false);
-            }}
-          >
-            <Text style={[styles.filterOptionText, { color: selectedTab === 'completed' ? primaryColor : textColor }]}>
-              Completed ({completedBookings.length})
-            </Text>
-            {selectedTab === 'completed' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterOption, selectedTab === 'cancelled' && { backgroundColor: primaryLight }]}
-            onPress={() => {
-              setSelectedTab('cancelled');
-              setShowFilterDropdown(false);
-            }}
-          >
-            <Text style={[styles.filterOptionText, { color: selectedTab === 'cancelled' ? primaryColor : textColor }]}>
-              Cancelled ({cancelledBookings.length})
-            </Text>
-            {selectedTab === 'cancelled' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-          </TouchableOpacity>
-        </View>
-      )}
+            <TouchableOpacity
+              style={[styles.filterButton, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+              onPress={() => setShowFilterDropdown(!showFilterDropdown)}
+            >
+              <IconSymbol name="slider.horizontal.3" size={18} color={selectedTab !== 'all' ? primaryColor : iconMuted} />
+              <Text style={[styles.filterButtonText, { color: selectedTab !== 'all' ? primaryColor : textSecondary }]}>
+                {getFilterLabel()}
+              </Text>
+              <IconSymbol name="chevron.down" size={14} color={iconMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Filter Dropdown */}
+          {showFilterDropdown && (
+            <View style={[styles.filterDropdown, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+              <TouchableOpacity
+                style={[styles.filterOption, selectedTab === 'all' && { backgroundColor: primaryLight }]}
+                onPress={() => {
+                  setSelectedTab('all');
+                  setShowFilterDropdown(false);
+                }}
+              >
+                <Text style={[styles.filterOptionText, { color: selectedTab === 'all' ? primaryColor : textColor }]}>
+                  All Applications ({allBookings.length})
+                </Text>
+                {selectedTab === 'all' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterOption, selectedTab === 'active' && { backgroundColor: primaryLight }]}
+                onPress={() => {
+                  setSelectedTab('active');
+                  setShowFilterDropdown(false);
+                }}
+              >
+                <Text style={[styles.filterOptionText, { color: selectedTab === 'active' ? primaryColor : textColor }]}>
+                  Active ({activeBookings.length})
+                </Text>
+                {selectedTab === 'active' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterOption, selectedTab === 'completed' && { backgroundColor: primaryLight }]}
+                onPress={() => {
+                  setSelectedTab('completed');
+                  setShowFilterDropdown(false);
+                }}
+              >
+                <Text style={[styles.filterOptionText, { color: selectedTab === 'completed' ? primaryColor : textColor }]}>
+                  Completed ({completedBookings.length})
+                </Text>
+                {selectedTab === 'completed' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterOption, selectedTab === 'cancelled' && { backgroundColor: primaryLight }]}
+                onPress={() => {
+                  setSelectedTab('cancelled');
+                  setShowFilterDropdown(false);
+                }}
+              >
+                <Text style={[styles.filterOptionText, { color: selectedTab === 'cancelled' ? primaryColor : textColor }]}>
+                  Cancelled ({cancelledBookings.length})
+                </Text>
+                {selectedTab === 'cancelled' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Content */}
           {filteredBookings.length > 0 ? (
@@ -337,18 +336,18 @@ export default function BookingsScreen() {
             <View style={styles.emptyState}>
               <IconSymbol name="calendar" size={64} color={iconMuted} />
               <ThemedText type="subtitle" style={[styles.emptyTitle, { color: textColor }]}>
-                No Bookings Found
+                No Applications Found
               </ThemedText>
               <ThemedText style={[styles.emptyText, { color: textSecondary }]}>
                 {searchQuery.trim()
                   ? 'Try adjusting your search'
                   : selectedTab === 'active'
-                  ? 'You have no active bookings'
-                  : selectedTab === 'completed'
-                  ? 'You have no completed bookings'
-                  : selectedTab === 'cancelled'
-                  ? 'You have no cancelled bookings'
-                  : 'You have no bookings'}
+                    ? 'You have no active applications'
+                    : selectedTab === 'completed'
+                      ? 'You have no completed applications'
+                      : selectedTab === 'cancelled'
+                        ? 'You have no cancelled applications'
+                        : 'You have no applications'}
               </ThemedText>
             </View>
           )}
@@ -387,7 +386,6 @@ const styles = StyleSheet.create({
   },
   headerBackground: {
     backgroundColor: '#6366F1',
-    height: 180,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
@@ -410,7 +408,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 20,
-    marginTop: -60,
+    marginTop: 16,
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'stretch',

@@ -115,8 +115,21 @@ export default function ProfileViewScreen() {
                 const servicesList: string[] = [];
                 if (business.service_listings && Array.isArray(business.service_listings)) {
                   business.service_listings.forEach((s: any) => {
-                    if (s.service_type) {
-                      const serviceName = s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace('_', ' ');
+                    // Handle service_types array (strings or objects)
+                    if (s.service_types && Array.isArray(s.service_types)) {
+                      s.service_types.forEach((st: any) => {
+                        const rawName = typeof st === 'object' ? (st.name || st.label || st.slug || '') : st;
+                        if (rawName) {
+                          const serviceName = typeof rawName === 'string' ? rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/_/g, ' ') : String(rawName);
+                          if (!servicesList.includes(serviceName)) {
+                            servicesList.push(serviceName);
+                          }
+                        }
+                      });
+                    }
+                    // Fallback to single service_type
+                    else if (s.service_type) {
+                      const serviceName = s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace(/_/g, ' ');
                       if (!servicesList.includes(serviceName)) {
                         servicesList.push(serviceName);
                       }
@@ -179,8 +192,21 @@ export default function ProfileViewScreen() {
                 const servicesList: string[] = [];
                 if (helper.service_listings && Array.isArray(helper.service_listings)) {
                   helper.service_listings.forEach((s: any) => {
-                    if (s.service_type) {
-                      const serviceName = s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace('_', ' ');
+                    // Handle service_types array (strings or objects)
+                    if (s.service_types && Array.isArray(s.service_types)) {
+                      s.service_types.forEach((st: any) => {
+                        const rawName = typeof st === 'object' ? (st.name || st.label || st.slug || '') : st;
+                        if (rawName) {
+                          const serviceName = typeof rawName === 'string' ? rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/_/g, ' ') : String(rawName);
+                          if (!servicesList.includes(serviceName)) {
+                            servicesList.push(serviceName);
+                          }
+                        }
+                      });
+                    }
+                    // Fallback to single service_type
+                    else if (s.service_type) {
+                      const serviceName = s.service_type.charAt(0).toUpperCase() + s.service_type.slice(1).replace(/_/g, ' ');
                       if (!servicesList.includes(serviceName)) {
                         servicesList.push(serviceName);
                       }
@@ -209,6 +235,7 @@ export default function ProfileViewScreen() {
               gender: helper.gender || helper.user?.gender || null,
               religion: helper.religion || helper.user?.religion || null,
               languages: helper.languages || helper.user?.languages || [],
+              age: helper.age || helper.user?.age || null,
             };
 
             setProfile(mappedProfile);
@@ -511,9 +538,13 @@ export default function ProfileViewScreen() {
           );
 
           if (applicationsResponse.success && applicationsResponse.data) {
-            const applications = Array.isArray(applicationsResponse.data)
+            let applications = Array.isArray(applicationsResponse.data)
               ? applicationsResponse.data
               : (applicationsResponse.data.applications || applicationsResponse.data.data || []);
+
+            if (!Array.isArray(applications)) {
+              applications = [];
+            }
 
             // Check if there's an accepted application from this helper/business
             // The applicant should be the helper/business (profileUserId)
@@ -641,7 +672,7 @@ export default function ProfileViewScreen() {
               <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Profile</Text>
-            <View style={{ width: 44 }} />
+            <View style={{ width: 40 }} />
           </View>
         </View>
 
@@ -704,10 +735,16 @@ export default function ProfileViewScreen() {
           )}
 
           {/* Personal Details Grid */}
-          {(displayProfile.gender || displayProfile.religion || (displayProfile.languages && displayProfile.languages.length > 0)) && (
+          {(displayProfile.gender || displayProfile.religion || displayProfile.age || (displayProfile.languages && displayProfile.languages.length > 0)) && (
             <View style={{ marginBottom: 24 }}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Details</Text>
               <View style={styles.gridContainer}>
+                {displayProfile.age && (
+                  <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Age</Text>
+                    <Text style={[styles.gridValue, { color: textColor }]}>{displayProfile.age} years</Text>
+                  </View>
+                )}
                 {displayProfile.gender && (
                   <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
                     <Text style={[styles.gridLabel, { color: textSecondary }]}>Gender</Text>
@@ -772,7 +809,11 @@ export default function ProfileViewScreen() {
                   ? service.service_types
                   : service.service_type ? [service.service_type] : ['Service'];
 
-                const title = serviceTypes.map((t: string) => t.charAt(0).toUpperCase() + t.slice(1).replace('_', ' ')).join(', ');
+                const title = serviceTypes.map((t: any) => {
+                  const rawName = typeof t === 'object' ? (t.name || t.label || t.slug || '') : t;
+                  return typeof rawName === 'string' ? rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/_/g, ' ') : String(rawName);
+                }).join(', ');
+
                 const monthlyRate = parseFloat(service.monthly_rate || '0');
 
                 return (

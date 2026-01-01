@@ -81,6 +81,7 @@ export interface User {
   onboardingStatus: OnboardingStatus;
   profileData?: HelperProfile | BusinessProfile;
   isVerified?: boolean; // OTP verification status
+  city_id?: number | null; // City ID for regular users
 }
 
 export interface HelperProfile {
@@ -342,6 +343,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: userDataFromApi.name,
             profileImage: userDataFromApi.profile_image || userDataFromApi.profileImage,
             onboardingStatus: extractOnboardingStatus(userDataFromApi, 'not_started'),
+            city_id: userDataFromApi.city_id || null,
           };
 
           // Save token to AsyncStorage
@@ -754,6 +756,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: userDataFromApi.name || user.name || (userData instanceof FormData ? user.name : (userData as any).name),
           // Use onboardingStatus from userData if explicitly provided, otherwise use API response
           onboardingStatus: onboardingStatusFromRequest || onboardingStatusFromApi,
+          city_id: userDataFromApi.city_id !== undefined ? userDataFromApi.city_id : (user.city_id || (userData as any).city_id),
         };
         await saveUser(updatedUser);
       } else {

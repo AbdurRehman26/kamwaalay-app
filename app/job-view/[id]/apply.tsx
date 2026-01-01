@@ -64,15 +64,6 @@ export default function JobApplyScreen() {
                     true
                 );
 
-                if (!response.success || !response.data) {
-                    response = await apiService.get(
-                        API_ENDPOINTS.BOOKINGS.GET,
-                        { id: id as string },
-                        undefined,
-                        true
-                    );
-                }
-
                 if (response.success && response.data) {
                     const jobData = response.data.job_post || response.data.booking || response.data;
                         setJob({

@@ -1,21 +1,22 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -39,10 +40,18 @@ interface Location {
   area?: string;
 }
 
+interface ServiceTypeObject {
+  id: number;
+  name: string;
+  slug: string;
+  icon?: string;
+}
+
 interface ServiceListing {
   id: string | number;
   service_type?: string;
-  service_types?: string[];
+  service_types?: ServiceTypeObject[];
+  service_types_slugs?: string[];
   monthly_rate?: number | string;
   description?: string;
   location?: {
@@ -60,7 +69,7 @@ interface ServiceListing {
   }>;
   area?: string;
   work_type?: string;
-  [key: string]: any; // Allow additional properties from API
+  [key: string]: any;
 }
 
 export default function ServiceOfferingsScreen() {
@@ -77,9 +86,16 @@ export default function ServiceOfferingsScreen() {
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
 
+  const insets = useSafeAreaInsets();
+
   // Service listings state
   const [serviceListings, setServiceListings] = useState<ServiceListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch service listings from API
   useEffect(() => {
@@ -104,8 +120,6 @@ export default function ServiceOfferingsScreen() {
         true // Requires authentication
       );
 
-      console.log('📋 Service listings API response:', JSON.stringify(response, null, 2));
-
       if (response.success && response.data) {
         let listings: ServiceListing[] = [];
 
@@ -125,10 +139,8 @@ export default function ServiceOfferingsScreen() {
             : (Array.isArray(response.data.listings) ? response.data.listings : []);
         }
 
-        console.log('📋 Parsed service listings:', listings.length, listings);
         setServiceListings(listings);
       } else {
-        console.log('❌ No service listings found in response:', response);
         setServiceListings([]);
       }
     } catch (error) {
@@ -140,61 +152,73 @@ export default function ServiceOfferingsScreen() {
   };
 
 
-  const handleDeleteService = async (serviceId: string) => {
-    Alert.alert(
-      'Delete Service',
-      'Are you sure you want to delete this service offering?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            // TODO: Call API to delete service
-            loadServiceListings();
-          },
-        },
-      ]
-    );
+  const openDeleteModal = (serviceId: string) => {
+    setDeleteServiceId(serviceId);
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeleteServiceId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteServiceId) return;
+
+    setIsDeleting(true);
+    try {
+      const endpoint = API_ENDPOINTS.SERVICE_LISTINGS.DELETE.replace(':id', deleteServiceId);
+      const response = await apiService.delete(endpoint, undefined, true);
+
+      if (response.success) {
+        toast.success('Service deleted successfully');
+        loadServiceListings();
+      } else {
+        toast.error(response.message || 'Failed to delete service');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete service');
+    } finally {
+      setIsDeleting(false);
+      closeDeleteModal();
+    }
   };
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
+      <ScrollView
+        style={[styles.scrollView, { backgroundColor }]}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        bounces={false}
+        alwaysBounceHorizontal={false}
+        alwaysBounceVertical={false}
+        contentContainerStyle={{ paddingBottom: 100, flexGrow: 1, width: width, maxWidth: width }}
+      >
+        {/* Decorative Background Elements */}
+        <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+        <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
-      <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.back()}
-          >
-            <IconSymbol name="chevron.left" size={24} color={textColor} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: textColor }]}>Service Offerings</Text>
-          <TouchableOpacity
-            style={[styles.addHeaderButton, { backgroundColor: primaryColor }]}
-            onPress={() => router.push('/profile/add-service-offering')}
-          >
-            <IconSymbol name="plus" size={16} color="#FFFFFF" />
-            <Text style={styles.addHeaderButtonText}>Add</Text>
-          </TouchableOpacity>
+        {/* Header Background */}
+        <View style={styles.headerBackground}>
+          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Service Offerings</Text>
+            <TouchableOpacity
+              style={styles.addHeaderButton}
+              onPress={() => router.push('/profile/add-service-offering')}
+            >
+              <IconSymbol name="plus" size={16} color="#FFFFFF" />
+              <Text style={styles.addHeaderButtonText}>Add</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <ScrollView 
-          style={[styles.scrollView, { backgroundColor }]} 
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          horizontal={false}
-          bounces={false}
-          alwaysBounceHorizontal={false}
-          alwaysBounceVertical={false}
-          contentContainerStyle={{ paddingBottom: 0, flexGrow: 1, width: width, maxWidth: width }}
-        >
-          {/* Decorative Background Elements */}
-          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-
-          {/* Existing Services */}
+        {/* Content Container */}
+        <View style={styles.contentContainer}>
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={primaryColor} />
@@ -206,28 +230,38 @@ export default function ServiceOfferingsScreen() {
                 Your Service Listings ({serviceListings.length})
               </Text>
               {serviceListings.map((listing: ServiceListing) => {
-                // Handle service types - get all service types
-                const serviceTypes: string[] = [];
+                // Handle service types - extract name and icon from objects
+                // Handle service types - extract name and icon from objects
+                const serviceTypeDisplays: { name: string; icon?: string }[] = [];
                 if (listing.service_types && Array.isArray(listing.service_types) && listing.service_types.length > 0) {
-                  serviceTypes.push(...listing.service_types);
+                  listing.service_types.forEach((st: any) => {
+                    if (typeof st === 'object' && st) {
+                      serviceTypeDisplays.push({ name: st.name || st.label || st.slug || 'Service', icon: st.icon });
+                    } else if (typeof st === 'string') {
+                      const formatted = st.charAt(0).toUpperCase() + st.slice(1).replace(/_/g, ' ');
+                      serviceTypeDisplays.push({ name: formatted });
+                    }
+                  });
                 } else if (listing.service_type) {
-                  serviceTypes.push(listing.service_type);
+                  const st = listing.service_type;
+                  if (typeof st === 'string') {
+                    const formatted = st.charAt(0).toUpperCase() + st.slice(1).replace(/_/g, ' ');
+                    serviceTypeDisplays.push({ name: formatted });
+                  } else if (typeof st === 'object' && st) {
+                    serviceTypeDisplays.push({ name: (st as any).name || (st as any).label || (st as any).slug || 'Service', icon: (st as any).icon });
+                  }
                 }
-                
-                const formatServiceType = (type: string) => {
-                  return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
-                };
-                
+
                 // Handle locations - get all locations
                 const locations: string[] = [];
                 if (listing.location_details && Array.isArray(listing.location_details) && listing.location_details.length > 0) {
                   listing.location_details.forEach((loc: any) => {
-                    const locationText = loc.display_text || 
-                                       (loc.city_name && loc.area ? `${loc.city_name}, ${loc.area}` : null) ||
-                                       loc.area || 
-                                       loc.area_name || 
-                                       loc.city_name || 
-                                       loc.name;
+                    const locationText = loc.display_text ||
+                      (loc.city_name && loc.area ? `${loc.city_name}, ${loc.area}` : null) ||
+                      loc.area ||
+                      loc.area_name ||
+                      loc.city_name ||
+                      loc.name;
                     if (locationText && !locations.includes(locationText)) {
                       locations.push(locationText);
                     }
@@ -245,11 +279,11 @@ export default function ServiceOfferingsScreen() {
                     <View style={styles.serviceHeader}>
                       <View style={styles.serviceInfo}>
                         <View style={styles.serviceTypesRow}>
-                          {serviceTypes.length > 0 ? (
-                            serviceTypes.map((type, idx) => (
+                          {serviceTypeDisplays.length > 0 ? (
+                            serviceTypeDisplays.map((st, idx) => (
                               <View key={idx} style={[styles.serviceTypeBadge, { backgroundColor: primaryLight }]}>
                                 <Text style={[styles.serviceTypeBadgeText, { color: primaryColor }]}>
-                                  {formatServiceType(type)}
+                                  {st.icon ? `${st.icon} ` : ''}{st.name}
                                 </Text>
                               </View>
                             ))
@@ -273,7 +307,7 @@ export default function ServiceOfferingsScreen() {
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.deleteButton, { backgroundColor: '#EF4444' }]}
-                          onPress={() => handleDeleteService(listing.id.toString())}
+                          onPress={() => openDeleteModal(listing.id.toString())}
                         >
                           <IconSymbol name="trash.fill" size={16} color="#FFFFFF" />
                         </TouchableOpacity>
@@ -286,8 +320,8 @@ export default function ServiceOfferingsScreen() {
                       <View style={styles.priceContainer}>
                         <IconSymbol name="dollarsign.circle.fill" size={16} color={primaryColor} />
                         <Text style={[styles.servicePrice, { color: primaryColor }]}>
-                          ₨{typeof listing.monthly_rate === 'string' 
-                            ? parseFloat(listing.monthly_rate).toLocaleString() 
+                          ₨{typeof listing.monthly_rate === 'string'
+                            ? parseFloat(listing.monthly_rate).toLocaleString()
                             : listing.monthly_rate.toLocaleString()}/month
                         </Text>
                       </View>
@@ -317,8 +351,51 @@ export default function ServiceOfferingsScreen() {
               <Text style={[styles.emptySubtext, { color: textSecondary }]}>Tap the + button to add your first service</Text>
             </View>
           )}
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </ScrollView>
+
+      {/* Delete Confirmation Modal */}
+      <Modal visible={showDeleteModal} transparent={true} animationType="fade" onRequestClose={closeDeleteModal}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.deleteModalContent, { backgroundColor: cardBg }]}>
+            {/* Modal Header */}
+            <View style={[styles.deleteModalIconContainer, { backgroundColor: '#FEE2E2' }]}>
+              <IconSymbol name="trash.fill" size={32} color="#EF4444" />
+            </View>
+
+            {/* Modal Title */}
+            <Text style={[styles.deleteModalTitle, { color: textColor }]}>Delete Service?</Text>
+
+            {/* Modal Description */}
+            <Text style={[styles.deleteModalDescription, { color: textSecondary }]}>
+              Are you sure you want to delete this service offering? This action cannot be undone.
+            </Text>
+
+            {/* Modal Buttons */}
+            <View style={styles.deleteModalButtons}>
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.cancelModalButton, { backgroundColor: cardBg, borderColor }]}
+                onPress={closeDeleteModal}
+                disabled={isDeleting}
+              >
+                <Text style={[styles.cancelModalButtonText, { color: textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.confirmDeleteButton]}
+                onPress={confirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.confirmDeleteButtonText}>Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -350,40 +427,48 @@ const styles = StyleSheet.create({
     width: width,
     maxWidth: width,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   headerTitle: {
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 22,
     fontWeight: '700',
   },
-  placeholder: {
-    width: 40,
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
   },
   addHeaderButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 12,
     gap: 6,
   },
   addHeaderButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   scrollView: {
     flex: 1,
@@ -716,5 +801,72 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
+  },
+  // Delete Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  deleteModalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  deleteModalIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  deleteModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  deleteModalDescription: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  deleteModalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalButton: {
+    borderWidth: 1,
+  },
+  cancelModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmDeleteButton: {
+    backgroundColor: '#EF4444',
+  },
+  confirmDeleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

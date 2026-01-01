@@ -100,6 +100,14 @@ export default function EditProfileScreen() {
       : []
   );
 
+  // City Field (for Regular Users)
+  const [cityId, setCityId] = useState<number | null>(
+    user?.userType === 'user' ? (user as any)?.city_id || null : null
+  );
+  const [cities, setCities] = useState<any[]>([]);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+
   // Language fetching/handling
   const [availableLanguages, setAvailableLanguages] = useState<any[]>([]);
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
@@ -108,10 +116,12 @@ export default function EditProfileScreen() {
   const [showReligionDropdown, setShowReligionDropdown] = useState(false);
 
   React.useEffect(() => {
-    refreshProfile();
     if (user?.userType === 'helper') {
       fetchLanguages();
     }
+
+    fetchCities().then(() => refreshProfile());
+
   }, []);
 
   // Sync internal state when user object changes (e.g., after refreshProfile)
@@ -157,6 +167,10 @@ export default function EditProfileScreen() {
         setName(user.name || '');
       } else {
         setName(user.name || '');
+        setCityId((user as any)?.city_id || null);
+        if (cities.length === 0) {
+          fetchCities();
+        }
       }
     }
   }, [user]);
@@ -188,6 +202,28 @@ export default function EditProfileScreen() {
       console.error('Failed to fetch languages:', error);
     } finally {
       setIsLoadingLanguages(false);
+    }
+  };
+
+  const fetchCities = async () => {
+    try {
+      setIsLoadingCities(true);
+      const response = await apiService.get(API_ENDPOINTS.CITIES.LIST, undefined, undefined, false);
+
+      if (response.success && response.data) {
+        let citiesData: any[] = [];
+        if (Array.isArray(response.data)) {
+          citiesData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          citiesData = response.data.data;
+        }
+
+        setCities(citiesData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch cities:', error);
+    } finally {
+      setIsLoadingCities(false);
     }
   };
 
@@ -255,6 +291,10 @@ export default function EditProfileScreen() {
         name: finalName.trim(),
       };
 
+      if (user?.userType === 'user') {
+        profileUpdateData.city_id = cityId;
+      }
+
       if (user?.userType === 'helper') {
         profileUpdateData.bio = bio.trim() || undefined;
         profileUpdateData.experience = experience.trim() || undefined;
@@ -270,7 +310,7 @@ export default function EditProfileScreen() {
 
       await updateUser(profileUpdateData);
       toast.success('Profile updated successfully');
-      router.back();
+      // router.back(); // Keep user on the same screen as requested
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile. Please try again.');
     } finally {
@@ -280,30 +320,10 @@ export default function EditProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.keyboardView, { backgroundColor }]}
       >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 10, backgroundColor: cardBg, borderBottomColor: borderColor }]}>
-          <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: borderColor }]}>
-            <IconSymbol name="chevron.left" size={24} color={textColor} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: textColor }]}>Edit Profile</Text>
-          <TouchableOpacity
-            onPress={handleSave}
-            style={[styles.saveButton, { backgroundColor: primaryLight }]}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={primaryColor} />
-            ) : (
-              <Text style={[styles.saveButtonText, { color: primaryColor }]}>Save</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
         <ScrollView
           style={[styles.scrollView, { backgroundColor }]}
           showsVerticalScrollIndicator={false}
@@ -318,296 +338,361 @@ export default function EditProfileScreen() {
             maxWidth: width,
           }}
         >
+          {/* Decorative Background Elements */}
           <View style={[styles.topCircle, { backgroundColor: primaryLight }]} />
           <View style={[styles.bottomCircle, { backgroundColor: primaryLight }]} />
 
-          {/* Profile Picture Section */}
-          <View style={styles.profileSection}>
-            <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, { backgroundColor: cardBg, borderColor: cardBg, shadowColor: primaryColor }]}>
-                {isUploadingPhoto ? (
-                  <ActivityIndicator size="large" color={primaryColor} />
-                ) : selectedImageUri || user?.profileImage ? (
-                  <ExpoImage
-                    source={{ uri: selectedImageUri || user?.profileImage }}
-                    style={styles.avatarImage}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <Text style={[styles.avatarText, { color: primaryColor }]}>
-                    {(name || user?.name || 'U').charAt(0).toUpperCase()}
-                  </Text>
-                )}
-              </View>
+          {/* Header Background */}
+          <View style={styles.headerBackground}>
+            <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Edit Profile</Text>
               <TouchableOpacity
-                style={[styles.cameraButton, { backgroundColor: primaryColor, borderColor: cardBg }]}
-                onPress={pickImage}
-                disabled={isUploadingPhoto}
+                onPress={handleSave}
+                style={styles.saveButton}
+                disabled={isLoading}
               >
-                {isUploadingPhoto ? (
+                {isLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <IconSymbol name="camera.fill" size={20} color="#FFFFFF" />
+                  <Text style={styles.saveButtonText}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
-            <Text style={[styles.changePhotoText, { color: textSecondary }]}>Tap to change photo</Text>
-
-            {/* Account Type Badge */}
-            <View style={styles.badgeContainer}>
-              <View style={[styles.badge, { backgroundColor: primaryLight }]}>
-                <IconSymbol
-                  name={user?.userType === 'business' ? 'building.2.fill' : user?.userType === 'helper' ? 'person.fill' : 'person'}
-                  size={14}
-                  color={primaryColor}
-                />
-                <Text style={[styles.badgeText, { color: primaryColor }]}>
-                  {user?.userType === 'user'
-                    ? 'Customer'
-                    : user?.userType === 'helper'
-                      ? 'Helper'
-                      : 'Business'} Profile
-                </Text>
-              </View>
-            </View>
           </View>
 
-          {/* Form Fields */}
-          <View style={styles.formContainer}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Basic Information</Text>
+          {/* Content Container */}
+          <View style={styles.contentContainer}>
+            <View style={styles.profileSection}>
+              <View style={styles.avatarContainer}>
+                <View style={[styles.avatar, { backgroundColor: cardBg, borderColor: cardBg, shadowColor: primaryColor }]}>
+                  {isUploadingPhoto ? (
+                    <ActivityIndicator size="large" color={primaryColor} />
+                  ) : selectedImageUri || user?.profileImage ? (
+                    <ExpoImage
+                      source={{ uri: selectedImageUri || user?.profileImage }}
+                      style={styles.avatarImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Text style={[styles.avatarText, { color: primaryColor }]}>
+                      {(name || user?.name || 'U').charAt(0).toUpperCase()}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[styles.cameraButton, { backgroundColor: primaryColor, borderColor: cardBg }]}
+                  onPress={pickImage}
+                  disabled={isUploadingPhoto}
+                >
+                  {isUploadingPhoto ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <IconSymbol name="camera.fill" size={20} color="#FFFFFF" />
+                  )}
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.changePhotoText, { color: textSecondary }]}>Tap to change photo</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>
-                {user?.userType === 'business' ? 'Owner Name' : 'Full Name'} <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-                <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: textColor }]}
-                  value={user?.userType === 'business' ? ownerName : name}
-                  onChangeText={user?.userType === 'business' ? setOwnerName : setName}
-                  placeholder={`Enter ${user?.userType === 'business' ? 'owner' : 'your full'} name`}
-                  placeholderTextColor={textMuted}
-                />
+              {/* Account Type Badge */}
+              <View style={styles.badgeContainer}>
+                <View style={[styles.badge, { backgroundColor: primaryLight }]}>
+                  <IconSymbol
+                    name={user?.userType === 'business' ? 'building.2.fill' : user?.userType === 'helper' ? 'person.fill' : 'person'}
+                    size={14}
+                    color={primaryColor}
+                  />
+                  <Text style={[styles.badgeText, { color: primaryColor }]}>
+                    {user?.userType === 'user'
+                      ? 'Customer'
+                      : user?.userType === 'helper'
+                        ? 'Helper'
+                        : 'Business'} Profile
+                  </Text>
+                </View>
               </View>
             </View>
 
-            {user?.userType === 'business' && (
+            {/* Form Fields */}
+            <View style={styles.formContainer}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Basic Information</Text>
+
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Business Name <Text style={styles.required}>*</Text></Text>
+                <Text style={[styles.label, { color: textColor }]}>
+                  {user?.userType === 'business' ? 'Owner Name' : 'Full Name'} <Text style={styles.required}>*</Text>
+                </Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-                  <IconSymbol name="building.2" size={20} color={iconMuted} style={styles.inputIcon} />
+                  <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: textColor }]}
-                    value={businessName}
-                    onChangeText={setBusinessName}
-                    placeholder="Enter business name"
+                    value={user?.userType === 'business' ? ownerName : name}
+                    onChangeText={user?.userType === 'business' ? setOwnerName : setName}
+                    placeholder={`Enter ${user?.userType === 'business' ? 'owner' : 'your full'} name`}
                     placeholderTextColor={textMuted}
                   />
                 </View>
               </View>
-            )}
 
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
-              <View style={[styles.inputWrapper, styles.disabledInputWrapper, { backgroundColor: borderColor, borderColor, shadowColor: textColor }]}>
-                <IconSymbol name="phone" size={20} color={iconMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, styles.disabledInput, { color: textMuted }]}
-                  value={user?.phoneNumber || ''}
-                  editable={false}
-                  placeholderTextColor={textMuted}
-                />
-                <IconSymbol name="lock.fill" size={16} color={iconMuted} style={styles.lockIcon} />
-              </View>
-              <Text style={[styles.helperText, { color: textMuted }]}>
-                Phone number cannot be changed
-              </Text>
-            </View>
-
-            {/* Profile Details for Helpers/Businesses */}
-            {(user?.userType === 'helper' || user?.userType === 'business') && (
-              <>
-                <View style={[styles.divider, { backgroundColor: borderColor }]} />
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Profile Details</Text>
-
-                {user?.userType === 'helper' && (
-                  <>
-                    {/* Age */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: textColor }]}>Age</Text>
-                      <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-                        <IconSymbol name="calendar" size={20} color={iconMuted} style={styles.inputIcon} />
-                        <TextInput
-                          style={[styles.input, { color: textColor }]}
-                          value={age}
-                          onChangeText={setAge}
-                          placeholder="Enter your age"
-                          placeholderTextColor={textMuted}
-                          keyboardType="numeric"
-                          maxLength={3}
-                        />
-                      </View>
-                    </View>
-
-                    {/* Gender */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: textColor }]}>Gender</Text>
-                      <TouchableOpacity
-                        style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
-                        onPress={() => setShowGenderDropdown(!showGenderDropdown)}
-                      >
-                        <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
-                        <Text style={[styles.input, { color: gender ? textColor : textMuted, paddingVertical: 16 }]}>
-                          {gender || 'Select Gender'}
-                        </Text>
-                        <IconSymbol name="chevron.down" size={20} color={iconMuted} />
-                      </TouchableOpacity>
-                      {showGenderDropdown && (
-                        <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor }]}>
-                          {GENDER_OPTIONS.map((g) => (
-                            <TouchableOpacity
-                              key={g}
-                              style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
-                              onPress={() => {
-                                setGender(g);
-                                setShowGenderDropdown(false);
-                              }}
-                            >
-                              <Text style={[styles.dropdownText, { color: textColor }]}>{g}</Text>
-                              {gender === g && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Religion */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: textColor }]}>Religion</Text>
-                      <TouchableOpacity
-                        style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
-                        onPress={() => setShowReligionDropdown(!showReligionDropdown)}
-                      >
-                        <IconSymbol name="star.fill" size={20} color={iconMuted} style={styles.inputIcon} />
-                        <Text style={[styles.input, { color: religion ? textColor : textMuted, paddingVertical: 16 }]}>
-                          {RELIGION_OPTIONS.find(r => r.id === religion)?.label || 'Select Religion'}
-                        </Text>
-                        <IconSymbol name="chevron.down" size={20} color={iconMuted} />
-                      </TouchableOpacity>
-                      {showReligionDropdown && (
-                        <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor }]}>
-                          {RELIGION_OPTIONS.map((r) => (
-                            <TouchableOpacity
-                              key={r.id}
-                              style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
-                              onPress={() => {
-                                setReligion(r.id);
-                                setShowReligionDropdown(false);
-                              }}
-                            >
-                              <Text style={[styles.dropdownText, { color: textColor }]}>{r.label}</Text>
-                              {religion === r.id && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Languages */}
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: textColor }]}>Languages</Text>
-
-                      {/* Selected Chips */}
-                      <View style={styles.chipsContainer}>
-                        {languages && languages.length > 0 ? languages.map((langId: number, index: number) => {
-                          const langName = availableLanguages.find(l => l.id === langId)?.name || langId.toString();
-                          return (
-                            <TouchableOpacity
-                              key={index}
-                              style={[styles.chip, { backgroundColor: primaryColor }]}
-                              onPress={() => toggleLanguage(langId)}
-                            >
-                              <Text style={styles.chipText}>{langName} ✕</Text>
-                            </TouchableOpacity>
-                          );
-                        }) : null}
-                      </View>
-
-                      <TouchableOpacity
-                        style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
-                        onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                      >
-                        <IconSymbol name="globe" size={20} color={iconMuted} style={styles.inputIcon} />
-                        <Text style={[styles.input, { color: textMuted, paddingVertical: 16 }]}>
-                          Select Languages
-                        </Text>
-                        <IconSymbol name="chevron.down" size={20} color={iconMuted} />
-                      </TouchableOpacity>
-
-                      {showLanguageDropdown && (
-                        <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor, maxHeight: 200 }]}>
-                          <ScrollView nestedScrollEnabled>
-                            {isLoadingLanguages ? (
-                              <ActivityIndicator size="small" color={primaryColor} style={{ padding: 20 }} />
-                            ) : (
-                              availableLanguages.map((lang: any) => {
-                                const langId = typeof lang.id === 'string' ? parseInt(lang.id) : lang.id;
-                                const isSelected = languages?.includes(langId);
-                                return (
-                                  <TouchableOpacity
-                                    key={lang.id}
-                                    style={[styles.dropdownItem, { borderBottomColor: borderColor }, isSelected && { backgroundColor: primaryLight + '40' }]}
-                                    onPress={() => toggleLanguage(langId)}
-                                  >
-                                    <Text style={[styles.dropdownText, { color: textColor }]}>{lang.name}</Text>
-                                    {isSelected && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-                                  </TouchableOpacity>
-                                );
-                              })
-                            )}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
-                  </>
-                )}
-
+              {user?.userType === 'business' && (
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: textColor }]}>Bio</Text>
-                  <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+                  <Text style={[styles.label, { color: textColor }]}>Business Name <Text style={styles.required}>*</Text></Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+                    <IconSymbol name="building.2" size={20} color={iconMuted} style={styles.inputIcon} />
                     <TextInput
-                      style={[styles.input, styles.textArea, { color: textColor }]}
-                      value={bio}
-                      onChangeText={setBio}
-                      placeholder="Tell us about yourself..."
+                      style={[styles.input, { color: textColor }]}
+                      value={businessName}
+                      onChangeText={setBusinessName}
+                      placeholder="Enter business name"
                       placeholderTextColor={textMuted}
-                      multiline
-                      numberOfLines={4}
-                      textAlignVertical="top"
                     />
                   </View>
                 </View>
+              )}
 
-                {user?.userType === 'helper' && (
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                <View style={[styles.inputWrapper, styles.disabledInputWrapper, { backgroundColor: borderColor, borderColor, shadowColor: textColor }]}>
+                  <IconSymbol name="phone" size={20} color={iconMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, styles.disabledInput, { color: textMuted }]}
+                    value={user?.phoneNumber || ''}
+                    editable={false}
+                    placeholderTextColor={textMuted}
+                  />
+                  <IconSymbol name="lock.fill" size={16} color={iconMuted} style={styles.lockIcon} />
+                </View>
+                <Text style={[styles.helperText, { color: textMuted }]}>
+                  Phone number cannot be changed
+                </Text>
+              </View>
+
+              {/* City Selection for Regular Users */}
+              {user?.userType === 'user' && (
+                <View style={[styles.inputGroup, { zIndex: 100 }]}>
+                  <Text style={[styles.label, { color: textColor }]}>City</Text>
+                  <TouchableOpacity
+                    style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+                    onPress={() => setShowCityDropdown(!showCityDropdown)}
+                  >
+                    <IconSymbol name="mappin.and.ellipse" size={20} color={iconMuted} style={styles.inputIcon} />
+                    <Text style={[styles.input, { color: cityId ? textColor : textMuted, paddingVertical: 16 }]}>
+                      {cityId ? cities.find(c => c.id === cityId)?.name : 'Select City'}
+                    </Text>
+                    <IconSymbol name="chevron.down" size={20} color={iconMuted} />
+                  </TouchableOpacity>
+
+                  {showCityDropdown && (
+                    <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor, maxHeight: 200 }]}>
+                      <ScrollView nestedScrollEnabled>
+                        {isLoadingCities ? (
+                          <ActivityIndicator size="small" color={primaryColor} style={{ padding: 20 }} />
+                        ) : (
+                          cities.map((city: any) => (
+                            <TouchableOpacity
+                              key={city.id}
+                              style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
+                              onPress={() => {
+                                setCityId(city.id);
+                                setShowCityDropdown(false);
+                              }}
+                            >
+                              <Text style={[styles.dropdownText, { color: textColor }]}>{city.name}</Text>
+                              {cityId === city.id && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Profile Details for Helpers/Businesses */}
+              {(user?.userType === 'helper' || user?.userType === 'business') && (
+                <>
+                  <View style={[styles.divider, { backgroundColor: borderColor }]} />
+                  <Text style={[styles.sectionTitle, { color: textColor }]}>Profile Details</Text>
+
+                  {user?.userType === 'helper' && (
+                    <>
+                      {/* Age */}
+                      <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: textColor }]}>Age</Text>
+                        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+                          <IconSymbol name="calendar" size={20} color={iconMuted} style={styles.inputIcon} />
+                          <TextInput
+                            style={[styles.input, { color: textColor }]}
+                            value={age}
+                            onChangeText={setAge}
+                            placeholder="Enter your age"
+                            placeholderTextColor={textMuted}
+                            keyboardType="numeric"
+                            maxLength={3}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Gender */}
+                      <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: textColor }]}>Gender</Text>
+                        <TouchableOpacity
+                          style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+                          onPress={() => setShowGenderDropdown(!showGenderDropdown)}
+                        >
+                          <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
+                          <Text style={[styles.input, { color: gender ? textColor : textMuted, paddingVertical: 16 }]}>
+                            {gender || 'Select Gender'}
+                          </Text>
+                          <IconSymbol name="chevron.down" size={20} color={iconMuted} />
+                        </TouchableOpacity>
+                        {showGenderDropdown && (
+                          <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor }]}>
+                            {GENDER_OPTIONS.map((g) => (
+                              <TouchableOpacity
+                                key={g}
+                                style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
+                                onPress={() => {
+                                  setGender(g);
+                                  setShowGenderDropdown(false);
+                                }}
+                              >
+                                <Text style={[styles.dropdownText, { color: textColor }]}>{g}</Text>
+                                {gender === g && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Religion */}
+                      <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: textColor }]}>Religion</Text>
+                        <TouchableOpacity
+                          style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+                          onPress={() => setShowReligionDropdown(!showReligionDropdown)}
+                        >
+                          <IconSymbol name="star.fill" size={20} color={iconMuted} style={styles.inputIcon} />
+                          <Text style={[styles.input, { color: religion ? textColor : textMuted, paddingVertical: 16 }]}>
+                            {RELIGION_OPTIONS.find(r => r.id === religion)?.label || 'Select Religion'}
+                          </Text>
+                          <IconSymbol name="chevron.down" size={20} color={iconMuted} />
+                        </TouchableOpacity>
+                        {showReligionDropdown && (
+                          <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor }]}>
+                            {RELIGION_OPTIONS.map((r) => (
+                              <TouchableOpacity
+                                key={r.id}
+                                style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
+                                onPress={() => {
+                                  setReligion(r.id);
+                                  setShowReligionDropdown(false);
+                                }}
+                              >
+                                <Text style={[styles.dropdownText, { color: textColor }]}>{r.label}</Text>
+                                {religion === r.id && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Languages */}
+                      <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: textColor }]}>Languages</Text>
+
+                        {/* Selected Chips */}
+                        <View style={styles.chipsContainer}>
+                          {languages && languages.length > 0 ? languages.map((langId: number, index: number) => {
+                            const langName = availableLanguages.find(l => l.id === langId)?.name || langId.toString();
+                            return (
+                              <TouchableOpacity
+                                key={index}
+                                style={[styles.chip, { backgroundColor: primaryColor }]}
+                                onPress={() => toggleLanguage(langId)}
+                              >
+                                <Text style={styles.chipText}>{langName} ✕</Text>
+                              </TouchableOpacity>
+                            );
+                          }) : null}
+                        </View>
+
+                        <TouchableOpacity
+                          style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
+                          onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                        >
+                          <IconSymbol name="globe" size={20} color={iconMuted} style={styles.inputIcon} />
+                          <Text style={[styles.input, { color: textMuted, paddingVertical: 16 }]}>
+                            Select Languages
+                          </Text>
+                          <IconSymbol name="chevron.down" size={20} color={iconMuted} />
+                        </TouchableOpacity>
+
+                        {showLanguageDropdown && (
+                          <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor, maxHeight: 200 }]}>
+                            <ScrollView nestedScrollEnabled>
+                              {isLoadingLanguages ? (
+                                <ActivityIndicator size="small" color={primaryColor} style={{ padding: 20 }} />
+                              ) : (
+                                availableLanguages.map((lang: any) => {
+                                  const langId = typeof lang.id === 'string' ? parseInt(lang.id) : lang.id;
+                                  const isSelected = languages?.includes(langId);
+                                  return (
+                                    <TouchableOpacity
+                                      key={lang.id}
+                                      style={[styles.dropdownItem, { borderBottomColor: borderColor }, isSelected && { backgroundColor: primaryLight + '40' }]}
+                                      onPress={() => toggleLanguage(langId)}
+                                    >
+                                      <Text style={[styles.dropdownText, { color: textColor }]}>{lang.name}</Text>
+                                      {isSelected && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                                    </TouchableOpacity>
+                                  );
+                                })
+                              )}
+                            </ScrollView>
+                          </View>
+                        )}
+                      </View>
+                    </>
+                  )}
+
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: textColor }]}>Experience</Text>
+                    <Text style={[styles.label, { color: textColor }]}>Bio</Text>
                     <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
                       <TextInput
                         style={[styles.input, styles.textArea, { color: textColor }]}
-                        value={experience}
-                        onChangeText={setExperience}
-                        placeholder="Describe your experience..."
+                        value={bio}
+                        onChangeText={setBio}
+                        placeholder="Tell us about yourself..."
                         placeholderTextColor={textMuted}
                         multiline
-                        numberOfLines={3}
+                        numberOfLines={4}
                         textAlignVertical="top"
                       />
                     </View>
                   </View>
-                )}
-              </>
-            )}
+
+                  {user?.userType === 'helper' && (
+                    <View style={styles.inputGroup}>
+                      <Text style={[styles.label, { color: textColor }]}>Experience</Text>
+                      <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
+                        <TextInput
+                          style={[styles.input, styles.textArea, { color: textColor }]}
+                          value={experience}
+                          onChangeText={setExperience}
+                          placeholder="Describe your experience..."
+                          placeholderTextColor={textMuted}
+                          multiline
+                          numberOfLines={3}
+                          textAlignVertical="top"
+                        />
+                      </View>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -644,35 +729,45 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.35,
     opacity: 0.6,
   },
-  header: {
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    width: width,
-    maxWidth: width,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    color: '#FFFFFF',
+    fontSize: 22,
     fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
   },
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
   },
   saveButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  contentContainer: {
+    marginTop: 16,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   scrollView: {
     flex: 1,

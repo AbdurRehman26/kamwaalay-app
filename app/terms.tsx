@@ -1,19 +1,20 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TermsScreen() {
   const router = useRouter();
-  
+
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -23,20 +24,23 @@ export default function TermsScreen() {
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
 
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: borderColor }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={primaryColor} />
-        </TouchableOpacity>
-        <ThemedText type="title" style={[styles.title, { color: textColor }]}>
-          Terms & Conditions
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </View>
-
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
+        {/* Header Background */}
+        <View style={styles.headerBackground}>
+          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Terms & Conditions</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </View>
+
+        {/* Content Container */}
         <View style={styles.content}>
           <ThemedText style={[styles.lastUpdated, { color: textMuted }]}>Last Updated: January 2024</ThemedText>
 
@@ -161,25 +165,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  scrollView: {
+    flex: 1,
+  },
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  backButton: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
     flex: 1,
     textAlign: 'center',
   },
-  scrollView: {
-    flex: 1,
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
   },
   content: {
     padding: 20,

@@ -34,6 +34,16 @@ export default function WorkersListScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
+            {/* Header Background */}
+            <View style={styles.headerBackground}>
+                <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>My Workers</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+            </View>
 
             <ScrollView
                 style={[styles.scrollView, { backgroundColor }]}
@@ -45,35 +55,37 @@ export default function WorkersListScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
             >
-                {/* Decorative Background Elements */}
-                <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-                <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+                <View style={{ marginTop: 16 }}>
 
-                {/* Content */}
-                <View style={styles.contentContainer}>
-                    {workers.length === 0 ? (
-                        <View style={[styles.emptyStateCard, { backgroundColor: cardBg, borderColor }]}>
-                            <View style={[styles.emptyIconContainer, { backgroundColor: primaryLight }]}>
-                                <IconSymbol name="person.2.fill" size={48} color={primaryColor} />
+                    {/* Decorative Background Elements */}
+
+
+                    {/* Content */}
+                    <View style={styles.contentContainer}>
+                        {workers.length === 0 ? (
+                            <View style={[styles.emptyStateCard, { backgroundColor: cardBg, borderColor }]}>
+                                <View style={[styles.emptyIconContainer, { backgroundColor: primaryLight }]}>
+                                    <IconSymbol name="person.2.fill" size={48} color={primaryColor} />
+                                </View>
+                                <ThemedText type="subtitle" style={[styles.emptyTitle, { color: textColor }]}>
+                                    No Workers Yet
+                                </ThemedText>
+                                <ThemedText style={[styles.emptyText, { color: textSecondary }]}>
+                                    Add your first worker to get started managing your team
+                                </ThemedText>
+                                <TouchableOpacity
+                                    style={[styles.addWorkerButton, { backgroundColor: primaryColor }]}
+                                    onPress={() => router.push('/workers/add')}
+                                >
+                                    <Text style={styles.addWorkerButtonText}>Add Your First Worker</Text>
+                                </TouchableOpacity>
                             </View>
-                            <ThemedText type="subtitle" style={[styles.emptyTitle, { color: textColor }]}>
-                                No Workers Yet
-                            </ThemedText>
-                            <ThemedText style={[styles.emptyText, { color: textSecondary }]}>
-                                Add your first worker to get started managing your team
-                            </ThemedText>
-                            <TouchableOpacity
-                                style={[styles.addWorkerButton, { backgroundColor: primaryColor }]}
-                                onPress={() => router.push('/workers/add')}
-                            >
-                                <Text style={styles.addWorkerButtonText}>Add Your First Worker</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={styles.workersList}>
-                            {/* TODO: Render workers list */}
-                        </View>
-                    )}
+                        ) : (
+                            <View style={styles.workersList}>
+                                {/* TODO: Render workers list */}
+                            </View>
+                        )}
+                    </View>
                 </View>
             </ScrollView>
         </View>
@@ -107,9 +119,9 @@ const styles = StyleSheet.create({
     },
     headerBackground: {
         backgroundColor: '#6366F1',
-        height: 180,
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
+        zIndex: 10,
     },
     headerContent: {
         flexDirection: 'row',
@@ -120,8 +132,10 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         color: '#FFFFFF',
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '700',
+        flex: 1,
+        textAlign: 'center',
     },
     backButton: {
         padding: 8,

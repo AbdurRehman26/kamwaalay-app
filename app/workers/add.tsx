@@ -1,8 +1,10 @@
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -10,7 +12,9 @@ import {
     Alert,
     Dimensions,
     KeyboardAvoidingView,
+    Modal,
     Platform,
+
     ScrollView,
     StyleSheet,
     Text,
@@ -92,6 +96,23 @@ export default function AddWorkerScreen() {
     const [skills, setSkills] = useState('');
     const [bio, setBio] = useState('');
 
+    // Location State
+    const [locationData, setLocationData] = useState<{
+        address: string;
+        city: string;
+        latitude: number;
+        longitude: number;
+    } | null>(null);
+    const [isMapVisible, setIsMapVisible] = useState(false);
+    const [mapRegion, setMapRegion] = useState<Region>({
+        latitude: 24.8607,
+        longitude: 67.0011, // Karachi default
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+    });
+    const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [isGeocoding, setIsGeocoding] = useState(false);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -142,6 +163,86 @@ export default function AddWorkerScreen() {
         } else {
             setSelectedServices([...selectedServices, serviceId]);
         }
+    }
+
+
+    const getCurrentLocation = async () => {
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission denied', 'Allow location access to pin worker location');
+                return;
+            }
+
+            const location = await Location.getCurrentPositionAsync({});
+            const region = {
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            };
+            setMapRegion(region);
+            setSelectedCoordinate({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            });
+        } catch (error) {
+            console.log('Error getting location', error);
+        }
+    };
+
+    const openMap = () => {
+        setIsMapVisible(true);
+        if (!locationData) {
+            getCurrentLocation();
+        } else {
+            setMapRegion({
+                latitude: locationData.latitude,
+                longitude: locationData.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            });
+            setSelectedCoordinate({
+                latitude: locationData.latitude,
+                longitude: locationData.longitude
+            });
+        }
+    };
+
+    const handleMapConfirm = async () => {
+        if (!selectedCoordinate) return;
+
+        setIsGeocoding(true);
+        try {
+            const reverseGeocode = await Location.reverseGeocodeAsync({
+                latitude: selectedCoordinate.latitude,
+                longitude: selectedCoordinate.longitude
+            });
+
+            let addressString = '';
+            let cityString = 'Karachi'; // Default
+
+            if (reverseGeocode.length > 0) {
+                const addr = reverseGeocode[0];
+                addressString = `${addr.street || ''} ${addr.name || ''}, ${addr.city || ''}, ${addr.region || ''}`.replace(/\s+/g, ' ').trim();
+                if (addr.city) cityString = addr.city;
+            } else {
+                addressString = `${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)}`;
+            }
+
+            setLocationData({
+                address: addressString,
+                city: cityString,
+                latitude: selectedCoordinate.latitude,
+                longitude: selectedCoordinate.longitude
+            });
+
+            setIsMapVisible(false);
+        } catch (error) {
+            Alert.alert('Error', 'Failed to get address details');
+        } finally {
+            setIsGeocoding(false);
+        }
     };
 
     const handleSubmit = async () => {
@@ -152,6 +253,11 @@ export default function AddWorkerScreen() {
 
         if (!phone.trim()) {
             Alert.alert('Required', 'Phone number is required');
+            return;
+        }
+
+        if (!locationData) {
+            Alert.alert('Required', 'Please pin the location on the map');
             return;
         }
 
@@ -200,6 +306,10 @@ export default function AddWorkerScreen() {
                 availability,
                 skills: skills.trim() || null,
                 bio: bio.trim() || null,
+                address: locationData.address,
+                city: locationData.city,
+                latitude: locationData.latitude,
+                longitude: locationData.longitude,
             };
 
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -219,8 +329,10 @@ export default function AddWorkerScreen() {
                         setReligion('');
                         setLanguages([]);
                         setAvailability('full_time');
+
                         setSkills('');
                         setBio('');
+                        setLocationData(null);
                     },
                 },
                 {
@@ -237,6 +349,16 @@ export default function AddWorkerScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
+            {/* Header Background */}
+            <View style={styles.headerBackground}>
+                <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Add New Worker</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+            </View>
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -245,7 +367,7 @@ export default function AddWorkerScreen() {
 
 
                 <ScrollView
-                    style={[styles.scrollView, { backgroundColor }]}
+                    style={[styles.scrollView, { backgroundColor, marginTop: 16 }]}
                     showsHorizontalScrollIndicator={false}
                     horizontal={false}
                     bounces={false}
@@ -254,9 +376,6 @@ export default function AddWorkerScreen() {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingBottom: insets.bottom + 40, width: width, maxWidth: width }}
                 >
-                    {/* Decorative Background Elements */}
-                    <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-                    <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
                     <View style={styles.formContainer}>
                         {/* Basic Information */}
@@ -290,6 +409,43 @@ export default function AddWorkerScreen() {
                                     maxLength={11}
                                 />
                             </View>
+                        </View>
+
+
+
+                        <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+                        {/* Location */}
+                        <View style={styles.inputGroup}>
+                            <Text style={[styles.label, { color: textColor }]}>Location <Text style={styles.required}>*</Text></Text>
+                            <Text style={[styles.sectionDescription, { color: textSecondary, marginBottom: 12 }]}>
+                                Pin the worker's location on the map
+                            </Text>
+
+                            {locationData && (
+                                <View style={[styles.locationPreview, { backgroundColor: cardBg, borderColor }]}>
+                                    <IconSymbol name="mappin.and.ellipse" size={20} color={primaryColor} />
+                                    <Text style={[styles.locationText, { color: textColor }]}>
+                                        {locationData.address}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={() => setLocationData(null)}
+                                        style={styles.clearLocationButton}
+                                    >
+                                        <IconSymbol name="xmark.circle.fill" size={20} color={textMuted} />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            <TouchableOpacity
+                                style={[styles.mapButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
+                                onPress={openMap}
+                            >
+                                <IconSymbol name="map.fill" size={20} color={primaryColor} />
+                                <Text style={[styles.mapButtonText, { color: primaryColor }]}>
+                                    {locationData ? 'Change Location' : 'Pin Location on Map'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
 
                         <View style={[styles.divider, { backgroundColor: borderColor }]} />
@@ -563,7 +719,56 @@ export default function AddWorkerScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </View>
+
+            <Modal
+                visible={isMapVisible}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setIsMapVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Pin Location</Text>
+                        <TouchableOpacity onPress={() => setIsMapVisible(false)} style={styles.closeButton}>
+                            <IconSymbol name="xmark.circle.fill" size={30} color="#000" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <MapView
+                        provider={PROVIDER_GOOGLE}
+                        style={styles.map}
+                        region={mapRegion}
+                        onRegionChangeComplete={setMapRegion}
+                        onPress={(e) => setSelectedCoordinate(e.nativeEvent.coordinate)}
+                        showsUserLocation
+                        showsMyLocationButton
+                    >
+                        {selectedCoordinate && (
+                            <Marker coordinate={selectedCoordinate} />
+                        )}
+                    </MapView>
+
+                    <View style={styles.mapFooter}>
+                        <Text style={styles.mapHelpText}>Tap on the map to place a pin</Text>
+                        <TouchableOpacity
+                            style={[
+                                styles.confirmLocationButton,
+                                { backgroundColor: primaryColor },
+                                (!selectedCoordinate || isGeocoding) && { opacity: 0.7 }
+                            ]}
+                            onPress={handleMapConfirm}
+                            disabled={!selectedCoordinate || isGeocoding}
+                        >
+                            {isGeocoding ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <Text style={styles.confirmLocationText}>Confirm Location</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        </View >
     );
 }
 
@@ -578,21 +783,30 @@ const styles = StyleSheet.create({
         width: width,
         maxWidth: width,
     },
-    topCircle: {
-        position: 'absolute',
-        top: -width * 0.4,
-        right: -width * 0.2,
-        width: width * 0.8,
-        height: width * 0.8,
-        borderRadius: width * 0.4,
+    headerBackground: {
+        backgroundColor: '#6366F1',
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        zIndex: 10,
     },
-    bottomCircle: {
-        position: 'absolute',
-        bottom: -width * 0.3,
-        left: -width * 0.2,
-        width: width * 0.7,
-        height: width * 0.7,
-        borderRadius: width * 0.35,
+    headerContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    headerTitle: {
+        color: '#FFFFFF',
+        fontSize: 22,
+        fontWeight: '700',
+        flex: 1,
+        textAlign: 'center',
+    },
+    backButton: {
+        padding: 8,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 12,
     },
 
     scrollView: {
@@ -798,14 +1012,95 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     religionButton: {
+        flex: 1,
         paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
         borderWidth: 1,
+        borderRadius: 12,
     },
     religionText: {
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: '500',
+        textAlign: 'center',
     },
+
+    // Map Styles
+    locationPreview: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 12,
+        gap: 12,
+    },
+    locationText: {
+        flex: 1,
+        fontSize: 14,
+    },
+    clearLocationButton: {
+        padding: 4,
+    },
+    mapButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        gap: 8,
+    },
+    mapButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 20,
+        backgroundColor: '#fff',
+        zIndex: 1,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    closeButton: {
+        padding: 4,
+    },
+    map: {
+        flex: 1,
+    },
+    mapFooter: {
+        padding: 24,
+        paddingBottom: 40,
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#e5e5e5',
+        alignItems: 'center',
+    },
+    mapHelpText: {
+        marginBottom: 16,
+        color: '#666',
+    },
+    confirmLocationButton: {
+        width: '100%',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    confirmLocationText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+
 
 });

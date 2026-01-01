@@ -45,3 +45,4 @@ app-example
 /build/*.aab
 /*.py
 /build-*.aab
+/build-*.apk

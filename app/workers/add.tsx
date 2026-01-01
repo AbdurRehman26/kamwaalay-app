@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -247,47 +248,47 @@ export default function AddWorkerScreen() {
 
     const handleSubmit = async () => {
         if (!fullName.trim()) {
-            Alert.alert('Required', 'Full name is required');
+            toast.error('Full name is required');
             return;
         }
 
         if (!phone.trim()) {
-            Alert.alert('Required', 'Phone number is required');
+            toast.error('Phone number is required');
             return;
         }
 
         if (!locationData) {
-            Alert.alert('Required', 'Please pin the location on the map');
+            toast.error('Please pin the location on the map');
             return;
         }
 
         if (selectedServices.length === 0) {
-            Alert.alert('Required', 'Please select at least one service type');
+            toast.error('Please select at least one service type');
             return;
         }
 
         if (!experienceYears.trim()) {
-            Alert.alert('Required', 'Experience is required');
+            toast.error('Experience is required');
             return;
         }
 
         if (!age.trim()) {
-            Alert.alert('Required', 'Age is required');
+            toast.error('Age is required');
             return;
         }
 
         if (!gender) {
-            Alert.alert('Required', 'Gender is required');
+            toast.error('Gender is required');
             return;
         }
 
         if (!religion) {
-            Alert.alert('Required', 'Religion is required');
+            toast.error('Religion is required');
             return;
         }
 
         if (languages.length === 0) {
-            Alert.alert('Required', 'Please select at least one language');
+            toast.error('Please select at least one language');
             return;
         }
 
@@ -316,32 +317,26 @@ export default function AddWorkerScreen() {
 
             console.log('Worker Data:', workerData);
 
-            Alert.alert('Success', 'Worker added successfully', [
-                {
-                    text: 'Add Another',
-                    onPress: () => {
-                        setFullName('');
-                        setPhone('');
-                        setSelectedServices([]);
-                        setExperienceYears('');
-                        setAge('');
-                        setGender('');
-                        setReligion('');
-                        setLanguages([]);
-                        setAvailability('full_time');
+            toast.success('Worker added successfully!');
 
-                        setSkills('');
-                        setBio('');
-                        setLocationData(null);
-                    },
-                },
-                {
-                    text: 'Done',
-                    onPress: () => router.back(),
-                },
-            ]);
+            // Reset form
+            setFullName('');
+            setPhone('');
+            setSelectedServices([]);
+            setExperienceYears('');
+            setAge('');
+            setGender('');
+            setReligion('');
+            setLanguages([]);
+            setAvailability('full_time');
+            setSkills('');
+            setBio('');
+            setLocationData(null);
+
+            // Navigate back after a short delay
+            setTimeout(() => router.back(), 1000);
         } catch (error) {
-            Alert.alert('Error', 'Failed to add worker. Please try again.');
+            toast.error('Failed to add worker. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

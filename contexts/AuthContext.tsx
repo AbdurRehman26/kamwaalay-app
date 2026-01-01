@@ -227,13 +227,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.success && response.data) {
         const profileData = response.data.user || response.data;
+
+        let parsedCityId = null;
+        if (profileData.city_id) {
+          parsedCityId = typeof profileData.city_id === 'string' ? parseInt(profileData.city_id, 10) : profileData.city_id;
+        }
+
         const updatedUser: User = {
           ...activeUser,
           ...profileData,
           id: profileData.id?.toString() || activeUser.id,
           onboardingStatus: extractOnboardingStatus(profileData, activeUser.onboardingStatus),
+          city_id: parsedCityId,
         };
-
         await saveUser(updatedUser);
         console.log('[AuthContext] Profile refreshed:', updatedUser.onboardingStatus);
       }
@@ -343,7 +349,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: userDataFromApi.name,
             profileImage: userDataFromApi.profile_image || userDataFromApi.profileImage,
             onboardingStatus: extractOnboardingStatus(userDataFromApi, 'not_started'),
-            city_id: userDataFromApi.city_id || null,
+            city_id: userDataFromApi.city_id ? (typeof userDataFromApi.city_id === 'string' ? parseInt(userDataFromApi.city_id, 10) : userDataFromApi.city_id) : null,
           };
 
           // Save token to AsyncStorage

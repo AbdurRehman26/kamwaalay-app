@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -101,9 +102,11 @@ export default function ChatScreen() {
         undefined,
         true
       );
+      toast.success('Conversation deleted');
     } catch (error) {
       console.error("Error deleting conversation:", error);
-      // Optionally revert state here
+      toast.error('Failed to delete conversation');
+      // Revert state on error
       fetchConversations();
     }
   };

@@ -62,12 +62,9 @@ export default function EditProfileScreen() {
   );
 
   // Helper/Business profile fields
+  // Bio (Helper only now)
   const [bio, setBio] = useState(
-    user?.userType === 'helper'
-      ? (user?.profileData as any)?.bio || ''
-      : user?.userType === 'business'
-        ? (user?.profileData as any)?.bio || ''
-        : ''
+    user?.userType === 'helper' ? (user?.profileData as any)?.bio || '' : ''
   );
   const [experience, setExperience] = useState(
     user?.userType === 'helper' ? (user?.profileData as any)?.experience || '' : ''
@@ -100,9 +97,9 @@ export default function EditProfileScreen() {
       : []
   );
 
-  // City Field (for Regular Users)
+  // City Field (for Regular Users and Business)
   const [cityId, setCityId] = useState<number | null>(
-    user?.userType === 'user' ? (user as any)?.city_id || null : null
+    (user?.userType === 'user' || user?.userType === 'business') ? (user as any)?.city_id || null : null
   );
   const [cities, setCities] = useState<any[]>([]);
   const [isLoadingCities, setIsLoadingCities] = useState(false);
@@ -120,8 +117,12 @@ export default function EditProfileScreen() {
       fetchLanguages();
     }
 
-    fetchCities().then(() => refreshProfile());
-
+    // Fetch cities for regular users and business
+    if (user?.userType === 'user' || user?.userType === 'business') {
+      fetchCities().then(() => refreshProfile());
+    } else {
+      refreshProfile();
+    }
   }, []);
 
   // Sync internal state when user object changes (e.g., after refreshProfile)
@@ -160,14 +161,16 @@ export default function EditProfileScreen() {
           setLanguages(parsedLangs);
         }
       } else if (user.userType === 'business') {
-        const pd = user.profileData as any;
-        setOwnerName(pd?.ownerName || (user as any).ownerName || user.name || '');
-        setBusinessName(pd?.businessName || (user as any).businessName || '');
-        setBio(pd?.bio || (user as any).bio || '');
         setName(user.name || '');
+        const cId = (user as any)?.city_id;
+        setCityId(cId ? (typeof cId === 'string' ? parseInt(cId, 10) : cId) : null);
+        if (cities.length === 0) {
+          fetchCities();
+        }
       } else {
         setName(user.name || '');
-        setCityId((user as any)?.city_id || null);
+        const cId = (user as any)?.city_id;
+        setCityId(cId ? (typeof cId === 'string' ? parseInt(cId, 10) : cId) : null);
         if (cities.length === 0) {
           fetchCities();
         }
@@ -218,7 +221,13 @@ export default function EditProfileScreen() {
           citiesData = response.data.data;
         }
 
-        setCities(citiesData);
+        // Normalize IDs to numbers
+        const formattedCities = citiesData.map((c: any) => ({
+          ...c,
+          id: typeof c.id === 'string' ? parseInt(c.id, 10) : c.id,
+        }));
+
+        setCities(formattedCities);
       }
     } catch (error) {
       console.error('Failed to fetch cities:', error);
@@ -272,26 +281,24 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = async () => {
-    const finalName = user?.userType === 'business' ? ownerName : name;
-    if (!finalName.trim()) {
-      toast.error(`${user?.userType === 'business' ? 'Owner name' : 'Name'} is required`);
+    if (user?.userType === 'helper' && !name.trim()) {
+      toast.error('Name is required');
       return;
     }
 
-    if (user?.userType === 'business' && !businessName.trim()) {
-      toast.error('Business name is required');
+    if ((user?.userType === 'user' || user?.userType === 'business') && !name.trim()) {
+      toast.error('Name is required');
       return;
     }
 
     setIsLoading(true);
     try {
-      // 2. Update profile data (Photo is now uploaded immediately in pickImage)
       // Sending flat payload as per requirement
       const profileUpdateData: any = {
-        name: finalName.trim(),
+        name: name.trim(),
       };
 
-      if (user?.userType === 'user') {
+      if (user?.userType === 'user' || user?.userType === 'business') {
         profileUpdateData.city_id = cityId;
       }
 
@@ -302,10 +309,6 @@ export default function EditProfileScreen() {
         profileUpdateData.gender = gender ? gender.toLowerCase() : undefined;
         profileUpdateData.religion = religion || undefined;
         profileUpdateData.languages = languages;
-      } else if (user?.userType === 'business') {
-        profileUpdateData.businessName = businessName.trim() || undefined;
-        profileUpdateData.ownerName = ownerName.trim() || undefined;
-        profileUpdateData.bio = bio.trim() || undefined;
       }
 
       await updateUser(profileUpdateData);
@@ -421,35 +424,19 @@ export default function EditProfileScreen() {
 
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: textColor }]}>
-                  {user?.userType === 'business' ? 'Owner Name' : 'Full Name'} <Text style={styles.required}>*</Text>
+                  {user?.userType === 'business' ? 'Business Name' : 'Full Name'} <Text style={styles.required}>*</Text>
                 </Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
                   <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: textColor }]}
-                    value={user?.userType === 'business' ? ownerName : name}
-                    onChangeText={user?.userType === 'business' ? setOwnerName : setName}
-                    placeholder={`Enter ${user?.userType === 'business' ? 'owner' : 'your full'} name`}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder={`Enter ${user?.userType === 'business' ? 'business' : 'your full'} name`}
                     placeholderTextColor={textMuted}
                   />
                 </View>
               </View>
-
-              {user?.userType === 'business' && (
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: textColor }]}>Business Name <Text style={styles.required}>*</Text></Text>
-                  <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-                    <IconSymbol name="building.2" size={20} color={iconMuted} style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.input, { color: textColor }]}
-                      value={businessName}
-                      onChangeText={setBusinessName}
-                      placeholder="Enter business name"
-                      placeholderTextColor={textMuted}
-                    />
-                  </View>
-                </View>
-              )}
 
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
@@ -468,8 +455,8 @@ export default function EditProfileScreen() {
                 </Text>
               </View>
 
-              {/* City Selection for Regular Users */}
-              {user?.userType === 'user' && (
+              {/* City Selection for Regular Users and Business */}
+              {(user?.userType === 'user' || user?.userType === 'business') && (
                 <View style={[styles.inputGroup, { zIndex: 100 }]}>
                   <Text style={[styles.label, { color: textColor }]}>City</Text>
                   <TouchableOpacity
@@ -509,8 +496,8 @@ export default function EditProfileScreen() {
                 </View>
               )}
 
-              {/* Profile Details for Helpers/Businesses */}
-              {(user?.userType === 'helper' || user?.userType === 'business') && (
+              {/* Profile Details for Helpers ONLY */}
+              {user?.userType === 'helper' && (
                 <>
                   <View style={[styles.divider, { backgroundColor: borderColor }]} />
                   <Text style={[styles.sectionTitle, { color: textColor }]}>Profile Details</Text>
@@ -861,7 +848,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
-    width: width - 48, // screen width - padding*2
+    width: width - 48,
     maxWidth: width - 48,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -889,9 +876,7 @@ const styles = StyleSheet.create({
   disabledInputWrapper: {
     shadowOpacity: 0,
   },
-  disabledInput: {
-    // Color applied inline
-  },
+  disabledInput: {},
   lockIcon: {
     marginLeft: 12,
   },

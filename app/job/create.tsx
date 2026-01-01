@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 
 import { API_ENDPOINTS } from '@/constants/api';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast'; // Added import
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -32,8 +33,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const WORK_TYPES = [
   'Full Time',
   'Part Time',
-  'Contract',
-  'Temporary',
 ];
 
 
@@ -179,18 +178,23 @@ export default function CreateRequestScreen() {
 
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-
-
+  const [formError, setFormError] = useState<string | null>(null);
 
 
   const handleCreate = async () => {
-    if (!serviceType) { Alert.alert('Required', 'Please select a service type'); return; }
-    if (!workType) { Alert.alert('Required', 'Please select a work type'); return; }
-    if (!address) { Alert.alert('Required', 'Please select a location on map'); return; }
+    setFormError(null);
 
-    if (!userName.trim()) { Alert.alert('Required', 'Please enter your name'); return; }
-    if (!phone.trim()) { Alert.alert('Required', 'Please enter your phone number'); return; }
+    let errorMsg = '';
+    if (!serviceType) errorMsg = 'Please select a service type';
+    else if (!workType) errorMsg = 'Please select a work type';
+    else if (!address) errorMsg = 'Please select a location on map';
+    else if (!userName.trim()) errorMsg = 'Please enter your name';
+    else if (!phone.trim()) errorMsg = 'Please enter your phone number';
+
+    if (errorMsg) {
+      setFormError(errorMsg);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -210,11 +214,10 @@ export default function CreateRequestScreen() {
 
       });
 
-      Alert.alert('Success', 'Job created successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      toast.success('Job created successfully');
+      router.back();
     } catch (error) {
-      Alert.alert('Error', 'Failed to create job');
+      toast.error('Failed to create job');
     } finally {
       setIsSubmitting(false);
     }
@@ -486,7 +489,6 @@ export default function CreateRequestScreen() {
             />
           </View>
 
-          {/* Buttons */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={[styles.submitButton, { backgroundColor: primaryColor }, isSubmitting && { opacity: 0.7 }]}
@@ -508,13 +510,18 @@ export default function CreateRequestScreen() {
             </TouchableOpacity>
           </View>
 
+          {formError ? (
+            <Text style={{ color: '#FF3B30', marginTop: 10, textAlign: 'center', fontWeight: '500' }}>
+              {formError}
+            </Text>
+          ) : null}
         </View>
       </ScrollView>
 
       {renderSelectionModal()}
       {renderMapModal()}
 
-    </ThemedView>
+    </ThemedView >
   );
 }
 

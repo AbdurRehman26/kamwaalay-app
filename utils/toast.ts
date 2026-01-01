@@ -1,46 +1,50 @@
-import { Alert, Platform, ToastAndroid } from 'react-native';
+
+export type ToastType = 'success' | 'error' | 'info';
+type ToastListener = (message: string, type: ToastType) => void;
+
+let listeners: ToastListener[] = [];
 
 /**
  * Toast utility for providing user feedback
- * Uses ToastAndroid on Android for a non-intrusive experience
- * Falls back to Alert on iOS (or can be extended with a custom toast component)
+ * Supports cross-platform custom toasts via subscription
  */
 export const toast = {
     /**
-     * Show a success or info message
+     * Subscribe to toast events
+     */
+    subscribe: (listener: ToastListener) => {
+        listeners.push(listener);
+        return () => {
+            listeners = listeners.filter(l => l !== listener);
+        };
+    },
+
+    /**
+     * Show a success message
      */
     success: (message: string) => {
-        if (Platform.OS === 'android') {
-            ToastAndroid.show(message, ToastAndroid.SHORT);
-        } else {
-            // iOS fallback
-            Alert.alert('Success', message);
-        }
+        emit(message, 'success');
+        // Fallback for Android native toast if desired, but we'll stick to custom for consistency
+        // if (Platform.OS === 'android') ToastAndroid.show(message, ToastAndroid.SHORT); 
     },
 
     /**
      * Show an error message
      */
     error: (message: string) => {
-        if (Platform.OS === 'android') {
-            ToastAndroid.show(message, ToastAndroid.LONG);
-        } else {
-            // iOS fallback
-            Alert.alert('Error', message);
-        }
+        emit(message, 'error');
     },
 
     /**
      * Show a generic info message
      */
     info: (message: string) => {
-        if (Platform.OS === 'android') {
-            ToastAndroid.show(message, ToastAndroid.SHORT);
-        } else {
-            // iOS fallback
-            Alert.alert('Info', message);
-        }
+        emit(message, 'info');
     }
+};
+
+const emit = (message: string, type: ToastType) => {
+    listeners.forEach(l => l(message, type));
 };
 
 export default toast;

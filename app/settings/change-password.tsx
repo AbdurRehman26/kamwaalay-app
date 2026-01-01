@@ -1,24 +1,37 @@
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const { changePassword } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const textMuted = useThemeColor({}, 'textMuted');
+  const cardBg = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
+  const primaryColor = useThemeColor({}, 'primary');
+
+
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -27,6 +40,7 @@ export default function ChangePasswordScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 8) {
@@ -45,30 +59,32 @@ export default function ChangePasswordScreen() {
   };
 
   const handleChangePassword = async () => {
+    setFormError(null);
+
     // Validation
     if (!currentPassword.trim()) {
-      Alert.alert('Error', 'Please enter your current password');
+      setFormError('Please enter your current password');
       return;
     }
 
     if (!newPassword.trim()) {
-      Alert.alert('Error', 'Please enter a new password');
+      setFormError('Please enter a new password');
       return;
     }
 
     const passwordError = validatePassword(newPassword);
     if (passwordError) {
-      Alert.alert('Invalid Password', passwordError);
+      setFormError(passwordError);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match');
+      setFormError('New passwords do not match');
       return;
     }
 
     if (currentPassword === newPassword) {
-      Alert.alert('Error', 'New password must be different from current password');
+      setFormError('New password must be different from current password');
       return;
     }
 
@@ -83,7 +99,8 @@ export default function ChangePasswordScreen() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to change password. Please try again.');
+      // Show backend error inline
+      setFormError(error.message || 'Failed to change password. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -95,42 +112,49 @@ export default function ChangePasswordScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#6366F1" />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.title}>
-            Change Password
-          </ThemedText>
-          <View style={{ width: 24 }} />
+        {/* Standard Purple Header */}
+        <View style={{ backgroundColor: primaryColor, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 20, paddingTop: insets.top + 10 }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{
+                padding: 8,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                borderRadius: 12,
+              }}
+            >
+              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700', textAlign: 'center', flex: 1 }}>Change Password</Text>
+            <View style={{ width: 40 }} />
+          </View>
         </View>
 
-        <ScrollView 
-          style={styles.scrollView} 
+        <ScrollView
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           horizontal={false}
-          contentContainerStyle={{ width: '100%' }}
+          contentContainerStyle={{ width: '100%', paddingBottom: 40 }}
         >
           {/* Info Section */}
-          <View style={styles.infoSection}>
-            <IconSymbol name="info.circle.fill" size={24} color="#6366F1" />
-            <ThemedText style={styles.infoText}>
+          <View style={[styles.infoSection, { backgroundColor: cardBg, borderColor: borderColor }]}>
+            <IconSymbol name="info.circle.fill" size={24} color={primaryColor} />
+            <ThemedText style={[styles.infoText, { color: textColor }]}>
               Your password must be at least 8 characters long and contain uppercase, lowercase, and numbers.
             </ThemedText>
           </View>
 
           {/* Current Password */}
           <View style={styles.section}>
-            <ThemedText style={styles.label}>Current Password *</ThemedText>
-            <View style={styles.passwordContainer}>
+            <ThemedText style={styles.label}>CURRENT PASSWORD *</ThemedText>
+            <View style={[styles.passwordContainer, { backgroundColor: cardBg, borderColor: borderColor }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: textColor }]}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
                 placeholder="Enter current password"
-                placeholderTextColor="#999"
+                placeholderTextColor={textMuted}
                 secureTextEntry={!showCurrentPassword}
                 autoCapitalize="none"
               />
@@ -141,7 +165,7 @@ export default function ChangePasswordScreen() {
                 <IconSymbol
                   name={showCurrentPassword ? 'eye.fill' : 'eye.slash.fill'}
                   size={20}
-                  color="#999"
+                  color={textMuted}
                 />
               </TouchableOpacity>
             </View>
@@ -149,14 +173,14 @@ export default function ChangePasswordScreen() {
 
           {/* New Password */}
           <View style={styles.section}>
-            <ThemedText style={styles.label}>New Password *</ThemedText>
-            <View style={styles.passwordContainer}>
+            <ThemedText style={styles.label}>NEW PASSWORD *</ThemedText>
+            <View style={[styles.passwordContainer, { backgroundColor: cardBg, borderColor: borderColor }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: textColor }]}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 placeholder="Enter new password"
-                placeholderTextColor="#999"
+                placeholderTextColor={textMuted}
                 secureTextEntry={!showNewPassword}
                 autoCapitalize="none"
               />
@@ -167,12 +191,15 @@ export default function ChangePasswordScreen() {
                 <IconSymbol
                   name={showNewPassword ? 'eye.fill' : 'eye.slash.fill'}
                   size={20}
-                  color="#999"
+                  color={textMuted}
                 />
               </TouchableOpacity>
             </View>
             {newPassword.length > 0 && (
-              <ThemedText style={styles.helperText}>
+              <ThemedText style={[
+                styles.helperText,
+                !validatePassword(newPassword) && styles.helperTextSuccess
+              ]}>
                 {validatePassword(newPassword) || '✓ Password is valid'}
               </ThemedText>
             )}
@@ -180,14 +207,14 @@ export default function ChangePasswordScreen() {
 
           {/* Confirm New Password */}
           <View style={styles.section}>
-            <ThemedText style={styles.label}>Confirm New Password *</ThemedText>
-            <View style={styles.passwordContainer}>
+            <ThemedText style={styles.label}>CONFIRM NEW PASSWORD *</ThemedText>
+            <View style={[styles.passwordContainer, { backgroundColor: cardBg, borderColor: borderColor }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: textColor }]}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Confirm new password"
-                placeholderTextColor="#999"
+                placeholderTextColor={textMuted}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
               />
@@ -198,7 +225,7 @@ export default function ChangePasswordScreen() {
                 <IconSymbol
                   name={showConfirmPassword ? 'eye.fill' : 'eye.slash.fill'}
                   size={20}
-                  color="#999"
+                  color={textMuted}
                 />
               </TouchableOpacity>
             </View>
@@ -219,7 +246,7 @@ export default function ChangePasswordScreen() {
           {/* Change Password Button */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.changeButton, isLoading && styles.changeButtonDisabled]}
+              style={[styles.changeButton, { backgroundColor: primaryColor }, isLoading && styles.changeButtonDisabled]}
               onPress={handleChangePassword}
               disabled={isLoading}
             >
@@ -227,24 +254,30 @@ export default function ChangePasswordScreen() {
                 {isLoading ? 'Changing Password...' : 'Change Password'}
               </Text>
             </TouchableOpacity>
+
+            {formError ? (
+              <Text style={{ color: '#FF3B30', marginTop: 10, textAlign: 'center', fontWeight: '500' }}>
+                {formError}
+              </Text>
+            ) : null}
           </View>
 
           {/* Security Tips */}
-          <View style={styles.tipsSection}>
+          <View style={[styles.tipsSection, { backgroundColor: cardBg, borderColor: borderColor }]}>
             <ThemedText type="subtitle" style={styles.tipsTitle}>
               Password Tips
             </ThemedText>
             <View style={styles.tipItem}>
               <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
-              <ThemedText style={styles.tipText}>Use a unique password</ThemedText>
+              <ThemedText style={[styles.tipText, { color: textMuted }]}>Use a unique password</ThemedText>
             </View>
             <View style={styles.tipItem}>
               <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
-              <ThemedText style={styles.tipText}>Don't share your password with anyone</ThemedText>
+              <ThemedText style={[styles.tipText, { color: textMuted }]}>Don't share your password with anyone</ThemedText>
             </View>
             <View style={styles.tipItem}>
               <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
-              <ThemedText style={styles.tipText}>Change your password regularly</ThemedText>
+              <ThemedText style={[styles.tipText, { color: textMuted }]}>Change your password regularly</ThemedText>
             </View>
           </View>
         </ScrollView>
@@ -257,49 +290,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#F8F9FA',
   },
   keyboardView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-  },
-  backButton: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    flex: 1,
-    textAlign: 'center',
-  },
   scrollView: {
     flex: 1,
     width: '100%',
+    marginTop: 20,
   },
   infoSection: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    margin: 20,
-    marginBottom: 8,
+    marginHorizontal: 20,
+    marginBottom: 20,
     gap: 12,
+    borderWidth: 1,
   },
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: '#1976D2',
     lineHeight: 20,
   },
   section: {
@@ -310,21 +322,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#1A1A1A',
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
   },
   input: {
     flex: 1,
     padding: 16,
     fontSize: 16,
-    color: '#1A1A1A',
+    height: 56,
   },
   eyeButton: {
     padding: 16,
@@ -334,6 +343,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#FF3B30',
     marginTop: 6,
+    marginLeft: 4,
   },
   helperTextSuccess: {
     color: '#34C759',
@@ -341,12 +351,14 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingHorizontal: 20,
     marginBottom: 32,
+    marginTop: 10,
   },
   changeButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -362,19 +374,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   tipsSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     marginHorizontal: 20,
     marginBottom: 32,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
   },
   tipsTitle: {
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 16,
-    color: '#1A1A1A',
   },
   tipItem: {
     flexDirection: 'row',
@@ -384,7 +393,6 @@ const styles = StyleSheet.create({
   },
   tipText: {
     fontSize: 14,
-    color: '#666',
     flex: 1,
   },
 });

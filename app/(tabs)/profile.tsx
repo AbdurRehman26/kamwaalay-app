@@ -71,7 +71,7 @@ export default function ProfileScreen() {
       title: 'Service Offerings',
       icon: 'list.bullet',
       onPress: () => router.push('/profile/service-offerings'),
-      show: user?.userType === 'helper' || user?.userType === 'business',
+      show: user?.userType === 'helper',
     },
     {
       id: 'bookings',

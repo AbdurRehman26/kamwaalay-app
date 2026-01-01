@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { Toast } from '@/components/Toast';
 import { AppProvider } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -278,6 +279,7 @@ export default function RootLayout() {
             <ThemedApp>
               <RootLayoutNav />
             </ThemedApp>
+            <Toast />
           </AppProvider>
         </AuthProvider>
       </CustomThemeProvider>

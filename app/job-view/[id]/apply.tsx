@@ -3,11 +3,11 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -25,7 +25,7 @@ interface JobSummary {
     location: string;
     description: string;
     budget?: number;
-    workType?: string; // e.g. "Full Time" - might not be in API yet but placeholder
+    workType?: string;
     specialRequirements?: string;
 }
 
@@ -56,7 +56,6 @@ export default function JobApplyScreen() {
         const fetchJobDetails = async () => {
             try {
                 setIsLoading(true);
-                // Reuse the fetching logic pattern from index.tsx roughly
                 let response = await apiService.get(
                     API_ENDPOINTS.JOB_POSTS.GET,
                     { id: id as string },
@@ -66,23 +65,23 @@ export default function JobApplyScreen() {
 
                 if (response.success && response.data) {
                     const jobData = response.data.job_post || response.data.booking || response.data;
-                        setJob({
-                            id: jobData.id?.toString() || id,
-                            serviceName: jobData.service_type
-                                ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
-                                : jobData.service_name || 'Service',
-                            location: (typeof jobData.city === 'string' ? jobData.city : jobData.city?.name) || 
-                                      (typeof jobData.location_city === 'string' ? jobData.location_city : jobData.location_city?.name) || 
-                                      jobData.area || jobData.location || 'Karachi',
-                            description: jobData.description || '',
-                            budget: jobData.monthly_rate || jobData.budget || jobData.price,
-                            specialRequirements: jobData.special_requirements,
-                            workType: jobData.work_type ? jobData.work_type.split(/[_\s]/).map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Part Time',
-                        });
+                    setJob({
+                        id: jobData.id?.toString() || id,
+                        serviceName: jobData.service_type
+                            ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
+                            : jobData.service_name || 'Service',
+                        location: (typeof jobData.city === 'string' ? jobData.city : jobData.city?.name) ||
+                            (typeof jobData.location_city === 'string' ? jobData.location_city : jobData.location_city?.name) ||
+                            jobData.area || jobData.location || 'Karachi',
+                        description: jobData.description || '',
+                        budget: jobData.monthly_rate || jobData.budget || jobData.price,
+                        specialRequirements: jobData.special_requirements,
+                        workType: jobData.work_type ? jobData.work_type.split(/[_\s]/).map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Part Time',
+                    });
                 }
             } catch (error) {
                 console.error('Error fetching job details:', error);
-                Alert.alert('Error', 'Failed to load job details');
+                toast.error('Failed to load job details'); // Using toast here too for consistency
                 router.back();
             } finally {
                 setIsLoading(false);
@@ -96,7 +95,7 @@ export default function JobApplyScreen() {
 
     const handleSubmit = async () => {
         if (!message.trim()) {
-            Alert.alert('Required', 'Please enter an application message.');
+            toast.error('Please enter an application message.');
             return;
         }
 
@@ -109,26 +108,24 @@ export default function JobApplyScreen() {
             };
 
             const response = await apiService.post(
-                `/job-posts/${id}/apply`, // Using the direct path as per user request/docs implication
+                `/job-posts/${id}/apply`,
                 payload
             );
 
             if (response.success) {
-                Alert.alert('Success', 'Your application has been submitted!', [
-                    {
-                        text: 'OK',
-                        onPress: () => {
-                            // Navigate back to the specific job view page
-                            router.replace(`/job-view/${id}`);
-                        },
-                    },
-                ]);
+                toast.success('Your application has been submitted!');
+
+                // Delay redirect to allow toast to be seen
+                setTimeout(() => {
+                    router.dismissAll();
+                    router.replace('/(tabs)/');
+                }, 1000);
             } else {
                 throw new Error(response.message || 'Failed to submit application');
             }
         } catch (error: any) {
             console.error('Application error:', error);
-            Alert.alert('Error', error.message || 'Failed to submit application. Please try again.');
+            toast.error(error.message || 'Failed to submit application. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

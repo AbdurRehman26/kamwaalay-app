@@ -170,6 +170,23 @@ export default function NotificationsScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Notifications</Text>
+          <TouchableOpacity
+            onPress={handleMarkAllAsRead}
+            style={[styles.markReadButton, { backgroundColor: '#FFFFFF' }]}
+          >
+            <IconSymbol name="checkmark.circle.fill" size={16} color="#6366F1" />
+            <Text style={[styles.markReadText, { color: '#6366F1' }]}>Read All</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -180,18 +197,6 @@ export default function NotificationsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
         }
       >
-        {/* Header Background */}
-        <View style={styles.headerBackground}>
-          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Notifications</Text>
-            <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.actionButton}>
-              <IconSymbol name="checkmark.circle" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
 
         {/* Content Container */}
         <View style={styles.contentContainer}>
@@ -286,10 +291,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 12,
   },
-  actionButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
+  markReadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  markReadText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   contentContainer: {
     paddingHorizontal: 20,

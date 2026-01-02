@@ -28,6 +28,7 @@ interface Job {
   userId: string;
   userName: string;
   serviceName: string;
+  serviceIcon?: string;
   description: string;
   location: string;
   city?: string;
@@ -58,7 +59,7 @@ export default function JobViewScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const { getJobs, applyToJob } = useApp();
+  const { getJobs, applyToJob, serviceTypes } = useApp();
   const insets = useSafeAreaInsets();
   const jobs = getJobs();
 
@@ -145,6 +146,7 @@ export default function JobViewScreen() {
             serviceName: jobData.service_type
               ? jobData.service_type.charAt(0).toUpperCase() + jobData.service_type.slice(1).replace('_', ' ')
               : jobData.service_name || 'Service',
+            serviceIcon: jobData.service_type_obj?.icon || jobData.service?.icon || jobData.icon,
             description: jobData.description || jobData.special_requirements || '',
             location: jobData.area || jobData.location || jobData.location_name || '',
             city: (typeof jobData.city === 'string' ? jobData.city : jobData.city?.name) ||
@@ -350,9 +352,48 @@ export default function JobViewScreen() {
             </View>
 
             {/* Service Name */}
-            <Text style={[styles.serviceName, { color: textColor }]}>
-              {request.serviceName}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+              {(() => {
+                const getServiceIcon = (serviceName: string) => {
+                  const name = serviceName?.toLowerCase() || '';
+                  if (name.includes('electr')) return 'bolt.fill';
+                  if (name.includes('plumb')) return 'drop.fill';
+                  if (name.includes('mechanic') || name.includes('repair') || name.includes('fix')) return 'gearshape.fill';
+                  if (name.includes('clean') || name.includes('maid')) return 'sparkles';
+                  if (name.includes('paint')) return 'paintpalette.fill';
+                  if (name.includes('move') || name.includes('driver')) return 'car.fill';
+                  if (name.includes('ac') || name.includes('cool')) return 'snowflake';
+                  if (name.includes('carpenter') || name.includes('wood')) return 'hammer.fill';
+                  if (name.includes('chef') || name.includes('cook') || name.includes('kitchen') || name.includes('food')) return 'fork.knife';
+                  if (name.includes('garden') || name.includes('lawn')) return 'leaf.fill';
+                  if (name.includes('guard') || name.includes('secur')) return 'shield.fill';
+                  if (name.includes('salon') || name.includes('beauty') || name.includes('hair') || name.includes('tailor') || name.includes('stitch')) return 'scissors';
+                  if (name.includes('tutor') || name.includes('teach') || name.includes('educat') || name.includes('school')) return 'book.fill';
+                  if (name.includes('computer') || name.includes('develop') || name.includes('tech') || name.includes('web')) return 'desktopcomputer';
+                  return 'briefcase.fill';
+                };
+
+                let icon = request.serviceIcon;
+                if (!icon && serviceTypes.length > 0) {
+                  const found = serviceTypes.find((s: any) =>
+                    s.name?.toLowerCase() === request.serviceName?.toLowerCase() ||
+                    s.slug === request.serviceName?.toLowerCase()
+                  );
+                  if (found?.icon) icon = found.icon;
+                }
+
+                if (icon) {
+                  if (icon.startsWith('http')) {
+                    return <Image source={{ uri: icon }} style={{ width: 32, height: 32, marginRight: 12 }} resizeMode="contain" />;
+                  }
+                  return <Text style={{ fontSize: 28, marginRight: 12 }}>{icon}</Text>;
+                }
+                return <IconSymbol name={getServiceIcon(request.serviceName)} size={28} color={primaryColor} style={{ marginRight: 12 }} />;
+              })()}
+              <Text style={[styles.serviceName, { color: textColor, marginBottom: 0, flex: 1 }]}>
+                {request.serviceName}
+              </Text>
+            </View>
 
             {/* User Info (for helpers/businesses) */}
             {isHelperOrBusiness && (

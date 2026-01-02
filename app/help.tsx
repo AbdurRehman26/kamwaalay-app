@@ -96,17 +96,18 @@ export default function HelpScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
-        {/* Header Background */}
-        <View style={styles.headerBackground}>
-          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Help & Support</Text>
-            <View style={{ width: 40 }} />
-          </View>
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Help & Support</Text>
+          <View style={{ width: 40 }} />
         </View>
+      </View>
+
+      <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
 
         {/* Content Container */}
         <View style={styles.contentContainer}>

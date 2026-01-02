@@ -14,7 +14,10 @@ import {
   View
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
   const { themeMode, setThemeMode, colorScheme } = useTheme();
@@ -110,6 +113,19 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Profile Header - Standardized and Sticky */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
+
+        {/* Profile Info Card - Moved here or keep inside scrollview? 
+            User wants "Edit Profile" style header. Edit Profile has just title. 
+            But Profile screen usually has big avatar. 
+            Let's keep the big avatar inside the scroll view but give the screen a proper sticky title header "Profile".
+        */}
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -117,8 +133,7 @@ export default function ProfileScreen() {
         horizontal={false}
         contentContainerStyle={{ width: '100%' }}
       >
-        {/* Profile Header */}
-        <View style={styles.header}>
+        <View style={styles.profileInfoContainer}>
           <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
             <Text style={[styles.avatarText, { color: primaryColor }]}>
               {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -227,10 +242,26 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  header: {
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom: 20,
+  },
+  headerContent: {
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
+    justifyContent: 'center',
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  profileInfoContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
     paddingBottom: 32,
   },
   avatar: {

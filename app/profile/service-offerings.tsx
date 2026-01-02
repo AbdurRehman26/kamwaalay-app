@@ -186,6 +186,27 @@ export default function ServiceOfferingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
+      {/* Decorative Background Elements */}
+      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Service Offerings</Text>
+          <TouchableOpacity
+            style={styles.addHeaderButton}
+            onPress={() => router.push('/profile/add-service-offering')}
+          >
+            <IconSymbol name="plus" size={16} color="#FFFFFF" />
+            <Text style={styles.addHeaderButtonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         style={[styles.scrollView, { backgroundColor }]}
         showsVerticalScrollIndicator={false}
@@ -196,26 +217,6 @@ export default function ServiceOfferingsScreen() {
         alwaysBounceVertical={false}
         contentContainerStyle={{ paddingBottom: 100, flexGrow: 1, width: width, maxWidth: width }}
       >
-        {/* Decorative Background Elements */}
-        <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-        <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-
-        {/* Header Background */}
-        <View style={styles.headerBackground}>
-          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Service Offerings</Text>
-            <TouchableOpacity
-              style={styles.addHeaderButton}
-              onPress={() => router.push('/profile/add-service-offering')}
-            >
-              <IconSymbol name="plus" size={16} color="#FFFFFF" />
-              <Text style={styles.addHeaderButtonText}>Add</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         {/* Content Container */}
         <View style={styles.contentContainer}>

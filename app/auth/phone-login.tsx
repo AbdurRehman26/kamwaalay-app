@@ -29,7 +29,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function PhoneLoginScreen() {
   const insets = useSafeAreaInsets();
-  const [authMethod, setAuthMethod] = useState<'otp' | 'password'>('otp');
+  const [authMethod, setAuthMethod] = useState<'otp' | 'password'>('password');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -185,19 +185,19 @@ export default function PhoneLoginScreen() {
             {/* Auth Method Tabs */}
             <View style={[styles.tabContainer, { backgroundColor: authMethod === 'otp' ? primaryLight : cardBg }]}>
               <TouchableOpacity
-                style={[styles.tab, authMethod === 'otp' && [styles.activeTab, { backgroundColor: cardBg }]]}
-                onPress={() => setAuthMethod('otp')}
-              >
-                <Text style={[styles.tabText, { color: textSecondary }, authMethod === 'otp' && [styles.activeTabText, { color: textColor }]]}>
-                  OTP Login
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.tab, authMethod === 'password' && [styles.activeTab, { backgroundColor: cardBg }]]}
                 onPress={() => setAuthMethod('password')}
               >
                 <Text style={[styles.tabText, { color: textSecondary }, authMethod === 'password' && [styles.activeTabText, { color: textColor }]]}>
                   Password
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, authMethod === 'otp' && [styles.activeTab, { backgroundColor: cardBg }]]}
+                onPress={() => setAuthMethod('otp')}
+              >
+                <Text style={[styles.tabText, { color: textSecondary }, authMethod === 'otp' && [styles.activeTabText, { color: textColor }]]}>
+                  OTP Login
                 </Text>
               </TouchableOpacity>
             </View>

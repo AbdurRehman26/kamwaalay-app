@@ -66,9 +66,7 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(
     user?.userType === 'helper' ? (user?.profileData as any)?.bio || '' : ''
   );
-  const [experience, setExperience] = useState(
-    user?.userType === 'helper' ? (user?.profileData as any)?.experience || '' : ''
-  );
+
   const [businessName, setBusinessName] = useState(
     user?.userType === 'business' ? (user?.profileData as any)?.businessName || '' : ''
   );
@@ -132,7 +130,7 @@ export default function EditProfileScreen() {
         const pd = user.profileData as any;
         setName(pd?.name || user.name || '');
         setBio(pd?.bio || (user as any).bio || '');
-        setExperience(pd?.experience || (user as any).experience || '');
+
         setAge(pd?.age?.toString() || (user as any).age?.toString() || '');
 
         const rawGender = pd?.gender || (user as any).gender;
@@ -304,7 +302,7 @@ export default function EditProfileScreen() {
 
       if (user?.userType === 'helper') {
         profileUpdateData.bio = bio.trim() || undefined;
-        profileUpdateData.experience = experience.trim() || undefined;
+
         profileUpdateData.age = age.trim() ? parseInt(age) : undefined;
         profileUpdateData.gender = gender ? gender.toLowerCase() : undefined;
         profileUpdateData.religion = religion || undefined;
@@ -323,10 +321,34 @@ export default function EditProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
+      {/* Decorative Background Elements */}
+
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Edit Profile</Text>
+          <TouchableOpacity
+            onPress={handleSave}
+            style={styles.saveButton}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.keyboardView, { backgroundColor }]}
       >
+
         <ScrollView
           style={[styles.scrollView, { backgroundColor }]}
           showsVerticalScrollIndicator={false}
@@ -341,30 +363,8 @@ export default function EditProfileScreen() {
             maxWidth: width,
           }}
         >
-          {/* Decorative Background Elements */}
           <View style={[styles.topCircle, { backgroundColor: primaryLight }]} />
           <View style={[styles.bottomCircle, { backgroundColor: primaryLight }]} />
-
-          {/* Header Background */}
-          <View style={styles.headerBackground}>
-            <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Edit Profile</Text>
-              <TouchableOpacity
-                onPress={handleSave}
-                style={styles.saveButton}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
 
           {/* Content Container */}
           <View style={styles.contentContainer}>
@@ -659,24 +659,6 @@ export default function EditProfileScreen() {
                       />
                     </View>
                   </View>
-
-                  {user?.userType === 'helper' && (
-                    <View style={styles.inputGroup}>
-                      <Text style={[styles.label, { color: textColor }]}>Experience</Text>
-                      <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-                        <TextInput
-                          style={[styles.input, styles.textArea, { color: textColor }]}
-                          value={experience}
-                          onChangeText={setExperience}
-                          placeholder="Describe your experience..."
-                          placeholderTextColor={textMuted}
-                          multiline
-                          numberOfLines={3}
-                          textAlignVertical="top"
-                        />
-                      </View>
-                    </View>
-                  )}
                 </>
               )}
             </View>
@@ -720,6 +702,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6366F1',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
   },
   headerContent: {
     flexDirection: 'row',

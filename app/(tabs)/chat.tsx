@@ -1,3 +1,4 @@
+
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -18,6 +19,7 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ChatItem {
   id: string;
@@ -46,6 +48,8 @@ export default function ChatScreen() {
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'primary');
   const primaryLight = useThemeColor({}, 'primaryLight');
+
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     fetchConversations();
@@ -162,10 +166,11 @@ export default function ChatScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          Messages
-        </ThemedText>
+      {/* Header Background matched to Edit Profile */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <Text style={styles.headerTitle}>Messages</Text>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -239,13 +244,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    paddingTop: 60,
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  headerContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   searchContainer: {
     flexDirection: 'row',

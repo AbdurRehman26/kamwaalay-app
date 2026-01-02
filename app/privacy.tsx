@@ -28,17 +28,18 @@ export default function PrivacyScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header Background */}
-        <View style={styles.headerBackground}>
-          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Privacy Policy</Text>
-            <View style={{ width: 40 }} />
-          </View>
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Privacy Policy</Text>
+          <View style={{ width: 40 }} />
         </View>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
         {/* Content */}
         <View style={styles.content}>

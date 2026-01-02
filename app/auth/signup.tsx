@@ -25,7 +25,7 @@ export default function SignupScreen() {
   const { register } = useAuth();
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [address, setAddress] = useState('');
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'user' | 'helper' | 'business'>('user');
@@ -225,20 +225,7 @@ export default function SignupScreen() {
                 </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Address (Optional)</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-                  <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, { color: textColor }]}
-                    placeholder="Your address"
-                    placeholderTextColor={textSecondary}
-                    value={address}
-                    onChangeText={setAddress}
-                    autoComplete="street-address"
-                  />
-                </View>
-              </View>
+
 
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: textColor }]}>Password</Text>

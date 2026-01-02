@@ -1,5 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -27,7 +29,10 @@ export default function OnboardingStartScreen() {
   const router = useRouter();
   const { user, updateUser, logout } = useAuth();
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [cityId, setCityId] = useState<number | null>(null);
+  const [cities, setCities] = useState<any[]>([]);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -41,15 +46,43 @@ export default function OnboardingStartScreen() {
   const errorColor = useThemeColor({}, 'error');
   const iconColor = useThemeColor({}, 'icon');
 
-  // Prefill email if it exists in user context
+  // Prefill name if it exists in user context
   useEffect(() => {
-    if (user?.email) {
-      setEmail(user.email);
-    }
     if (user?.name) {
       setName(user.name);
     }
   }, [user]);
+
+  // Fetch cities on mount for normal users
+  useEffect(() => {
+    if (user?.userType === 'user') {
+      fetchCities();
+    }
+  }, [user?.userType]);
+
+  const fetchCities = async () => {
+    try {
+      setIsLoadingCities(true);
+      const response = await apiService.get(API_ENDPOINTS.CITIES.LIST, undefined, undefined, false);
+      if (response.success && response.data) {
+        let citiesData: any[] = [];
+        if (Array.isArray(response.data)) {
+          citiesData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          citiesData = response.data.data;
+        }
+        const formattedCities = citiesData.map((c: any) => ({
+          ...c,
+          id: typeof c.id === 'string' ? parseInt(c.id, 10) : c.id,
+        }));
+        setCities(formattedCities);
+      }
+    } catch (error) {
+      console.error('Failed to fetch cities:', error);
+    } finally {
+      setIsLoadingCities(false);
+    }
+  };
 
   // Check token on mount and log out if not found
   useEffect(() => {
@@ -113,13 +146,13 @@ export default function OnboardingStartScreen() {
       }
 
       // Prepare profile update data
-      const profileUpdateData: { name: string; email?: string } = {
+      const profileUpdateData: { name: string; city_id?: number } = {
         name: name.trim(),
       };
 
-      // Include email if provided
-      if (email.trim()) {
-        profileUpdateData.email = email.trim();
+      // Include city_id for normal users
+      if (user?.userType === 'user' && cityId) {
+        profileUpdateData.city_id = cityId;
       }
 
       // Call profile update API (this will use the token from AsyncStorage)
@@ -223,34 +256,46 @@ export default function OnboardingStartScreen() {
                 </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Email (Optional)</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: email ? primaryLight : cardBg, borderColor }, email && styles.inputWrapperDisabled]}>
-                  <IconSymbol name="envelope.fill" size={20} color={email ? textSecondary : textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, { color: email ? textSecondary : textColor }, email && styles.inputDisabled]}
-                    placeholder="Enter your email"
-                    placeholderTextColor={textSecondary}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                    editable={!email}
-                    autoComplete="email"
-                    textContentType="emailAddress"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    importantForAutofill="yes"
-                    nativeID="email-input"
-                    accessibilityLabel="Email Address"
-                    data-autocomplete="email"
-                    data-content-type="emailAddress"
-                  />
+              {/* City Selection for Normal Users */}
+              {user?.userType === 'user' && (
+                <View style={[styles.inputGroup, { zIndex: 100 }]}>
+                  <Text style={[styles.label, { color: textColor }]}>City</Text>
+                  <TouchableOpacity
+                    style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}
+                    onPress={() => setShowCityDropdown(!showCityDropdown)}
+                  >
+                    <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
+                    <Text style={[styles.input, { color: cityId ? textColor : textSecondary, paddingVertical: 16 }]}>
+                      {cityId ? cities.find(c => c.id === cityId)?.name : 'Select City'}
+                    </Text>
+                    <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
+                  </TouchableOpacity>
+
+                  {showCityDropdown && (
+                    <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor, maxHeight: 200 }]}>
+                      <ScrollView nestedScrollEnabled>
+                        {isLoadingCities ? (
+                          <ActivityIndicator size="small" color={primaryColor} style={{ padding: 20 }} />
+                        ) : (
+                          cities.map((city: any) => (
+                            <TouchableOpacity
+                              key={city.id}
+                              style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
+                              onPress={() => {
+                                setCityId(city.id);
+                                setShowCityDropdown(false);
+                              }}
+                            >
+                              <Text style={[styles.dropdownText, { color: textColor }]}>{city.name}</Text>
+                              {cityId === city.id && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
-                {email ? (
-                  <Text style={[styles.helperText, { color: textSecondary }]}>Email is pre-filled from your account</Text>
-                ) : null}
-              </View>
+              )}
             </View>
 
             {/* Error Message Display */}
@@ -420,5 +465,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+  },
+  dropdownList: {
+    position: 'absolute',
+    top: 80,
+    left: 0,
+    right: 0,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    zIndex: 200,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderBottomWidth: 1,
+  },
+  dropdownText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
 });

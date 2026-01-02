@@ -470,24 +470,12 @@ export default function HomeScreen() {
       <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
       <View style={[styles.bottomCircle, { backgroundColor: secondaryLight, opacity: 0.3 }]} />
 
-      <ScrollView
-        style={[styles.scrollView, { backgroundColor }]}
-        showsHorizontalScrollIndicator={false}
-        horizontal={false}
-        bounces={false}
-        alwaysBounceHorizontal={false}
-        alwaysBounceVertical={false}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.screenHeaderContent, { paddingTop: insets.top + 10 }]}>
           <View>
-            <Text style={[styles.greeting, { color: textSecondary }]}>{getGreeting()},</Text>
-            <Text style={[styles.userName, { color: textColor }]}>
+            <Text style={[styles.greeting, { color: '#E0E7FF' }]}>{getGreeting()},</Text>
+            <Text style={[styles.userName, { color: '#FFFFFF' }]}>
               {user?.name?.split(' ')[0] || 'User'}
             </Text>
           </View>
@@ -495,8 +483,8 @@ export default function HomeScreen() {
             onPress={() => router.push('/notifications')}
             style={styles.notificationButton}
           >
-            <View style={[styles.notificationIconContainer, { backgroundColor: cardBg, borderColor }]}>
-              <IconSymbol name="bell.fill" size={24} color={textColor} />
+            <View style={[styles.notificationIconContainer, { backgroundColor: 'rgba(255,255,255,0.2)', borderColor: 'transparent' }]}>
+              <IconSymbol name="bell.fill" size={24} color="#FFFFFF" />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -507,6 +495,21 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+      </View>
+
+      <ScrollView
+        style={[styles.scrollView, { backgroundColor }]}
+        showsHorizontalScrollIndicator={false}
+        horizontal={false}
+        bounces={false}
+        alwaysBounceHorizontal={false}
+        alwaysBounceVertical={false}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 20 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
+        }
+      >
 
         {/* View Helpers Button - Only for users/customers */}
         {(!user || user?.userType === 'user' || user?.userType === undefined) && (
@@ -618,16 +621,24 @@ export default function HomeScreen() {
                           </Text>
                         </View>
 
-                        {/* Rating */}
-                        <View style={styles.featuredRatingRow}>
-                          <IconSymbol name="star.fill" size={14} color="#F59E0B" />
-                          <Text style={[styles.featuredRatingText, { color: textColor }]}>
-                            {rating.toFixed(1)}
-                          </Text>
-                          <Text style={[styles.featuredReviewsText, { color: textMuted }]}>
-                            ({helper.total_reviews || 0})
-                          </Text>
-                        </View>
+                        {/* Gender & Age */}
+                        {(helper.gender || helper.age) && (
+                          <View style={styles.featuredLocationRow}>
+                            {helper.gender && (
+                              <Text style={[styles.featuredLocationText, { color: textMuted }]}>
+                                {helper.gender.charAt(0).toUpperCase() + helper.gender.slice(1)}
+                              </Text>
+                            )}
+                            {helper.gender && helper.age && (
+                              <Text style={[styles.featuredLocationText, { color: textMuted }]}> • </Text>
+                            )}
+                            {helper.age && (
+                              <Text style={[styles.featuredLocationText, { color: textMuted }]}>
+                                {helper.age} yrs
+                              </Text>
+                            )}
+                          </View>
+                        )}
 
                         {/* Location */}
                         <View style={styles.featuredLocationRow}>
@@ -1305,5 +1316,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#059669',
     textAlign: 'center',
+  },
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    zIndex: 10,
+  },
+  screenHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
 });

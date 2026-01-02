@@ -73,6 +73,18 @@ const MAPPING = {
   'circle.lefthalf.filled': 'brightness-medium',
   'person.3.fill': 'groups',
   'exclamationmark.triangle.fill': 'warning',
+  'drop.fill': 'water-drop',
+  'sparkles': 'auto-awesome',
+  'paintpalette.fill': 'palette',
+  'car.fill': 'directions-car',
+  'snowflake': 'ac-unit',
+  'hammer.fill': 'handyman',
+  'fork.knife': 'restaurant',
+  'leaf.fill': 'local-florist',
+  'shield.fill': 'security',
+  'scissors': 'content-cut',
+  'book.fill': 'school',
+  'desktopcomputer': 'computer',
 } as IconMapping;
 
 /**

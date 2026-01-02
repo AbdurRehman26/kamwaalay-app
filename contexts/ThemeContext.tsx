@@ -17,8 +17,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const THEME_STORAGE_KEY = '@kamwaalay_theme_mode';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
-    const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
+    const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
+    const [colorScheme, setColorScheme] = useState<ColorScheme>('dark');
 
     // Load saved theme preference on mount
     useEffect(() => {

@@ -703,25 +703,17 @@ export default function ProfileViewScreen() {
             {/* Stats Grid */}
             <View style={[styles.statsContainer, { backgroundColor: backgroundColor }]}>
               <View style={styles.statItem}>
-                <IconSymbol name="star.fill" size={16} color="#F59E0B" />
-                <Text style={[styles.statValue, { color: textColor }]}>
-                  {typeof displayProfile.rating === 'number' ? displayProfile.rating.toFixed(1) : displayProfile.rating}
-                </Text>
-                <Text style={[styles.statLabel, { color: textSecondary }]}>Rating</Text>
-              </View>
-              <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
-              <View style={styles.statItem}>
                 <IconSymbol name="clock.fill" size={16} color={primaryColor} />
                 <Text style={[styles.statValue, { color: textColor }]}>{displayProfile.experience}</Text>
                 <Text style={[styles.statLabel, { color: textSecondary }]}>Exp.</Text>
               </View>
               <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
-              <View style={styles.statItem}>
+              <View style={[styles.statItem, { flex: 2 }]}>
                 <IconSymbol name="mappin.and.ellipse" size={16} color="#EF4444" />
-                <Text style={[styles.statValue, { color: textColor }]} numberOfLines={1}>
-                  {displayProfile.location.split(',')[0]}
+                <Text style={[styles.statValue, { color: textColor }]} numberOfLines={2}>
+                  {displayProfile.location}
                 </Text>
-                <Text style={[styles.statLabel, { color: textSecondary }]}>City</Text>
+                <Text style={[styles.statLabel, { color: textSecondary }]}>Location</Text>
               </View>
             </View>
           </View>

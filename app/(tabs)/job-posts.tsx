@@ -5,14 +5,16 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { notificationService } from '@/services/notification.service';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -23,7 +25,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -49,6 +51,7 @@ interface JobPost {
   userId?: string | number;
   userName?: string;
   serviceName?: string;
+  serviceIcon?: string;
   description?: string;
   location?: string;
   city?: string;
@@ -59,10 +62,12 @@ interface JobPost {
   [key: string]: any;
 }
 
+
+
 export default function JobPostsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { applyToJob } = useApp();
+  const { applyToJob, serviceTypes } = useApp();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'my' | 'all' | 'open' | 'applied'>(
@@ -75,6 +80,25 @@ export default function JobPostsScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [jobs, setJobs] = useState<JobPost[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUnreadCount();
+    }, [user])
+  );
+
+  const fetchUnreadCount = async () => {
+    if (!user) return;
+    try {
+      const response = await notificationService.getUnreadCount();
+      if (response.success && response.data) {
+        setUnreadCount(response.data.count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
 
   // Pin location map state
   const [isMapVisible, setIsMapVisible] = useState(false);
@@ -219,6 +243,7 @@ export default function JobPostsScreen() {
           serviceName: post.service_type
             ? post.service_type.charAt(0).toUpperCase() + post.service_type.slice(1).replace('_', ' ')
             : post.service_name || 'Service',
+          serviceIcon: post.service_type_obj?.icon || post.service?.icon || post.icon,
           description: post.description || post.special_requirements || '',
           location: post.area || post.location || post.location_name || '',
           city: (typeof post.city === 'string' ? post.city : post.city?.name) ||
@@ -490,6 +515,61 @@ export default function JobPostsScreen() {
         .join(' ');
     };
 
+
+
+
+
+    // ... (intermediate code preserved implicitly, but I need to be careful with range. 
+    // Actually, I can do this in two edits for safety or one big one if I capture the context. I'll split it.)
+
+    // ...
+
+    const getServiceIcon = (serviceName: string) => {
+      const name = serviceName?.toLowerCase() || '';
+      if (name.includes('electr')) return 'bolt.fill';
+      if (name.includes('plumb')) return 'drop.fill';
+      if (name.includes('mechanic') || name.includes('repair') || name.includes('fix')) return 'gearshape.fill';
+      if (name.includes('clean') || name.includes('maid')) return 'sparkles';
+      if (name.includes('paint')) return 'paintpalette.fill';
+      if (name.includes('move') || name.includes('driver')) return 'car.fill';
+      if (name.includes('ac') || name.includes('cool')) return 'snowflake';
+      if (name.includes('carpenter') || name.includes('wood')) return 'hammer.fill';
+      if (name.includes('chef') || name.includes('cook') || name.includes('kitchen') || name.includes('food')) return 'fork.knife';
+      if (name.includes('garden') || name.includes('lawn')) return 'leaf.fill';
+      if (name.includes('guard') || name.includes('secur')) return 'shield.fill';
+      if (name.includes('salon') || name.includes('beauty') || name.includes('hair') || name.includes('tailor') || name.includes('stitch')) return 'scissors';
+      if (name.includes('tutor') || name.includes('teach') || name.includes('educat') || name.includes('school')) return 'book.fill';
+      if (name.includes('computer') || name.includes('develop') || name.includes('tech') || name.includes('web')) return 'desktopcomputer';
+      return 'briefcase.fill';
+    };
+
+    const renderServiceIcon = () => {
+      // 1. Check if we have a direct icon from the job post (could be URL or Emoji)
+      let icon = request.serviceIcon;
+
+      // 2. If not, try to find it in the global service types cache
+      if (!icon && serviceTypes.length > 0) {
+        const found = serviceTypes.find((s: any) =>
+          s.name?.toLowerCase() === request.serviceName?.toLowerCase() ||
+          s.slug === request.serviceName?.toLowerCase()
+        );
+        if (found?.icon) icon = found.icon;
+      }
+
+      // 3. Render
+      if (icon) {
+        // Check if URL
+        if (icon.startsWith('http')) {
+          return <Image source={{ uri: icon }} style={{ width: 16, height: 16 }} resizeMode="contain" />;
+        }
+        // Assume Emoji/Text
+        return <Text style={{ fontSize: 14, lineHeight: 18 }}>{icon}</Text>;
+      }
+
+      // 4. Fallback to local mapping
+      return <IconSymbol name={getServiceIcon(request.serviceName)} size={14} color="#FFFFFF" />;
+    };
+
     return (
       <View key={request.id} style={styles.cardWrapper}>
         <TouchableOpacity
@@ -505,12 +585,14 @@ export default function JobPostsScreen() {
             style={styles.cardHeaderGradient}
           >
             <View style={styles.headerContent}>
-              <View style={styles.serviceTag}>
+              <View style={[styles.serviceTag, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                {renderServiceIcon()}
                 <Text style={styles.serviceTagText}>{request.serviceName?.toUpperCase()}</Text>
               </View>
-              <View style={[styles.statusTag, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+              <View style={[styles.statusTag, { backgroundColor: 'rgba(0,0,0,0.2)', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <IconSymbol name="mappin.and.ellipse" size={12} color="#FCD34D" />
                 <Text style={[styles.statusTagText, { color: '#FCD34D' }]}>
-                  {request.status?.toUpperCase() || 'PENDING'}
+                  {request.city?.toUpperCase() || 'KARACHI'}
                 </Text>
               </View>
             </View>
@@ -526,7 +608,7 @@ export default function JobPostsScreen() {
                 </Text>
               </View>
               <View style={styles.userMeta}>
-                <Text style={styles.userNameText}>{request.userName || 'Unknown User'}</Text>
+                <Text style={[styles.userNameText, { color: textColor }]}>{request.userName || 'Unknown User'}</Text>
                 <Text style={styles.postedDateText}>{formatPostedDate(request.createdAt)}</Text>
               </View>
             </View>
@@ -541,22 +623,9 @@ export default function JobPostsScreen() {
                 </View>
               </View>
 
-              {/* Location */}
-              <View style={styles.detailRow}>
-                <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
-                <View>
-                  <Text style={[styles.detailMainText, { color: textColor }]}>{request.city || 'Karachi'}</Text>
-                  {request.location ? (
-                    <Text style={[styles.detailSubText, { color: textMuted }]}>{request.location}</Text>
-                  ) : null}
-                </View>
-              </View>
 
-              {/* Date */}
-              <View style={styles.detailRow}>
-                <IconSymbol name="calendar" size={18} color="#F87171" />
-                <Text style={[styles.detailMainText, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
-              </View>
+
+
             </View>
 
             {/* Special Requirements Box */}
@@ -628,21 +697,30 @@ export default function JobPostsScreen() {
       <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
       <View style={[styles.bottomCircle, { backgroundColor: secondaryLight, opacity: 0.3 }]} />
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: textColor }]}>
+      {/* Header Background matched to Edit Profile */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.screenHeaderContent, { paddingTop: insets.top + 10 }]}>
+          {/* Spacer for balance since we want centered title */}
+          <View style={{ width: 40 }} />
+
+          <Text style={styles.headerTitle}>
             {user?.userType === 'user' ? 'My Jobs' : 'Find Jobs'}
           </Text>
-          {user?.userType === 'user' && (
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => router.push('/job/create')}
-            >
-              <IconSymbol name="plus.circle.fill" size={32} color={primaryColor} />
-            </TouchableOpacity>
-          )}
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, width: 40, justifyContent: 'flex-end' }}>
+            {user?.userType === 'user' && (
+              <TouchableOpacity
+                onPress={() => router.push('/job/create')}
+              >
+                <IconSymbol name="plus.circle.fill" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+
+          </View>
         </View>
+      </View>
+
+      <View style={{ flex: 1 }}>
 
         {/* Search Bar - Only for helpers/businesses */}
         {(user?.userType === 'helper' || user?.userType === 'business') && (
@@ -670,8 +748,8 @@ export default function JobPostsScreen() {
         )}
 
         {/* Tabs */}
-        <View style={styles.tabs}>
-          {user?.userType === 'user' ? (
+        {user?.userType === 'user' && (
+          <View style={styles.tabs}>
             <TouchableOpacity
               style={[
                 styles.tab,
@@ -688,59 +766,8 @@ export default function JobPostsScreen() {
                 My Jobs ({myRequests.length})
               </Text>
             </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  { backgroundColor: cardBg, borderColor },
-                  selectedTab === 'all' && { backgroundColor: primaryColor, borderColor: primaryColor }
-                ]}
-                onPress={() => setSelectedTab('all')}
-              >
-                <Text style={[
-                  styles.tabText,
-                  { color: textSecondary },
-                  selectedTab === 'all' && { color: '#FFFFFF' }
-                ]}>
-                  All ({allRequests.length})
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  { backgroundColor: cardBg, borderColor },
-                  selectedTab === 'open' && { backgroundColor: primaryColor, borderColor: primaryColor }
-                ]}
-                onPress={() => setSelectedTab('open')}
-              >
-                <Text style={[
-                  styles.tabText,
-                  { color: textSecondary },
-                  selectedTab === 'open' && { color: '#FFFFFF' }
-                ]}>
-                  Open ({openRequests.length})
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  { backgroundColor: cardBg, borderColor },
-                  selectedTab === 'applied' && { backgroundColor: primaryColor, borderColor: primaryColor }
-                ]}
-                onPress={() => setSelectedTab('applied')}
-              >
-                <Text style={[
-                  styles.tabText,
-                  { color: textSecondary },
-                  selectedTab === 'applied' && { color: '#FFFFFF' }
-                ]}>
-                  Applied ({appliedRequests.length})
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Content */}
         <ScrollView
@@ -1028,7 +1055,7 @@ export default function JobPostsScreen() {
             </View>
           </View>
         </Modal>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -1155,19 +1182,27 @@ const styles = StyleSheet.create({
     width: width,
     maxWidth: width,
   },
-  header: {
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom: 10,
+  },
+  screenHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    letterSpacing: -0.5,
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
   },
+
   addButton: {
     padding: 4,
   },
@@ -1176,8 +1211,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     marginHorizontal: 24,
     marginBottom: 20,
     shadowColor: '#000',
@@ -1313,16 +1348,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   userMeta: {
-    justifyContent: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   userNameText: {
-    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 4,
   },
   postedDateText: {
-    color: '#94A3B8',
+    color: '#4B5563',
     fontSize: 14,
   },
   detailsContainer: {
@@ -1401,6 +1437,41 @@ const styles = StyleSheet.create({
     color: '#C7D2FE', // Lighter Indigo text
     fontSize: 13,
     fontWeight: '600',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
+  },
+  notificationButton: {
+    padding: 0,
+  },
+  notificationIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  badge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#EF4444',
+    borderRadius: 6,
+    minWidth: 12,
+    height: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: 'bold',
   },
   viewDetailsButton: {
     flex: 1,

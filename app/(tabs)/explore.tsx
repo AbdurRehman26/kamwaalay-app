@@ -203,12 +203,34 @@ export default function ExploreScreen() {
   const fetchHelpersFromAPI = async () => {
     try {
       setIsLoadingHelpers(true);
+
+      // Build query params from filters
+      const queryParams: Record<string, string> = { page: '1' };
+
+      // Add service type filter
+      if (filtersHelpers.services.length > 0) {
+        const matchedService = serviceTypes.find((t: any) => filtersHelpers.services.includes(t.name));
+        if (matchedService) {
+          queryParams.service_type_id = matchedService.id.toString();
+        }
+      }
+
+      // Add city filter
+      if (filtersHelpers.city) {
+        queryParams.city_id = filtersHelpers.city.toString();
+      }
+
+      // Add near me location filter
+      if (filtersHelpers.nearMe && filtersHelpers.latitude && filtersHelpers.longitude) {
+        queryParams.latitude = filtersHelpers.latitude.toString();
+        queryParams.longitude = filtersHelpers.longitude.toString();
+        queryParams.radius = '10'; // 10km radius
+      }
+
       const response = await apiService.get(
         API_ENDPOINTS.HELPERS.LIST,
         undefined,
-        {
-          page: '1',
-        },
+        queryParams,
         false
       );
 
@@ -1218,6 +1240,23 @@ export default function ExploreScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.screenHeaderContent, { paddingTop: insets.top + 10 }]}>
+          <View style={{ width: 40 }} />
+          <Text style={styles.headerTitle}>Explore</Text>
+          <View style={{ width: 40, alignItems: 'flex-end' }}>
+            {serviceFilter && (
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/explore')}
+              >
+                <IconSymbol name="xmark.circle.fill" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -1225,34 +1264,10 @@ export default function ExploreScreen() {
         horizontal={false}
         contentContainerStyle={{
           width: '100%',
-          paddingTop: insets.top,
+          paddingTop: 20,
           paddingBottom: insets.bottom + 20
         }}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText style={styles.subtitle}>
-            {mainTab === 'helpers'
-              ? 'Find helpers and businesses near you'
-              : serviceFilter
-                ? `Find ${serviceFilter.toLowerCase()} services near you`
-                : 'Find services near you'}
-          </ThemedText>
-          {serviceFilter && (
-            <TouchableOpacity
-              style={[
-                styles.clearFilterButton,
-                { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#EEF2FF' }
-              ]}
-              onPress={() => router.push('/(tabs)/explore')}
-            >
-              <ThemedText style={[
-                styles.clearFilterText,
-                { color: themeColors.primary }
-              ]}>Clear Filter</ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
 
         {/* Search Bar */}
         <View style={[styles.searchContainer, { backgroundColor: themeColors.backgroundSecondary }]}>
@@ -1624,7 +1639,12 @@ export default function ExploreScreen() {
                   styles.applyFiltersButton,
                   { backgroundColor: themeColors.primary }
                 ]}
-                onPress={() => setShowFilterModal(false)}
+                onPress={() => {
+                  setShowFilterModal(false);
+                  if (mainTab === 'helpers') {
+                    fetchHelpersFromAPI();
+                  }
+                }}
               >
                 <ThemedText style={styles.applyFiltersText}>Apply Filters</ThemedText>
               </TouchableOpacity>
@@ -2909,6 +2929,25 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  headerBackground: {
+    backgroundColor: '#6366F1',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    zIndex: 10,
+  },
+  screenHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });
 

@@ -6,7 +6,6 @@ import React from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View
@@ -21,7 +20,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { themeMode, setThemeMode, colorScheme } = useTheme();
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
+
 
   const primaryColor = useThemeColor({}, 'primary');
   const cardBg = useThemeColor({}, 'card');
@@ -33,6 +32,17 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Header Background */}
+      <View style={styles.headerBackground}>
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <View style={{ width: 40 }} />
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -40,16 +50,6 @@ export default function SettingsScreen() {
         horizontal={false}
         contentContainerStyle={{ width: '100%' }}
       >
-        {/* Header Background */}
-        <View style={styles.headerBackground}>
-          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Settings</Text>
-            <View style={{ width: 40 }} />
-          </View>
-        </View>
 
         {/* Content Container */}
         <View style={styles.contentContainer}>
@@ -105,23 +105,7 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* Notification Settings */}
-          <View style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Notifications
-            </ThemedText>
-            <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
-              <View style={styles.settingLeft}>
-                <IconSymbol name="bell.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.settingLabel}>Push Notifications</ThemedText>
-              </View>
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: borderColor, true: primaryColor }}
-              />
-            </View>
-          </View>
+
 
           {/* Business Section - Only for business users */}
           {user?.userType === 'business' && (

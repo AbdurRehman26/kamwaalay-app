@@ -174,17 +174,17 @@ export default function JobApplyScreen() {
 
                             <View style={styles.detailsGrid}>
                                 <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
-                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>SERVICE TYPE</Text>
+                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>Service Type</Text>
                                     <Text style={[styles.detailValue, { color: textColor }]}>{job.serviceName}</Text>
                                 </View>
 
                                 <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
-                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>WORK TYPE</Text>
+                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>Work Type</Text>
                                     <Text style={[styles.detailValue, { color: textColor }]}>{job.workType}</Text>
                                 </View>
 
                                 <View style={[styles.detailBox, { backgroundColor: primaryLight, width: '100%' }]}>
-                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>LOCATION</Text>
+                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>Location</Text>
                                     <Text style={[styles.detailValue, { color: textColor }]}>{job.location}</Text>
                                 </View>
                             </View>
@@ -193,7 +193,7 @@ export default function JobApplyScreen() {
                                 <View style={[styles.specialReqBox, { backgroundColor: '#F3E8FF' }]}>
                                     <IconSymbol name="exclamationmark.circle" size={16} color="#7C3AED" />
                                     <View style={{ marginLeft: 8, flex: 1 }}>
-                                        <Text style={[styles.detailLabel, { color: '#7C3AED', marginBottom: 2 }]}>SPECIAL REQUIREMENTS</Text>
+                                        <Text style={[styles.detailLabel, { color: '#7C3AED', marginBottom: 2 }]}>Special Requirements</Text>
                                         <Text style={[styles.detailValue, { color: '#4C1D95' }]}>{job.specialRequirements}</Text>
                                     </View>
                                 </View>
@@ -209,7 +209,7 @@ export default function JobApplyScreen() {
 
                             <View style={styles.formGroup}>
                                 <Text style={[styles.label, { color: textSecondary }]}>
-                                    APPLICATION MESSAGE <Text style={{ color: errorColor }}>*</Text>
+                                    Application Message <Text style={{ color: errorColor }}>*</Text>
                                 </Text>
                                 <TextInput
                                     style={[styles.textArea, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
@@ -224,7 +224,7 @@ export default function JobApplyScreen() {
                             </View>
 
                             <View style={styles.formGroup}>
-                                <Text style={[styles.label, { color: textSecondary }]}>PROPOSED MONTHLY RATE (PKR) (OPTIONAL)</Text>
+                                <Text style={[styles.label, { color: textSecondary }]}>Proposed Monthly Rate (PKR) (Optional)</Text>
                                 <TextInput
                                     style={[styles.input, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
                                     placeholder={job.budget ? `e.g., ${job.budget}` : "e.g., 50000"}
@@ -335,11 +335,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     detailLabel: {
-        fontSize: 11,
-        fontWeight: '700',
+        fontSize: 12,
+        fontWeight: '500',
         marginBottom: 4,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
     },
     detailValue: {
         fontSize: 15,
@@ -352,8 +350,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
         marginBottom: 8,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
     },
     textArea: {
         borderWidth: 1,

@@ -46,3 +46,5 @@ app-example
 /*.py
 /build-*.aab
 /build-*.apk
+/kamwaalay-*.aab
+/kamwaalay-*.apk

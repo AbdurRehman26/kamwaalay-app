@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -8,7 +9,6 @@ import {
   Linking,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -36,16 +36,8 @@ export default function AboutScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Header Background */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>About Kamwaalay</Text>
-          <View style={{ width: 40 }} />
-        </View>
-      </View>
+      {/* Header */}
+      <ScreenHeader title="About Kamwaalay" />
 
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
 

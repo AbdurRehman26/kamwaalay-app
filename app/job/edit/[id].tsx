@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -197,8 +198,8 @@ export default function EditJobScreen() {
 
             const response = await apiService.put(
                 API_ENDPOINTS.JOB_POSTS.UPDATE,
-                { id: id as string },
-                payload
+                payload,
+                { id: id as string }
             );
 
             if (response.success) {
@@ -312,13 +313,7 @@ export default function EditJobScreen() {
         <ThemedView style={styles.container}>
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <IconSymbol name="chevron.left" size={24} color={primaryColor} />
-                    </TouchableOpacity>
-                    <ThemedText type="title" style={styles.title}>Edit Job Post</ThemedText>
-                    <View style={{ width: 24 }} />
-                </View>
+                <ScreenHeader title="Edit Job Post" />
 
                 <View style={styles.form}>
 

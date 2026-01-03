@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -196,21 +197,8 @@ export default function AddServiceOfferingScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
 
-      <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: cardBg, borderColor }]}
-            onPress={() => router.back()}
-          >
-            <IconSymbol name="chevron.left" size={24} color={textColor} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: textColor }]}>
-            {isEditMode ? 'Edit Service' : 'Add New Service'}
-          </Text>
-          <View style={styles.placeholder} />
-        </View>
-
+      <ScreenHeader title={isEditMode ? 'Edit Service' : 'Add New Service'} />
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
         <ScrollView
           style={[styles.scrollView, { backgroundColor }]}
           showsVerticalScrollIndicator={false}

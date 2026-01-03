@@ -1,4 +1,5 @@
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
@@ -697,28 +698,21 @@ export default function JobPostsScreen() {
       <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
       <View style={[styles.bottomCircle, { backgroundColor: secondaryLight, opacity: 0.3 }]} />
 
-      {/* Header Background matched to Edit Profile */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.screenHeaderContent, { paddingTop: insets.top + 10 }]}>
-          {/* Spacer for balance since we want centered title */}
-          <View style={{ width: 40 }} />
-
-          <Text style={styles.headerTitle}>
-            {user?.userType === 'user' ? 'My Jobs' : 'Find Jobs'}
-          </Text>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, width: 40, justifyContent: 'flex-end' }}>
-            {user?.userType === 'user' && (
-              <TouchableOpacity
-                onPress={() => router.push('/job/create')}
-              >
-                <IconSymbol name="plus.circle.fill" size={28} color="#FFFFFF" />
-              </TouchableOpacity>
-            )}
-
-          </View>
-        </View>
-      </View>
+      {/* Header */}
+      <ScreenHeader
+        title={user?.userType === 'user' ? 'My Jobs' : 'Find Jobs'}
+        showBackButton={false}
+        rightElement={
+          user?.userType === 'user' ? (
+            <TouchableOpacity
+              onPress={() => router.push('/job/create')}
+              style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <IconSymbol name="plus.circle.fill" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
       <View style={{ flex: 1 }}>
 
@@ -753,7 +747,7 @@ export default function JobPostsScreen() {
             <TouchableOpacity
               style={[
                 styles.tab,
-                { backgroundColor: cardBg, borderColor },
+                { backgroundColor: cardBg, borderColor, marginTop: 10 },
                 selectedTab === 'my' && { backgroundColor: primaryColor, borderColor: primaryColor }
               ]}
               onPress={() => setSelectedTab('my')}
@@ -1193,11 +1187,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
     textAlign: 'center',
@@ -1212,9 +1206,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingVertical: 5,
     marginHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 10,
+    marginTop: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -1394,7 +1389,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   requirementsTitle: {
     fontSize: 12,

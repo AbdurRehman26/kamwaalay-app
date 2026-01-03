@@ -1,4 +1,5 @@
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
@@ -344,16 +345,8 @@ export default function AddWorkerScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
-            {/* Header Background */}
-            <View style={styles.headerBackground}>
-                <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Add New Worker</Text>
-                    <View style={{ width: 40 }} />
-                </View>
-            </View>
+            {/* Header */}
+            <ScreenHeader title="Add New Worker" />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

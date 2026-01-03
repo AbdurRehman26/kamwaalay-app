@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -96,16 +97,8 @@ export default function HelpScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Header Background */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help & Support</Text>
-          <View style={{ width: 40 }} />
-        </View>
-      </View>
+      {/* Header */}
+      <ScreenHeader title="Help & Support" />
 
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
 

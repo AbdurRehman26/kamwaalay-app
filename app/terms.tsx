@@ -1,13 +1,11 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,16 +26,8 @@ export default function TermsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Header Background */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Terms & Conditions</Text>
-          <View style={{ width: 40 }} />
-        </View>
-      </View>
+      {/* Header */}
+      <ScreenHeader title="Terms & Conditions" />
 
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
 

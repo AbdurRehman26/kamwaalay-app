@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
@@ -658,25 +659,10 @@ export default function ProfileViewScreen() {
         contentContainerStyle={{ paddingBottom: 160 }}
         bounces={false}
       >
-        {/* Solid Primary Header */}
-        <View style={{ backgroundColor: primaryColor, paddingHorizontal: 20, paddingTop: insets.top + 10, paddingBottom: 60 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{
-                width: 40, height: 40, borderRadius: 20,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                alignItems: 'center', justifyContent: 'center'
-              }}
-            >
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Profile</Text>
-            <View style={{ width: 40 }} />
-          </View>
-        </View>
+        {/* Header */}
+        <ScreenHeader title="Profile" />
 
-        <View style={{ flex: 1, marginTop: -40, paddingHorizontal: 20 }}>
+        <View style={{ flex: 1, marginTop: 16, paddingHorizontal: 20 }}>
 
           {/* Main ID Card */}
           <View style={[styles.profileCard, { backgroundColor: cardBg, borderColor }]}>

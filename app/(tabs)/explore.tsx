@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -899,45 +900,58 @@ export default function ExploreScreen() {
       >
         {/* ID Card Header Bar (Name + Role) */}
         <View style={{
-          height: 84, // Increased height to accommodate Name + Role
+          height: 70,
           backgroundColor: themeColors.primary,
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          paddingHorizontal: 20,
-          paddingTop: 16
-        }}>
-          {/* Text Container - Padded Left to make room for Avatar if we want,
-               OR we move Avatar to body.
-               Let's align text to the Right or allow full width if Avatar is moved down.
-               User said "Make name part of header".
-               Let's put Name Top, Role Below.
-           */}
-          <View style={{ marginLeft: 80, flex: 1, justifyContent: 'center' }}>
+          paddingHorizontal: 16,
+          paddingTop: 12
+        }}>          {/* Avatar inside header */}
+          <View style={{
+            width: 50,
+            height: 50,
+            borderRadius: 25,
+            backgroundColor: themeColors.card,
+            padding: 2,
+            marginLeft: 4
+          }}>
+            <View style={{
+              flex: 1,
+              borderRadius: 23,
+              backgroundColor: themeColors.backgroundSecondary,
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              {item.profile_image ? (
+                <Image source={{ uri: item.profile_image }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <Text style={{ fontSize: 18, fontWeight: '700', color: themeColors.textSecondary }}>
+                  {providerName.charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          <View style={{ marginLeft: 12, flex: 1, justifyContent: 'center' }}>
             <Text style={{
               color: '#FFFFFF',
-              fontSize: 20,
-              fontWeight: '800',
+              fontSize: 18,
+              fontWeight: '700',
               marginBottom: 2
             }} numberOfLines={1}>{providerName}</Text>
 
             <Text style={{
               color: '#FFFFFF',
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: '600',
-              letterSpacing: 1,
+              letterSpacing: 0.5,
               textTransform: 'uppercase',
               opacity: 0.9
             }}>
               {role}
             </Text>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, opacity: 0.9 }}>
-              <IconSymbol name="mappin.and.ellipse" size={12} color="#FFFFFF" />
-              <Text style={{ fontSize: 12, color: '#FFFFFF', flex: 1 }} numberOfLines={1}>
-                {item.address || (item as any).pin_address || (locations.length > 0 ? locations[0] : 'Remote')}
-              </Text>
-            </View>
           </View>
 
           {/* Verification Badge (if verified) */}
@@ -958,87 +972,49 @@ export default function ExploreScreen() {
         </View>
 
         {/* Content Body */}
-        <View style={{ padding: 20, paddingTop: 60 }}>
-          {/* Avatar - Floating Overlay */}
-          <View style={{
-            position: 'absolute',
-            top: -40, // Pull up into header
-            left: 20,
-            zIndex: 10
-          }}>
-            <View style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: themeColors.card,
-              padding: 4, // Border width
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
-              shadowRadius: 12,
-              elevation: 8
-            }}>
-              <View style={{
-                flex: 1,
-                borderRadius: 36,
-                backgroundColor: themeColors.backgroundSecondary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden'
-              }}>
-                {item.profile_image ? (
-                  <Image source={{ uri: item.profile_image }} style={{ width: '100%', height: '100%' }} />
-                ) : (
-                  <Text style={{ fontSize: 24, fontWeight: '700', color: themeColors.textSecondary }}>
-                    {providerName.charAt(0).toUpperCase()}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-          </View>
+        <View style={{ padding: 16, paddingTop: 16 }}>
 
           {/* ID Details Grid */}
           <View style={{
             backgroundColor: themeColors.backgroundTertiary,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20,
+            borderRadius: 10,
+            padding: 12,
+            marginBottom: 14,
             borderWidth: 1,
             borderColor: themeColors.border
           }}>
             {apiRole === 'business' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View>
-                  <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Total Workers</Text>
-                  <Text style={{ fontSize: 16, color: themeColors.text, fontWeight: '700' }}>
+                  <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Total Workers</Text>
+                  <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '700' }}>
                     {item.total_workers || 0}
                   </Text>
                 </View>
-                <IconSymbol name="person.2.fill" size={24} color={themeColors.primary} style={{ opacity: 0.5 }} />
+                <IconSymbol name="person.2.fill" size={20} color={themeColors.primary} style={{ opacity: 0.5 }} />
               </View>
             ) : (
               <>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Religion</Text>
-                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.religion ? (typeof item.religion === 'object' ? (item.religion as any).label : item.religion) : '-'}</Text>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Religion</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{item.religion ? (typeof item.religion === 'object' ? (item.religion as any).label : item.religion) : '-'}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Languages</Text>
-                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Languages</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>
                       {Array.isArray(item.languages) && item.languages.length > 0 ? `${item.languages.length} Spoken` : '-'}
                     </Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Age</Text>
-                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{item.age ? `${item.age} Years` : '-'}</Text>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Age</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{item.age ? `${item.age} Years` : '-'}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 11, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Exp.</Text>
-                    <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>{experience || 'Entry'}</Text>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Exp.</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{experience || 'Entry'}</Text>
                   </View>
                 </View>
               </>
@@ -1070,6 +1046,14 @@ export default function ExploreScreen() {
               </View>
             );
           })()}
+
+          {/* Location */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <IconSymbol name="mappin.and.ellipse" size={14} color="#EF4444" />
+            <Text style={{ fontSize: 12, color: themeColors.textSecondary, flex: 1 }} numberOfLines={1}>
+              {item.address || (item as any).pin_address || (locations.length > 0 ? locations[0] : 'Remote')}
+            </Text>
+          </View>
 
         </View>
 
@@ -1240,22 +1224,18 @@ export default function ExploreScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Header Background */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.screenHeaderContent, { paddingTop: insets.top + 10 }]}>
-          <View style={{ width: 40 }} />
-          <Text style={styles.headerTitle}>Explore</Text>
-          <View style={{ width: 40, alignItems: 'flex-end' }}>
-            {serviceFilter && (
-              <TouchableOpacity
-                onPress={() => router.push('/(tabs)/explore')}
-              >
-                <IconSymbol name="xmark.circle.fill" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </View>
+      {/* Header */}
+      <ScreenHeader
+        title="Explore"
+        showBackButton={false}
+        rightElement={
+          serviceFilter ? (
+            <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+              <IconSymbol name="xmark.circle.fill" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -1694,16 +1674,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 14,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
+    marginLeft: 10,
+    fontSize: 14,
   },
   filterIconButton: {
     padding: 4,
@@ -2941,10 +2921,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',

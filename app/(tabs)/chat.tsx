@@ -1,4 +1,5 @@
 
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -143,9 +144,9 @@ export default function ChatScreen() {
                 e.stopPropagation();
                 handleDeleteConversation(item.id);
               }}
-              style={{ padding: 4 }}
+              style={{ padding: 8 }}
             >
-              <IconSymbol name="trash.fill" size={16} color={textMuted} />
+              <IconSymbol name="trash.fill" size={20} color={textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -166,12 +167,7 @@ export default function ChatScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      {/* Header Background matched to Edit Profile */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-          <Text style={styles.headerTitle}>Messages</Text>
-        </View>
-      </View>
+      <ScreenHeader title="Messages" showBackButton={false} />
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor }]}>
@@ -253,28 +249,29 @@ const styles = StyleSheet.create({
   headerContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
   },
   searchContainer: {
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 14,
     borderWidth: 1,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
+    marginLeft: 10,
+    fontSize: 14,
   },
   chatList: {
     paddingHorizontal: 20,

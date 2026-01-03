@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -170,22 +171,19 @@ export default function NotificationsScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header Background */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifications</Text>
+      {/* Header */}
+      <ScreenHeader
+        title="Notifications"
+        rightElement={
           <TouchableOpacity
             onPress={handleMarkAllAsRead}
-            style={[styles.markReadButton, { backgroundColor: '#FFFFFF' }]}
+            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 }}
           >
             <IconSymbol name="checkmark.circle.fill" size={16} color="#6366F1" />
-            <Text style={[styles.markReadText, { color: '#6366F1' }]}>Read All</Text>
+            <Text style={{ color: '#6366F1', fontSize: 14, fontWeight: '600' }}>Read All</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -277,11 +275,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
     textAlign: 'center',

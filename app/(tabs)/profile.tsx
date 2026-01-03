@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -113,18 +114,8 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Profile Header - Standardized and Sticky */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-          <Text style={styles.headerTitle}>Profile</Text>
-        </View>
-
-        {/* Profile Info Card - Moved here or keep inside scrollview? 
-            User wants "Edit Profile" style header. Edit Profile has just title. 
-            But Profile screen usually has big avatar. 
-            Let's keep the big avatar inside the scroll view but give the screen a proper sticky title header "Profile".
-        */}
-      </View>
+      {/* Profile Header */}
+      <ScreenHeader title="Profile" showBackButton={false} />
 
       <ScrollView
         style={styles.scrollView}
@@ -251,11 +242,11 @@ const styles = StyleSheet.create({
   headerContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -263,6 +254,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 32,
+    marginTop: 20,
   },
   avatar: {
     width: 80,

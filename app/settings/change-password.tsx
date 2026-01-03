@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -112,23 +113,8 @@ export default function ChangePasswordScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        {/* Standard Purple Header */}
-        <View style={{ backgroundColor: primaryColor, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 20, paddingTop: insets.top + 10 }}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{
-                padding: 8,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                borderRadius: 12,
-              }}
-            >
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700', textAlign: 'center', flex: 1 }}>Change Password</Text>
-            <View style={{ width: 40 }} />
-          </View>
-        </View>
+        {/* Header */}
+        <ScreenHeader title="Change Password" />
 
         <ScrollView
           style={styles.scrollView}

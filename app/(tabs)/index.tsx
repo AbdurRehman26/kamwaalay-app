@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
@@ -14,6 +15,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -341,6 +343,52 @@ export default function HomeScreen() {
         .join(' ');
     };
 
+    const getServiceIcon = (serviceName: string) => {
+      const name = serviceName?.toLowerCase() || '';
+      if (name.includes('electr')) return 'bolt.fill';
+      if (name.includes('plumb')) return 'drop.fill';
+      if (name.includes('mechanic') || name.includes('repair') || name.includes('fix')) return 'gearshape.fill';
+      if (name.includes('clean') || name.includes('maid')) return 'sparkles';
+      if (name.includes('paint')) return 'paintpalette.fill';
+      if (name.includes('move') || name.includes('driver')) return 'car.fill';
+      if (name.includes('ac') || name.includes('cool')) return 'snowflake';
+      if (name.includes('carpenter') || name.includes('wood')) return 'hammer.fill';
+      if (name.includes('chef') || name.includes('cook') || name.includes('kitchen') || name.includes('food')) return 'fork.knife';
+      if (name.includes('garden') || name.includes('lawn')) return 'leaf.fill';
+      if (name.includes('guard') || name.includes('secur')) return 'shield.fill';
+      if (name.includes('salon') || name.includes('beauty') || name.includes('hair') || name.includes('tailor') || name.includes('stitch')) return 'scissors';
+      if (name.includes('tutor') || name.includes('teach') || name.includes('educat') || name.includes('school')) return 'book.fill';
+      if (name.includes('computer') || name.includes('develop') || name.includes('tech') || name.includes('web')) return 'desktopcomputer';
+      return 'briefcase.fill';
+    };
+
+    const renderServiceIcon = () => {
+      // 1. Check if we have a direct icon from the job post (could be URL or Emoji)
+      let icon = request.serviceIcon;
+
+      // 2. If not, try to find it in the global service types cache
+      if (!icon && serviceTypes.length > 0) {
+        const found = serviceTypes.find((s: any) =>
+          s.name?.toLowerCase() === request.serviceName?.toLowerCase() ||
+          s.slug === request.serviceName?.toLowerCase()
+        );
+        if (found?.icon) icon = found.icon;
+      }
+
+      // 3. Render
+      if (icon) {
+        // Check if URL
+        if (icon.startsWith('http')) {
+          return <Image source={{ uri: icon }} style={{ width: 16, height: 16 }} resizeMode="contain" />;
+        }
+        // Assume Emoji/Text
+        return <Text style={{ fontSize: 14, lineHeight: 18 }}>{icon}</Text>;
+      }
+
+      // 4. Fallback to local mapping
+      return <IconSymbol name={getServiceIcon(request.serviceName)} size={14} color="#FFFFFF" />;
+    };
+
     return (
       <View key={request.id} style={styles.cardWrapper}>
         <TouchableOpacity
@@ -350,18 +398,20 @@ export default function HomeScreen() {
         >
           {/* Gradient Header */}
           <LinearGradient
-            colors={[primaryColor, '#9333ea']} // Keeping purple as brand but using primary for start
+            colors={['#4f46e5', '#9333ea']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.cardHeaderGradient}
           >
             <View style={styles.headerContent}>
-              <View style={styles.serviceTag}>
+              <View style={[styles.serviceTag, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                {renderServiceIcon()}
                 <Text style={styles.serviceTagText}>{request.serviceName?.toUpperCase()}</Text>
               </View>
-              <View style={[styles.statusTag, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <View style={[styles.statusTag, { backgroundColor: 'rgba(0,0,0,0.2)', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <IconSymbol name="mappin.and.ellipse" size={12} color="#FCD34D" />
                 <Text style={[styles.statusTagText, { color: '#FCD34D' }]}>
-                  {request.status?.toUpperCase() || 'PENDING'}
+                  {request.city?.toUpperCase() || 'KARACHI'}
                 </Text>
               </View>
             </View>
@@ -387,35 +437,10 @@ export default function HomeScreen() {
               {/* Job Type (Placeholder if not available) */}
               <View style={styles.detailRow}>
                 <IconSymbol name="briefcase.fill" size={18} color={textMuted} />
-                <View style={[styles.jobTypeTag, { backgroundColor: secondaryLight }]}>
+                <View style={[styles.jobTypeTag, { backgroundColor: primaryLight }]}>
                   <Text style={[styles.jobTypeText, { color: textSecondary }]}>{formatWorkType(request.workType)}</Text>
                 </View>
               </View>
-
-              {/* Location */}
-              <View style={styles.detailRow}>
-                <IconSymbol name="mappin.and.ellipse" size={18} color="#EF4444" />
-                <View>
-                  <Text style={[styles.detailMainText, { color: textColor }]}>{request.city || 'Karachi'}</Text>
-                  {request.location ? (
-                    <Text style={[styles.detailSubText, { color: textSecondary }]}>{request.location}</Text>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Date */}
-              <View style={styles.detailRow}>
-                <IconSymbol name="calendar" size={18} color="#F87171" />
-                <Text style={[styles.detailMainText, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
-              </View>
-            </View>
-
-            {/* Special Requirements Box */}
-            <View style={[styles.requirementsBox, { backgroundColor: backgroundColor, borderColor: borderColor }]}>
-              <Text style={[styles.requirementsTitle, { color: textSecondary }]}>SPECIAL REQUIREMENTS</Text>
-              <Text style={[styles.requirementsText, { color: textMuted }]} numberOfLines={2}>
-                "{request.description || 'No special requirements specified'}"
-              </Text>
             </View>
 
             {/* Divider */}
@@ -428,24 +453,33 @@ export default function HomeScreen() {
               </Text>
 
               {user?.userType === 'user' && request.userId === user?.id ? (
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
-                  onPress={() => handleContactApplicants(request)}
-                >
-                  <Text style={[styles.actionButtonText, { color: primaryColor }]}>View Applicants</Text>
-                  <IconSymbol name="arrow.right" size={16} color={primaryColor} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
+                    onPress={() => router.push(`/job/edit/${request.id}` as any)}
+                  >
+                    <IconSymbol name="pencil" size={14} color={primaryColor} />
+                    <Text style={[styles.actionButtonText, { color: primaryColor }]}>Edit</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
+                    onPress={() => handleContactApplicants(request)}
+                  >
+                    <Text style={[styles.actionButtonText, { color: primaryColor }]}>Applicants</Text>
+                    <IconSymbol name="arrow.right" size={16} color={primaryColor} />
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
                   onPress={() => isHelperOrBusiness ? handleCardPress(request.id) : null}
+                  disabled={!isHelperOrBusiness && !!user}
                 >
                   <Text style={[styles.actionButtonText, { color: primaryColor }]}>
-                    {isHelperOrBusiness
-                      ? (hasApplied ? 'Applied' : 'Apply Now')
-                      : (user ? 'Helpers Only' : 'Login to Apply')}
+                    {!user ? 'Login to Apply' : (isHelperOrBusiness ? (hasApplied ? 'Applied' : 'Apply Now') : 'Helpers Only')}
                   </Text>
-                  <IconSymbol name="arrow.right" size={16} color={primaryColor} />
+                  {(!user || isHelperOrBusiness) && <IconSymbol name="arrow.right" size={16} color={primaryColor} />}
                 </TouchableOpacity>
               )}
             </View>
@@ -470,21 +504,24 @@ export default function HomeScreen() {
       <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
       <View style={[styles.bottomCircle, { backgroundColor: secondaryLight, opacity: 0.3 }]} />
 
-      {/* Header Background */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.screenHeaderContent, { paddingTop: insets.top + 10 }]}>
+      {/* Header */}
+      <ScreenHeader
+        title=""
+        leftElement={
           <View>
             <Text style={[styles.greeting, { color: '#E0E7FF' }]}>{getGreeting()},</Text>
             <Text style={[styles.userName, { color: '#FFFFFF' }]}>
               {user?.name?.split(' ')[0] || 'User'}
             </Text>
           </View>
+        }
+        rightElement={
           <TouchableOpacity
             onPress={() => router.push('/notifications')}
             style={styles.notificationButton}
           >
             <View style={[styles.notificationIconContainer, { backgroundColor: 'rgba(255,255,255,0.2)', borderColor: 'transparent' }]}>
-              <IconSymbol name="bell.fill" size={24} color="#FFFFFF" />
+              <IconSymbol name="bell.fill" size={18} color="#FFFFFF" />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -494,8 +531,8 @@ export default function HomeScreen() {
               )}
             </View>
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       <ScrollView
         style={[styles.scrollView, { backgroundColor }]}
@@ -819,22 +856,22 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   greeting: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: 1,
   },
   userName: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   notificationButton: {
     padding: 8,
   },
   notificationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -867,9 +904,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginHorizontal: 24,
-    padding: 20,
-    borderRadius: 24,
-    marginBottom: 24,
+    padding: 14,
+    borderRadius: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -882,20 +919,20 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   viewHelpersIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   viewHelpersTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   viewHelpersSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
   },
   quickActionButton: {
     marginHorizontal: 24,
@@ -1072,7 +1109,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
-    marginBottom: 20,
+    marginBottom: 10,
     marginTop: 16,
   },
   requirementsTitle: {
@@ -1328,6 +1365,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
 });

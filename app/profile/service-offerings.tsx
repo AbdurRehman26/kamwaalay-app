@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -190,13 +191,10 @@ export default function ServiceOfferingsScreen() {
       <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
       <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
-      {/* Header Background */}
-      <View style={styles.headerBackground}>
-        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Service Offerings</Text>
+      {/* Header */}
+      <ScreenHeader
+        title="Service Offerings"
+        rightElement={
           <TouchableOpacity
             style={styles.addHeaderButton}
             onPress={() => router.push('/profile/add-service-offering')}
@@ -204,8 +202,8 @@ export default function ServiceOfferingsScreen() {
             <IconSymbol name="plus" size={16} color="#FFFFFF" />
             <Text style={styles.addHeaderButtonText}>Add</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       <ScrollView
         style={[styles.scrollView, { backgroundColor }]}
@@ -278,7 +276,24 @@ export default function ServiceOfferingsScreen() {
                 return (
                   <View key={listing.id} style={[styles.serviceCard, { backgroundColor: cardBg, borderColor }]}>
                     <View style={styles.serviceHeader}>
-                      <View style={styles.serviceInfo}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 12 }}>
+                        <TouchableOpacity
+                          style={[styles.editButton, { backgroundColor: primaryColor }]}
+                          onPress={() => router.push(`/profile/add-service-offering?id=${listing.id}`)}
+                        >
+                          <IconSymbol name="pencil" size={16} color="#FFFFFF" />
+                          <Text style={styles.editButtonText}>Edit</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.deleteButton, { backgroundColor: '#EF4444' }]}
+                          onPress={() => openDeleteModal(listing.id.toString())}
+                        >
+                          <IconSymbol name="trash.fill" size={16} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={[styles.serviceInfo, { marginRight: 0 }]}>
                         <View style={styles.serviceTypesRow}>
                           {serviceTypeDisplays.length > 0 ? (
                             serviceTypeDisplays.map((st, idx) => (
@@ -298,28 +313,12 @@ export default function ServiceOfferingsScreen() {
                           </Text>
                         )}
                       </View>
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                          style={[styles.editButton, { backgroundColor: primaryColor }]}
-                          onPress={() => router.push(`/profile/add-service-offering?id=${listing.id}`)}
-                        >
-                          <IconSymbol name="pencil" size={16} color="#FFFFFF" />
-                          <Text style={styles.editButtonText}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.deleteButton, { backgroundColor: '#EF4444' }]}
-                          onPress={() => openDeleteModal(listing.id.toString())}
-                        >
-                          <IconSymbol name="trash.fill" size={16} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      </View>
                     </View>
                     {listing.description && (
                       <Text style={[styles.serviceDescription, { color: textSecondary }]} numberOfLines={2}>{listing.description}</Text>
                     )}
                     {listing.monthly_rate && (
                       <View style={styles.priceContainer}>
-                        <IconSymbol name="dollarsign.circle.fill" size={16} color={primaryColor} />
                         <Text style={[styles.servicePrice, { color: primaryColor }]}>
                           ₨{typeof listing.monthly_rate === 'string'
                             ? parseFloat(listing.monthly_rate).toLocaleString()
@@ -477,7 +476,7 @@ const styles = StyleSheet.create({
     maxWidth: width,
   },
   section: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 0,
     marginBottom: 24,
     width: '100%',
     alignSelf: 'stretch',
@@ -502,8 +501,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   serviceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     alignItems: 'flex-start',
     marginBottom: 12,
   },

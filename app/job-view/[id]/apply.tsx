@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -150,15 +151,7 @@ export default function JobApplyScreen() {
             <View style={[styles.container, { backgroundColor }]}>
                 <SafeAreaView style={styles.safeArea} edges={['top']}>
                     {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity
-                            style={styles.backTextButton}
-                            onPress={() => router.back()}
-                        >
-                            <IconSymbol name="chevron.left" size={20} color={primaryColor} />
-                            <Text style={[styles.backText, { color: primaryColor }]}>Back</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <ScreenHeader title="Apply for Job" />
 
                     <ScrollView
                         showsVerticalScrollIndicator={false}

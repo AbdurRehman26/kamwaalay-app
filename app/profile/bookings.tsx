@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useApp } from '@/contexts/AppContext';
@@ -230,16 +231,8 @@ export default function BookingsScreen() {
         <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
         <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
-        {/* Header Background */}
-        <View style={styles.headerBackground}>
-          <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <ThemedText style={styles.headerTitle}>My Job Applications</ThemedText>
-            <View style={{ width: 40 }} />
-          </View>
-        </View>
+        {/* Header */}
+        <ScreenHeader title="Job Applications" />
 
         {/* Content Container */}
         <View style={styles.contentContainer}>
@@ -394,11 +387,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
   },
   backButton: {

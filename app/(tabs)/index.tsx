@@ -5,6 +5,7 @@ import { useApp } from '@/contexts/AppContext';
 import { Job, useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { notificationService } from '@/services/notification.service';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -66,6 +67,7 @@ export default function HomeScreen() {
 
   // Get color scheme for service cards
   const { colorScheme } = useTheme();
+  const { t } = useTranslation();
 
   useFocusEffect(
     useCallback(() => {
@@ -229,9 +231,9 @@ export default function HomeScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return t('home.goodMorning');
+    if (hour < 18) return t('home.goodAfternoon');
+    return t('home.goodEvening');
   };
 
   const renderServiceCard = ({ item }: { item: ServiceType }) => {
@@ -332,14 +334,18 @@ export default function HomeScreen() {
     const formatPostedDate = (dateString: string) => {
       if (!dateString) return '';
       const date = new Date(dateString);
-      return `Posted ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return `${t('home.posted')} ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     };
 
     const formatWorkType = (type?: string) => {
-      if (!type) return 'Part Time';
+      if (!type) return t('home.partTime');
       return type
         .split(/[_\s]/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .map(word => {
+          if (word.toLowerCase() === 'part') return t('home.partTime');
+          if (word.toLowerCase() === 'full') return t('home.fullTime');
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        })
         .join(' ');
     };
 
@@ -449,7 +455,7 @@ export default function HomeScreen() {
             {/* Footer */}
             <View style={styles.cardFooter}>
               <Text style={[styles.applicantsText, { color: textMuted }]}>
-                {request.applicants?.length || 0} Applicants
+                {request.applicants?.length || 0} {t('home.applicants')}
               </Text>
 
               {user?.userType === 'user' && request.userId === user?.id ? (
@@ -459,14 +465,14 @@ export default function HomeScreen() {
                     onPress={() => router.push(`/job/edit/${request.id}` as any)}
                   >
                     <IconSymbol name="pencil" size={14} color={primaryColor} />
-                    <Text style={[styles.actionButtonText, { color: primaryColor }]}>Edit</Text>
+                    <Text style={[styles.actionButtonText, { color: primaryColor }]}>{t('home.edit')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: primaryLight, borderColor: primaryColor }]}
                     onPress={() => handleContactApplicants(request)}
                   >
-                    <Text style={[styles.actionButtonText, { color: primaryColor }]}>Applicants</Text>
+                    <Text style={[styles.actionButtonText, { color: primaryColor }]}>{t('home.applicants')}</Text>
                     <IconSymbol name="arrow.right" size={16} color={primaryColor} />
                   </TouchableOpacity>
                 </View>
@@ -477,7 +483,7 @@ export default function HomeScreen() {
                   disabled={!isHelperOrBusiness && !!user}
                 >
                   <Text style={[styles.actionButtonText, { color: primaryColor }]}>
-                    {!user ? 'Login to Apply' : (isHelperOrBusiness ? (hasApplied ? 'Applied' : 'Apply Now') : 'Helpers Only')}
+                    {!user ? t('home.loginToApply') : (isHelperOrBusiness ? (hasApplied ? t('home.applied') : t('home.applyNow')) : t('home.helpersOnly'))}
                   </Text>
                   {(!user || isHelperOrBusiness) && <IconSymbol name="arrow.right" size={16} color={primaryColor} />}
                 </TouchableOpacity>
@@ -559,8 +565,8 @@ export default function HomeScreen() {
                 <IconSymbol name="magnifyingglass" size={20} color={backgroundColor} />
               </View>
               <View>
-                <Text style={[styles.viewHelpersTitle, { color: backgroundColor }]}>Find Helpers</Text>
-                <Text style={[styles.viewHelpersSubtitle, { color: backgroundColor, opacity: 0.7 }]}>Browse profiles & reviews</Text>
+                <Text style={[styles.viewHelpersTitle, { color: backgroundColor }]}>{t('home.findHelpers')}</Text>
+                <Text style={[styles.viewHelpersSubtitle, { color: backgroundColor, opacity: 0.7 }]}>{t('home.findHelpersSubtitle')}</Text>
               </View>
             </View>
             <IconSymbol name="chevron.right" size={20} color={backgroundColor} />
@@ -581,16 +587,16 @@ export default function HomeScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.quickActionContent}
               >
-                <Text style={styles.quickActionText}>Post a Job</Text>
+                <Text style={styles.quickActionText}>{t('home.postJob')}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
             {/* Services */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Categories</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>{t('home.categories')}</Text>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/helpers')}>
-                  <Text style={[styles.seeAll, { color: primaryColor }]}>View All</Text>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>{t('home.viewAll')}</Text>
                 </TouchableOpacity>
               </View>
               <FlatList
@@ -606,9 +612,9 @@ export default function HomeScreen() {
             {/* Featured Helpers */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Featured Helpers</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>{t('home.featuredHelpers')}</Text>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/helpers')}>
-                  <Text style={[styles.seeAll, { color: primaryColor }]}>See All</Text>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>{t('home.seeAll')}</Text>
                 </TouchableOpacity>
               </View>
               {isLoadingFeaturedHelpers ? (
@@ -697,7 +703,7 @@ export default function HomeScreen() {
                 </ScrollView>
               ) : (
                 <View style={[styles.emptyCard, { backgroundColor: cardBg, borderColor }]}>
-                  <Text style={[styles.emptyCardText, { color: textSecondary }]}>No featured helpers available</Text>
+                  <Text style={[styles.emptyCardText, { color: textSecondary }]}>{t('home.noFeaturedHelpers')}</Text>
                 </View>
               )}
             </View>
@@ -705,9 +711,9 @@ export default function HomeScreen() {
             {/* My Postings */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: textColor }]}>My Jobs</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>{t('home.myJobs')}</Text>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/job-posts')}>
-                  <Text style={[styles.seeAll, { color: primaryColor }]}>See All</Text>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>{t('home.seeAll')}</Text>
                 </TouchableOpacity>
               </View>
               {isLoadingRequests ? (
@@ -724,7 +730,7 @@ export default function HomeScreen() {
                     <IconSymbol name="doc.text.fill" size={32} color={textSecondary} />
                   </View>
                   <Text style={[styles.emptyCardText, { color: textSecondary }]}>
-                    No active jobs found
+                    {t('home.noActiveJobs')}
                   </Text>
                   <TouchableOpacity
                     style={styles.createRequestButton}
@@ -736,7 +742,7 @@ export default function HomeScreen() {
                       end={{ x: 1, y: 0 }}
                       style={styles.createRequestButtonGradient}
                     >
-                      <Text style={styles.createRequestButtonText}>Create Job</Text>
+                      <Text style={styles.createRequestButtonText}>{t('home.createJob')}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -758,8 +764,8 @@ export default function HomeScreen() {
                     <IconSymbol name="chart.bar.fill" size={24} color={primaryColor} />
                   </View>
                   <View style={styles.dashboardCardText}>
-                    <Text style={[styles.dashboardCardTitle, { color: textColor }]}>Business Dashboard</Text>
-                    <Text style={[styles.dashboardCardSubtitle, { color: textSecondary }]}>Manage workers & bookings</Text>
+                    <Text style={[styles.dashboardCardTitle, { color: textColor }]}>{t('home.businessDashboard')}</Text>
+                    <Text style={[styles.dashboardCardSubtitle, { color: textSecondary }]}>{t('home.manageWorkersBookings')}</Text>
                   </View>
                 </View>
                 <IconSymbol name="chevron.right" size={20} color={primaryColor} />
@@ -776,8 +782,8 @@ export default function HomeScreen() {
                   <IconSymbol name="briefcase.fill" size={20} color={backgroundColor} />
                 </View>
                 <View>
-                  <Text style={[styles.viewHelpersTitle, { color: backgroundColor }]}>Find Jobs</Text>
-                  <Text style={[styles.viewHelpersSubtitle, { color: backgroundColor, opacity: 0.7 }]}>Browse available opportunities</Text>
+                  <Text style={[styles.viewHelpersTitle, { color: backgroundColor }]}>{t('home.findJobs')}</Text>
+                  <Text style={[styles.viewHelpersSubtitle, { color: backgroundColor, opacity: 0.7 }]}>{t('home.findJobsSubtitle')}</Text>
                 </View>
               </View>
               <IconSymbol name="chevron.right" size={20} color={backgroundColor} />
@@ -785,15 +791,15 @@ export default function HomeScreen() {
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: textColor }]}>New Opportunities</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>{t('home.newOpportunities')}</Text>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/job-posts')}>
-                  <Text style={[styles.seeAll, { color: primaryColor }]}>See All</Text>
+                  <Text style={[styles.seeAll, { color: primaryColor }]}>{t('home.seeAll')}</Text>
                 </TouchableOpacity>
               </View>
               {isLoadingOpportunities ? (
                 <View style={[styles.emptyCard, { backgroundColor: cardBg, borderColor }]}>
                   <ActivityIndicator size="small" color={primaryColor} />
-                  <Text style={[styles.emptyCardText, { color: textSecondary, marginTop: 8 }]}>Loading opportunities...</Text>
+                  <Text style={[styles.emptyCardText, { color: textSecondary, marginTop: 8 }]}>{t('home.loadingOpportunities')}</Text>
                 </View>
               ) : opportunities.filter((r) => r.status === 'open').length > 0 ? (
                 opportunities

@@ -5,9 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
+
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
   const insets = useSafeAreaInsets();
@@ -48,7 +51,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={focused ? 26 : 24}
@@ -69,7 +72,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
+          title: t('tabs.explore'),
           href: isHelperOrBusiness ? null : undefined,
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
@@ -83,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="job-posts"
         options={{
-          title: isHelperOrBusiness ? 'Job Posts' : 'Job Posts',
+          title: t('tabs.jobPosts'),
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={focused ? 26 : 24}
@@ -96,7 +99,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'Chat',
+          title: t('tabs.chat'),
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={focused ? 26 : 24}
@@ -109,7 +112,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={focused ? 26 : 24}

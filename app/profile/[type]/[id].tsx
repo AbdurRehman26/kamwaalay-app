@@ -4,6 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -43,6 +44,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileViewScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { type, id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -108,10 +110,19 @@ export default function ProfileViewScreen() {
               rating: business.rating || 0,
               reviews: business.reviews_count || 0,
               price: business.service_listings?.[0]?.monthly_rate || 0,
-              location: business.location_details?.[0]?.area || business.location_details?.[0]?.area_name || business.area || 'Location will be visible once your application approved by the user',
+              location: (() => {
+                const detail = business.location_details?.[0] || {};
+                const address = business.address || business.user?.address;
+                const area = detail.area || detail.area_name || business.area;
+                const city = detail.city_name || detail.city || business.city || business.user?.city;
+
+                if (address) return address;
+                if (area && city) return `${city}, ${area}`;
+                return area || city || 'N/A';
+              })(),
               distance: 'N/A',
-              experience: business.experience_years ? `${business.experience_years} years` : 'N/A',
-              bio: business.bio || business.description || 'No description available',
+              experience: business.experience_years ? `${business.experience_years} ${t('helperProfile.years')}` : 'N/A',
+              bio: business.bio || business.description || t('helperProfile.noDescription'),
               services: (() => {
                 const servicesList: string[] = [];
                 if (business.service_listings && Array.isArray(business.service_listings)) {
@@ -185,10 +196,19 @@ export default function ProfileViewScreen() {
               rating: helper.rating || 0,
               reviews: helper.reviews_count || 0,
               price: helper.service_listings?.[0]?.monthly_rate || 0,
-              location: helper.location_details?.[0]?.area || helper.location_details?.[0]?.area_name || helper.area || 'Location will be visible once your application approved by the user',
+              location: (() => {
+                const detail = helper.location_details?.[0] || {};
+                const address = helper.address || helper.user?.address;
+                const area = detail.area || detail.area_name || helper.area;
+                const city = detail.city_name || detail.city || helper.city || helper.user?.city;
+
+                if (address) return address;
+                if (area && city) return `${city}, ${area}`;
+                return area || city || 'N/A';
+              })(),
               distance: 'N/A',
-              experience: helper.experience_years ? `${helper.experience_years} years` : 'N/A',
-              bio: helper.bio || 'No description available',
+              experience: helper.experience_years ? `${helper.experience_years} ${t('helperProfile.years')}` : 'N/A',
+              bio: helper.bio || t('helperProfile.noDescription'),
               services: (() => {
                 const servicesList: string[] = [];
                 if (helper.service_listings && Array.isArray(helper.service_listings)) {
@@ -267,16 +287,16 @@ export default function ProfileViewScreen() {
             name: user.name || 'Unknown',
             service: listing.service_type
               ? listing.service_type.charAt(0).toUpperCase() + listing.service_type.slice(1).replace('_', ' ')
-              : 'Service Provider',
+              : t('helperProfile.service'),
             rating: user.rating || listing.rating || 0,
             reviews: user.reviews_count || listing.reviews_count || 0,
             price: listing.monthly_rate || listing.price || 0,
-            location: listing.area || listing.location?.name || listing.location_name || 'Location will be visible once your application approved by the user',
+            location: listing.address || listing.area || listing.location?.name || listing.location_name || 'N/A',
             distance: listing.distance || 'N/A',
             experience: user.experience_years
-              ? `${user.experience_years} years`
+              ? `${user.experience_years} ${t('helperProfile.years')}`
               : (user.profileData?.experience || user.experience || 'N/A'),
-            bio: listing.description || user.bio || user.profileData?.bio || 'No description available',
+            bio: listing.description || user.bio || user.profileData?.bio || t('helperProfile.noDescription'),
             // Handle multiple services - get from listing.service_types array
             services: (() => {
               const servicesList: string[] = [];
@@ -312,7 +332,7 @@ export default function ProfileViewScreen() {
 
               // Final fallback
               if (servicesList.length === 0) {
-                servicesList.push('Service');
+                servicesList.push(t('helperProfile.service'));
               }
 
               console.log('📋 Services from listing.service_types:', servicesList);
@@ -618,14 +638,14 @@ export default function ProfileViewScreen() {
   // Handle phone call
   const handleCall = async (phoneNumber: string | null) => {
     if (!phoneNumber) {
-      Alert.alert('Phone Number', 'Phone number not available');
+      Alert.alert(t('helperProfile.callErrorTitle'), t('helperProfile.callErrorMessage'));
       return;
     }
     const url = `tel:${phoneNumber}`;
     try {
       await Linking.openURL(url);
     } catch (err) {
-      Alert.alert('Error', 'Unable to open phone dialer');
+      Alert.alert(t('common.error'), 'Unable to open phone dialer');
     }
   };
 
@@ -645,7 +665,7 @@ export default function ProfileViewScreen() {
       try {
         await Linking.openURL(webUrl);
       } catch (webErr) {
-        Alert.alert('Error', 'Unable to open WhatsApp');
+        Alert.alert(t('helperProfile.whatsappErrorTitle'), t('helperProfile.whatsappErrorMessage'));
       }
     }
   };
@@ -660,7 +680,7 @@ export default function ProfileViewScreen() {
         bounces={false}
       >
         {/* Header */}
-        <ScreenHeader title="Profile" />
+        <ScreenHeader title={t('helperProfile.title')} />
 
         <View style={{ flex: 1, marginTop: 16, paddingHorizontal: 20 }}>
 
@@ -691,7 +711,7 @@ export default function ProfileViewScreen() {
               <View style={styles.statItem}>
                 <IconSymbol name="clock.fill" size={16} color={primaryColor} />
                 <Text style={[styles.statValue, { color: textColor }]}>{displayProfile.experience}</Text>
-                <Text style={[styles.statLabel, { color: textSecondary }]}>Exp.</Text>
+                <Text style={[styles.statLabel, { color: textSecondary }]}>{t('helperProfile.exp')}</Text>
               </View>
               <View style={[styles.statDivider, { backgroundColor: borderColor }]} />
               <View style={[styles.statItem, { flex: 2 }]}>
@@ -699,7 +719,7 @@ export default function ProfileViewScreen() {
                 <Text style={[styles.statValue, { color: textColor }]} numberOfLines={2}>
                   {displayProfile.location}
                 </Text>
-                <Text style={[styles.statLabel, { color: textSecondary }]}>Location</Text>
+                <Text style={[styles.statLabel, { color: textSecondary }]}>{t('helperProfile.location')}</Text>
               </View>
             </View>
           </View>
@@ -707,7 +727,7 @@ export default function ProfileViewScreen() {
           {/* About Section */}
           {displayProfile.bio && (
             <View style={{ marginBottom: 24 }}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>About</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('helperProfile.about')}</Text>
               <Text style={[styles.bioText, { color: textSecondary }]}>{displayProfile.bio}</Text>
             </View>
           )}
@@ -715,17 +735,17 @@ export default function ProfileViewScreen() {
           {/* Personal Details Grid */}
           {(displayProfile.gender || displayProfile.religion || displayProfile.age || (displayProfile.languages && displayProfile.languages.length > 0)) && (
             <View style={{ marginBottom: 24 }}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Details</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('helperProfile.personalDetails')}</Text>
               <View style={styles.gridContainer}>
                 {displayProfile.age && (
                   <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Age</Text>
-                    <Text style={[styles.gridValue, { color: textColor }]}>{displayProfile.age} years</Text>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('helperProfile.age')}</Text>
+                    <Text style={[styles.gridValue, { color: textColor }]}>{displayProfile.age} {t('helperProfile.years')}</Text>
                   </View>
                 )}
                 {displayProfile.gender && (
                   <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Gender</Text>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('helperProfile.gender')}</Text>
                     <Text style={[styles.gridValue, { color: textColor }]}>
                       {displayProfile.gender.charAt(0).toUpperCase() + displayProfile.gender.slice(1)}
                     </Text>
@@ -733,13 +753,13 @@ export default function ProfileViewScreen() {
                 )}
                 {displayProfile.religion && (
                   <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Religion</Text>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('helperProfile.religion')}</Text>
                     <Text style={[styles.gridValue, { color: textColor }]}>{typeof displayProfile.religion === 'object' ? (displayProfile.religion as any).label : displayProfile.religion}</Text>
                   </View>
                 )}
                 {displayProfile.languages && displayProfile.languages.length > 0 && (
                   <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor, flexBasis: '100%' }]}>
-                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Languages</Text>
+                    <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('helperProfile.languages')}</Text>
                     <Text style={[styles.gridValue, { color: textColor }]}>
                       {displayProfile.languages.map((l: any) => typeof l === 'object' ? l.name : l).join(', ')}
                     </Text>
@@ -752,7 +772,7 @@ export default function ProfileViewScreen() {
           {/* Services Offered */}
           {displayProfile.services && displayProfile.services.length > 0 && (
             <View style={{ marginBottom: 24 }}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Expertise</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('helperProfile.expertise')}</Text>
               <View style={styles.tagsContainer}>
                 {displayProfile.services.map((service: string, index: number) => (
                   <View key={index} style={[styles.tag, { backgroundColor: cardBg, borderWidth: 1, borderColor }]}>
@@ -766,7 +786,7 @@ export default function ProfileViewScreen() {
           {/* Service Areas */}
           {displayProfile.locations && displayProfile.locations.length > 0 && (
             <View style={{ marginBottom: 24 }}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Service Areas</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('helperProfile.serviceAreas')}</Text>
               <View style={styles.tagsContainer}>
                 {displayProfile.locations.map((loc: string, index: number) => (
                   <View key={index} style={[styles.tag, { backgroundColor: cardBg, borderWidth: 1, borderColor }]}>
@@ -781,7 +801,7 @@ export default function ProfileViewScreen() {
           {/* Service Listings */}
           {displayProfile.service_listings && displayProfile.service_listings.length > 0 && (
             <View style={{ marginBottom: 24 }}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Service Packages</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('helperProfile.servicePackages')}</Text>
               {displayProfile.service_listings.map((service: any, index: number) => {
                 const serviceTypes = service.service_types && Array.isArray(service.service_types) && service.service_types.length > 0
                   ? service.service_types
@@ -807,7 +827,7 @@ export default function ProfileViewScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.listingTitle, { color: textColor }]}>{title}</Text>
                       <Text style={[styles.listingPrice, { color: textSecondary }]}>
-                        {monthlyRate > 0 ? `₨${Math.floor(monthlyRate).toLocaleString()}/mo` : 'Contact for Price'}
+                        {monthlyRate > 0 ? `₨${Math.floor(monthlyRate).toLocaleString()}${t('helperProfile.perMonth')}` : t('helperProfile.contactForPrice')}
                       </Text>
                     </View>
                     <IconSymbol name="chevron.right" size={20} color={textSecondary} />
@@ -820,7 +840,7 @@ export default function ProfileViewScreen() {
           {/* Other Services Section (Horizontal Scroll) */}
           {otherServices.length > 0 && (
             <View style={{ marginBottom: 24 }}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>More from {displayProfile.name}</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('helperProfile.moreFrom')} {displayProfile.name}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 20 }}>
                 {otherServices.map((service: any, index: number) => (
                   <TouchableOpacity
@@ -832,7 +852,7 @@ export default function ProfileViewScreen() {
                       <IconSymbol name="briefcase.fill" size={20} color={primaryColor} />
                     </View>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: textColor, marginBottom: 4 }} numberOfLines={2}>
-                      {service.service_type ? service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ') : 'Service'}
+                      {service.service_type ? service.service_type.charAt(0).toUpperCase() + service.service_type.slice(1).replace('_', ' ') : t('helperProfile.service')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -865,7 +885,7 @@ export default function ProfileViewScreen() {
             onPress={() => router.push(`/chat/${displayProfile.id}`)}
           >
             <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
-            <Text style={styles.primaryButtonText}>Message</Text>
+            <Text style={styles.primaryButtonText}>{t('helperProfile.message')}</Text>
           </TouchableOpacity>
         </View>
       </View>

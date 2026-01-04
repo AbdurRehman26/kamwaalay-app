@@ -3,6 +3,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import { Image as ExpoImage } from 'expo-image';
@@ -26,15 +27,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 const RELIGION_OPTIONS = [
-  { id: 'sunni_nazar_niyaz', label: 'Sunni (Nazar/Niyaz)' },
-  { id: 'sunni_no_nazar_niyaz', label: 'Sunni (No Nazar/Niyaz)' },
-  { id: 'shia', label: 'Shia' },
-  { id: 'christian', label: 'Christian' },
+  { id: 'sunni_nazar_niyaz', label: 'sunni_nazar_niyaz' },
+  { id: 'sunni_no_nazar_niyaz', label: 'sunni_no_nazar_niyaz' },
+  { id: 'shia', label: 'shia' },
+  { id: 'christian', label: 'christian' },
 ];
 
-const GENDER_OPTIONS = ['Male', 'Female'];
+const GENDER_OPTIONS = ['male', 'female'];
 
 export default function EditProfileScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, updateUser, uploadProfilePhoto, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -265,9 +267,9 @@ export default function EditProfileScreen() {
         setIsUploadingPhoto(true);
         try {
           await uploadProfilePhoto(uri);
-          toast.success('Profile photo updated successfully');
+          toast.success(t('profileEdit.toasts.photoUpdated'));
         } catch (error: any) {
-          toast.error(error.message || 'Failed to upload photo');
+          toast.error(error.message || t('profileEdit.toasts.photoFailed'));
           setSelectedImageUri(null); // Reset preview on failure
         } finally {
           setIsUploadingPhoto(false);
@@ -275,18 +277,18 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      toast.error('Failed to pick image');
+      toast.error(t('profileEdit.toasts.pickFailed'));
     }
   };
 
   const handleSave = async () => {
     if (user?.userType === 'helper' && !name.trim()) {
-      toast.error('Name is required');
+      toast.error(t('profileEdit.helpers.nameRequired'));
       return;
     }
 
     if ((user?.userType === 'user' || user?.userType === 'business') && !name.trim()) {
-      toast.error('Name is required');
+      toast.error(t('profileEdit.helpers.nameRequired'));
       return;
     }
 
@@ -311,10 +313,10 @@ export default function EditProfileScreen() {
       }
 
       await updateUser(profileUpdateData);
-      toast.success('Profile updated successfully');
+      toast.success(t('profileEdit.toasts.updateSuccess'));
       // router.back(); // Keep user on the same screen as requested
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile. Please try again.');
+      toast.error(error.message || t('profileEdit.toasts.updateFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -326,7 +328,7 @@ export default function EditProfileScreen() {
 
       {/* Header */}
       <ScreenHeader
-        title="Edit Profile"
+        title={t('profileEdit.title')}
         rightElement={
           <TouchableOpacity
             onPress={handleSave}
@@ -336,7 +338,7 @@ export default function EditProfileScreen() {
             {isLoading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>Save</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>{t('profileEdit.actions.save')}</Text>
             )}
           </TouchableOpacity>
         }
@@ -395,7 +397,7 @@ export default function EditProfileScreen() {
                   )}
                 </TouchableOpacity>
               </View>
-              <Text style={[styles.changePhotoText, { color: textSecondary }]}>Tap to change photo</Text>
+              <Text style={[styles.changePhotoText, { color: textSecondary }]}>{t('profileEdit.actions.changePhoto')}</Text>
 
               {/* Account Type Badge */}
               <View style={styles.badgeContainer}>
@@ -407,10 +409,10 @@ export default function EditProfileScreen() {
                   />
                   <Text style={[styles.badgeText, { color: primaryColor }]}>
                     {user?.userType === 'user'
-                      ? 'Customer'
+                      ? t('profileEdit.labels.customerProfile')
                       : user?.userType === 'helper'
-                        ? 'Helper'
-                        : 'Business'} Profile
+                        ? t('profileEdit.labels.helperProfile')
+                        : t('profileEdit.labels.businessProfile')}
                   </Text>
                 </View>
               </View>
@@ -418,11 +420,11 @@ export default function EditProfileScreen() {
 
             {/* Form Fields */}
             <View style={styles.formContainer}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Basic Information</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('profileEdit.sections.basicInfo')}</Text>
 
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: textColor }]}>
-                  {user?.userType === 'business' ? 'Business Name' : 'Full Name'} <Text style={styles.required}>*</Text>
+                  {user?.userType === 'business' ? t('profileEdit.labels.businessName') : t('profileEdit.labels.fullName')} <Text style={styles.required}>*</Text>
                 </Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
                   <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
@@ -430,14 +432,14 @@ export default function EditProfileScreen() {
                     style={[styles.input, { color: textColor }]}
                     value={name}
                     onChangeText={setName}
-                    placeholder={`Enter ${user?.userType === 'business' ? 'business' : 'your full'} name`}
+                    placeholder={user?.userType === 'business' ? t('profileEdit.placeholders.enterBusinessName') : t('profileEdit.placeholders.enterName')}
                     placeholderTextColor={textMuted}
                   />
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.phoneNumber')}</Text>
                 <View style={[styles.inputWrapper, styles.disabledInputWrapper, { backgroundColor: borderColor, borderColor, shadowColor: textColor }]}>
                   <IconSymbol name="phone" size={20} color={iconMuted} style={styles.inputIcon} />
                   <TextInput
@@ -449,21 +451,21 @@ export default function EditProfileScreen() {
                   <IconSymbol name="lock.fill" size={16} color={iconMuted} style={styles.lockIcon} />
                 </View>
                 <Text style={[styles.helperText, { color: textMuted }]}>
-                  Phone number cannot be changed
+                  {t('profileEdit.helpers.phoneCannotChange')}
                 </Text>
               </View>
 
               {/* City Selection for Regular Users and Business */}
               {(user?.userType === 'user' || user?.userType === 'business') && (
                 <View style={[styles.inputGroup, { zIndex: 100 }]}>
-                  <Text style={[styles.label, { color: textColor }]}>City</Text>
+                  <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.city')}</Text>
                   <TouchableOpacity
                     style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
                     onPress={() => setShowCityDropdown(!showCityDropdown)}
                   >
                     <IconSymbol name="mappin.and.ellipse" size={20} color={iconMuted} style={styles.inputIcon} />
                     <Text style={[styles.input, { color: cityId ? textColor : textMuted, paddingVertical: 16 }]}>
-                      {cityId ? cities.find(c => c.id === cityId)?.name : 'Select City'}
+                      {cityId ? cities.find(c => c.id === cityId)?.name : t('profileEdit.actions.selectCity')}
                     </Text>
                     <IconSymbol name="chevron.down" size={20} color={iconMuted} />
                   </TouchableOpacity>
@@ -498,20 +500,20 @@ export default function EditProfileScreen() {
               {user?.userType === 'helper' && (
                 <>
                   <View style={[styles.divider, { backgroundColor: borderColor }]} />
-                  <Text style={[styles.sectionTitle, { color: textColor }]}>Profile Details</Text>
+                  <Text style={[styles.sectionTitle, { color: textColor }]}>{t('profileEdit.sections.profileDetails')}</Text>
 
                   {user?.userType === 'helper' && (
                     <>
                       {/* Age */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: textColor }]}>Age</Text>
+                        <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.age')}</Text>
                         <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
                           <IconSymbol name="calendar" size={20} color={iconMuted} style={styles.inputIcon} />
                           <TextInput
                             style={[styles.input, { color: textColor }]}
                             value={age}
                             onChangeText={setAge}
-                            placeholder="Enter your age"
+                            placeholder={t('profileEdit.placeholders.enterAge')}
                             placeholderTextColor={textMuted}
                             keyboardType="numeric"
                             maxLength={3}
@@ -521,14 +523,14 @@ export default function EditProfileScreen() {
 
                       {/* Gender */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: textColor }]}>Gender</Text>
+                        <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.gender')}</Text>
                         <TouchableOpacity
                           style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
                           onPress={() => setShowGenderDropdown(!showGenderDropdown)}
                         >
                           <IconSymbol name="person" size={20} color={iconMuted} style={styles.inputIcon} />
                           <Text style={[styles.input, { color: gender ? textColor : textMuted, paddingVertical: 16 }]}>
-                            {gender || 'Select Gender'}
+                            {gender ? t(`profileEdit.options.${gender.toLowerCase()}`) : t('profileEdit.actions.selectGender')}
                           </Text>
                           <IconSymbol name="chevron.down" size={20} color={iconMuted} />
                         </TouchableOpacity>
@@ -553,14 +555,14 @@ export default function EditProfileScreen() {
 
                       {/* Religion */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: textColor }]}>Religion</Text>
+                        <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.religion')}</Text>
                         <TouchableOpacity
                           style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
                           onPress={() => setShowReligionDropdown(!showReligionDropdown)}
                         >
                           <IconSymbol name="star.fill" size={20} color={iconMuted} style={styles.inputIcon} />
                           <Text style={[styles.input, { color: religion ? textColor : textMuted, paddingVertical: 16 }]}>
-                            {RELIGION_OPTIONS.find(r => r.id === religion)?.label || 'Select Religion'}
+                            {religion ? t(`profileEdit.options.${religion}`) : t('profileEdit.actions.selectReligion')}
                           </Text>
                           <IconSymbol name="chevron.down" size={20} color={iconMuted} />
                         </TouchableOpacity>
@@ -575,7 +577,7 @@ export default function EditProfileScreen() {
                                   setShowReligionDropdown(false);
                                 }}
                               >
-                                <Text style={[styles.dropdownText, { color: textColor }]}>{r.label}</Text>
+                                <Text style={[styles.dropdownText, { color: textColor }]}>{t(`profileEdit.options.${r.label}`)}</Text>
                                 {religion === r.id && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
                               </TouchableOpacity>
                             ))}
@@ -585,7 +587,7 @@ export default function EditProfileScreen() {
 
                       {/* Languages */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: textColor }]}>Languages</Text>
+                        <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.languages')}</Text>
 
                         {/* Selected Chips */}
                         <View style={styles.chipsContainer}>
@@ -609,7 +611,7 @@ export default function EditProfileScreen() {
                         >
                           <IconSymbol name="globe" size={20} color={iconMuted} style={styles.inputIcon} />
                           <Text style={[styles.input, { color: textMuted, paddingVertical: 16 }]}>
-                            Select Languages
+                            {t('profileEdit.actions.selectLanguages')}
                           </Text>
                           <IconSymbol name="chevron.down" size={20} color={iconMuted} />
                         </TouchableOpacity>
@@ -643,13 +645,13 @@ export default function EditProfileScreen() {
                   )}
 
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: textColor }]}>Bio</Text>
+                    <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.bio')}</Text>
                     <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
                       <TextInput
                         style={[styles.input, styles.textArea, { color: textColor }]}
                         value={bio}
                         onChangeText={setBio}
-                        placeholder="Tell us about yourself..."
+                        placeholder={t('profileEdit.placeholders.bio')}
                         placeholderTextColor={textMuted}
                         multiline
                         numberOfLines={4}

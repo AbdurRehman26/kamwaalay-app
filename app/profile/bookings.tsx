@@ -4,6 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -13,13 +14,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 export default function BookingsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const { getJobs } = useApp();
@@ -92,14 +94,14 @@ export default function BookingsScreen() {
   const getFilterLabel = () => {
     switch (selectedTab) {
       case 'active':
-        return 'Active';
+        return t('bookings.filters.active');
       case 'completed':
-        return 'Completed';
+        return t('bookings.filters.completed');
       case 'cancelled':
-        return 'Cancelled';
+        return t('bookings.filters.cancelled');
       case 'all':
       default:
-        return 'All Applications';
+        return t('bookings.filters.all');
     }
   };
 
@@ -150,22 +152,22 @@ export default function BookingsScreen() {
                     {(booking.userName || 'U').charAt(0).toUpperCase()}
                   </Text>
                 </View>
-                <ThemedText style={[styles.cardUser, { color: textSecondary }]}>{booking.userName || 'Unknown'}</ThemedText>
+                <ThemedText style={[styles.cardUser, { color: textSecondary }]}>{booking.userName || t('bookings.card.unknownUser')}</ThemedText>
               </View>
             )}
             {isUser && booking.applicants && booking.applicants.length > 0 && (
               <ThemedText style={[styles.applicantsInfo, { color: textSecondary }]}>
-                {booking.applicants.length} applicant{booking.applicants.length > 1 ? 's' : ''}
+                {booking.applicants.length} {booking.applicants.length > 1 ? t('bookings.card.applicants') : t('bookings.card.applicant')}
               </ThemedText>
             )}
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
             <Text style={[styles.statusText, { color: statusTextColor }]}>
               {booking.status === 'in_progress'
-                ? 'Active'
+                ? t('bookings.status.active')
                 : booking.status === 'completed'
-                  ? 'Completed'
-                  : 'Cancelled'}
+                  ? t('bookings.status.completed')
+                  : t('bookings.status.cancelled')}
             </Text>
           </View>
         </View>
@@ -203,16 +205,16 @@ export default function BookingsScreen() {
             onPress={() => router.push(`/chat/${isUser ? booking.applicants?.[0] : booking.userId}`)}
           >
             <IconSymbol name="message.fill" size={18} color={primaryColor} />
-            <Text style={[styles.contactButtonText, { color: primaryColor }]}>Chat</Text>
+            <Text style={[styles.contactButtonText, { color: primaryColor }]}>{t('bookings.card.chat')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.viewButton, { backgroundColor: primaryColor, shadowColor: primaryColor }]}
             onPress={() => router.push(`/job-view/${booking.id}`)}
           >
-            <Text style={styles.viewButtonText}>View Details</Text>
+            <Text style={styles.viewButtonText}>{t('bookings.card.viewDetails')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </View >
     );
   };
 
@@ -232,7 +234,7 @@ export default function BookingsScreen() {
         <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
         {/* Header */}
-        <ScreenHeader title="Job Applications" />
+        <ScreenHeader title={t('bookings.title')} />
 
         {/* Content Container */}
         <View style={styles.contentContainer}>
@@ -242,7 +244,7 @@ export default function BookingsScreen() {
               <IconSymbol name="magnifyingglass" size={20} color={iconMuted} />
               <TextInput
                 style={[styles.searchInput, { color: textColor }]}
-                placeholder="Search applications..."
+                placeholder={t('bookings.searchPlaceholder')}
                 placeholderTextColor={textMuted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -277,7 +279,7 @@ export default function BookingsScreen() {
                 }}
               >
                 <Text style={[styles.filterOptionText, { color: selectedTab === 'all' ? primaryColor : textColor }]}>
-                  All Applications ({allBookings.length})
+                  {t('bookings.filters.all')} ({allBookings.length})
                 </Text>
                 {selectedTab === 'all' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
               </TouchableOpacity>
@@ -289,7 +291,7 @@ export default function BookingsScreen() {
                 }}
               >
                 <Text style={[styles.filterOptionText, { color: selectedTab === 'active' ? primaryColor : textColor }]}>
-                  Active ({activeBookings.length})
+                  {t('bookings.filters.active')} ({activeBookings.length})
                 </Text>
                 {selectedTab === 'active' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
               </TouchableOpacity>
@@ -301,7 +303,7 @@ export default function BookingsScreen() {
                 }}
               >
                 <Text style={[styles.filterOptionText, { color: selectedTab === 'completed' ? primaryColor : textColor }]}>
-                  Completed ({completedBookings.length})
+                  {t('bookings.filters.completed')} ({completedBookings.length})
                 </Text>
                 {selectedTab === 'completed' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
               </TouchableOpacity>
@@ -313,7 +315,7 @@ export default function BookingsScreen() {
                 }}
               >
                 <Text style={[styles.filterOptionText, { color: selectedTab === 'cancelled' ? primaryColor : textColor }]}>
-                  Cancelled ({cancelledBookings.length})
+                  {t('bookings.filters.cancelled')} ({cancelledBookings.length})
                 </Text>
                 {selectedTab === 'cancelled' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
               </TouchableOpacity>
@@ -329,18 +331,18 @@ export default function BookingsScreen() {
             <View style={styles.emptyState}>
               <IconSymbol name="calendar" size={64} color={iconMuted} />
               <ThemedText type="subtitle" style={[styles.emptyTitle, { color: textColor }]}>
-                No Applications Found
+                {t('bookings.empty.title')}
               </ThemedText>
               <ThemedText style={[styles.emptyText, { color: textSecondary }]}>
                 {searchQuery.trim()
-                  ? 'Try adjusting your search'
+                  ? t('bookings.empty.adjustSearch')
                   : selectedTab === 'active'
-                    ? 'You have no active applications'
+                    ? t('bookings.empty.noActive')
                     : selectedTab === 'completed'
-                      ? 'You have no completed applications'
+                      ? t('bookings.empty.noCompleted')
                       : selectedTab === 'cancelled'
-                        ? 'You have no cancelled applications'
-                        : 'You have no applications'}
+                        ? t('bookings.empty.noCancelled')
+                        : t('bookings.empty.noApplications')}
               </ThemedText>
             </View>
           )}
@@ -617,4 +619,5 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
 

@@ -1,6 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -23,6 +24,7 @@ const { width } = Dimensions.get('window');
 
 export default function ServiceDetailScreen() {
     const { id } = useLocalSearchParams();
+    const { t } = useTranslation();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(true);
@@ -83,12 +85,12 @@ export default function ServiceDetailScreen() {
                     }
                 }
             } else {
-                Alert.alert('Error', 'Failed to load service details');
+                Alert.alert(t('common.error'), t('serviceDetail.loadErrorMessage'));
                 router.back();
             }
         } catch (error) {
             console.error('❌ Error fetching service details:', error);
-            Alert.alert('Error', 'Failed to load service details');
+            Alert.alert(t('common.error'), t('serviceDetail.loadErrorMessage'));
             router.back();
         } finally {
             setLoading(false);
@@ -128,20 +130,20 @@ export default function ServiceDetailScreen() {
 
     const handleCall = async (phoneNumber: string | null) => {
         if (!phoneNumber) {
-            Alert.alert('Phone Number', 'Phone number not available');
+            Alert.alert(t('serviceDetail.phoneErrorTitle'), t('serviceDetail.phoneErrorMessage'));
             return;
         }
         const url = `tel:${phoneNumber}`;
         try {
             await Linking.openURL(url);
         } catch (err) {
-            Alert.alert('Error', 'Unable to open phone dialer');
+            Alert.alert(t('common.error'), 'Unable to open phone dialer');
         }
     };
 
     const handleWhatsApp = async (phoneNumber: string | null) => {
         if (!phoneNumber) {
-            Alert.alert('Phone Number', 'Phone number not available');
+            Alert.alert(t('serviceDetail.phoneErrorTitle'), t('serviceDetail.phoneErrorMessage'));
             return;
         }
         let cleaned = phoneNumber.replace(/[^\d+]/g, '');
@@ -161,7 +163,7 @@ export default function ServiceDetailScreen() {
             try {
                 await Linking.openURL(webUrl);
             } catch (webErr) {
-                Alert.alert('Error', 'Unable to open WhatsApp');
+                Alert.alert(t('serviceDetail.whatsappErrorTitle'), t('serviceDetail.whatsappErrorMessage'));
             }
         }
     };
@@ -181,29 +183,29 @@ export default function ServiceDetailScreen() {
             // Check if array contains strings or objects
             return service.service_types.map((t: any) => {
                 if (typeof t === 'string') return t;
-                if (typeof t === 'object' && t) return t.name || t.label || t.slug || 'Service';
-                return 'Service';
+                if (typeof t === 'object' && t) return t.name || t.label || t.slug || t('serviceDetail.service');
+                return t('serviceDetail.service');
             });
         } else if (service.service_type) {
             const t = service.service_type;
             if (typeof t === 'string') return [t];
-            if (typeof t === 'object' && t) return [t.name || t.label || t.slug || 'Service'];
+            if (typeof t === 'object' && t) return [t.name || t.label || t.slug || t('serviceDetail.service')];
             return [String(t)];
         } else {
-            return ['Service'];
+            return [t('serviceDetail.service')];
         }
     })();
 
     const formatServiceType = (type: string) => {
-        if (!type) return 'Service';
+        if (!type) return t('serviceDetail.service');
         return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
     };
 
     const serviceName = serviceTypes.length === 1
         ? formatServiceType(serviceTypes[0])
-        : `${formatServiceType(serviceTypes[0])} +${serviceTypes.length - 1} more`;
+        : `${formatServiceType(serviceTypes[0])} +${serviceTypes.length - 1} ${t('serviceDetail.more')}`;
 
-    const providerName = service.user?.name || provider?.name || provider?.user?.name || 'Provider';
+    const providerName = service.user?.name || provider?.name || provider?.user?.name || t('serviceDetail.provider');
     const providerImage = service.user?.profile_image || provider?.profile_image || provider?.user?.profile_image || service.profile?.photo;
     const providerId = service.user?.id || provider?.id || provider?.user?.id;
     const phoneNumber = service.user?.phone || provider?.phone_number || provider?.phoneNumber || provider?.user?.phone_number;
@@ -237,7 +239,7 @@ export default function ServiceDetailScreen() {
 
     return (
         <>
-            <Stack.Screen options={{ headerShown: false, title: 'Service Details' }} />
+            <Stack.Screen options={{ headerShown: false, title: t('serviceDetail.title') }} />
             <View style={[styles.container, { backgroundColor }]}>
                 <ScrollView
                     style={styles.scrollView}
@@ -259,7 +261,7 @@ export default function ServiceDetailScreen() {
                             >
                                 <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
                             </TouchableOpacity>
-                            <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Service Details</Text>
+                            <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>{t('serviceDetail.title')}</Text>
                             <View style={{ width: 40 }} />
                         </View>
 
@@ -278,11 +280,11 @@ export default function ServiceDetailScreen() {
                             {monthlyRate > 0 ? (
                                 <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '700' }}>
                                     ₨{Math.floor(monthlyRate).toLocaleString()}
-                                    <Text style={{ fontSize: 14, fontWeight: '500', opacity: 0.9 }}>/mo</Text>
+                                    <Text style={{ fontSize: 14, fontWeight: '500', opacity: 0.9 }}>{t('serviceDetail.perMonth')}</Text>
                                 </Text>
                             ) : (
                                 <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700', opacity: 0.9 }}>
-                                    Price Negotiable
+                                    {t('serviceDetail.priceNegotiable')}
                                 </Text>
                             )}
                         </View>
@@ -326,14 +328,8 @@ export default function ServiceDetailScreen() {
                                         <Text style={{ fontSize: 18, fontWeight: '700', color: textColor }} numberOfLines={1}>{providerName}</Text>
                                         {verified && <IconSymbol name="checkmark.seal.fill" size={16} color="#10B981" />}
                                     </View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                                        <IconSymbol name="star.fill" size={14} color="#F59E0B" />
-                                        <Text style={{ fontSize: 13, fontWeight: '600', color: textSecondary }}>
-                                            {provider?.rating ? Number(provider.rating).toFixed(1) : 'New'}
-                                            {provider?.reviews_count > 0 && <Text style={{ fontWeight: '400' }}> ({provider.reviews_count} reviews)</Text>}
-                                        </Text>
-                                    </View>
                                 </View>
+
 
                                 <IconSymbol name="chevron.right" size={20} color={textSecondary} />
                             </View>
@@ -342,18 +338,18 @@ export default function ServiceDetailScreen() {
                         {/* Description */}
                         {service.description && (
                             <View style={{ marginBottom: 24 }}>
-                                <Text style={[styles.sectionTitle, { color: textColor }]}>About Service</Text>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>{t('serviceDetail.aboutService')}</Text>
                                 <Text style={{ fontSize: 15, lineHeight: 24, color: textSecondary }}>{service.description}</Text>
                             </View>
                         )}
 
                         {/* Service Details Grid */}
                         <View style={{ marginBottom: 24 }}>
-                            <Text style={[styles.sectionTitle, { color: textColor }]}>Service Details</Text>
+                            <Text style={[styles.sectionTitle, { color: textColor }]}>{t('serviceDetail.serviceDetails')}</Text>
                             <View style={styles.gridContainer}>
                                 {service.work_type && (
                                     <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>Work Type</Text>
+                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('serviceDetail.workType')}</Text>
                                         <Text style={[styles.gridValue, { color: textColor }]}>
                                             {service.work_type.charAt(0).toUpperCase() + service.work_type.slice(1).replace('_', ' ')}
                                         </Text>
@@ -361,7 +357,7 @@ export default function ServiceDetailScreen() {
                                 )}
                                 {(locations.length > 0 || service.city) && (
                                     <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>Location{locations.length > 1 ? 's' : ''}</Text>
+                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>{locations.length > 1 ? t('serviceDetail.locations') : t('serviceDetail.location')}</Text>
                                         <Text style={[styles.gridValue, { color: textColor }]} numberOfLines={2}>
                                             {locations.length > 0 ? locations.join(', ') : service.city}
                                         </Text>
@@ -369,13 +365,13 @@ export default function ServiceDetailScreen() {
                                 )}
                                 {experience && (
                                     <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>Experience</Text>
-                                        <Text style={[styles.gridValue, { color: textColor }]}>{experience} Years</Text>
+                                        <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('serviceDetail.experience')}</Text>
+                                        <Text style={[styles.gridValue, { color: textColor }]}>{experience} {t('serviceDetail.years')}</Text>
                                     </View>
                                 )}
                                 <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                                    <Text style={[styles.gridLabel, { color: textSecondary }]}>Posted</Text>
-                                    <Text style={[styles.gridValue, { color: textColor }]}>Recently</Text>
+                                    <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('serviceDetail.posted')}</Text>
+                                    <Text style={[styles.gridValue, { color: textColor }]}>{t('serviceDetail.recently')}</Text>
                                 </View>
                             </View>
                         </View>
@@ -383,11 +379,11 @@ export default function ServiceDetailScreen() {
                         {/* Provider Attributes */}
                         {(providerGender || providerReligion || (providerLanguages && providerLanguages.length > 0)) && (
                             <View style={{ marginBottom: 24 }}>
-                                <Text style={[styles.sectionTitle, { color: textColor }]}>Provider Info</Text>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>{t('serviceDetail.providerInfo')}</Text>
                                 <View style={styles.gridContainer}>
                                     {providerGender && (
                                         <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>Gender</Text>
+                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('serviceDetail.gender')}</Text>
                                             <Text style={[styles.gridValue, { color: textColor }]}>
                                                 {providerGender.charAt(0).toUpperCase() + providerGender.slice(1)}
                                             </Text>
@@ -395,13 +391,13 @@ export default function ServiceDetailScreen() {
                                     )}
                                     {providerReligion && (
                                         <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor }]}>
-                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>Religion</Text>
+                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('serviceDetail.religion')}</Text>
                                             <Text style={[styles.gridValue, { color: textColor }]}>{typeof providerReligion === 'object' ? (providerReligion as any).label : providerReligion}</Text>
                                         </View>
                                     )}
                                     {providerLanguages && providerLanguages.length > 0 && (
                                         <View style={[styles.gridItem, { backgroundColor: cardBg, borderColor, flexBasis: '100%' }]}>
-                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>Languages</Text>
+                                            <Text style={[styles.gridLabel, { color: textSecondary }]}>{t('serviceDetail.languages')}</Text>
                                             <Text style={[styles.gridValue, { color: textColor }]}>
                                                 {providerLanguages.map((l: any) => typeof l === 'object' ? l.name : l).join(', ')}
                                             </Text>
@@ -414,7 +410,7 @@ export default function ServiceDetailScreen() {
                         {/* Other Services */}
                         {otherServices.length > 0 && (
                             <View style={{ marginBottom: 24 }}>
-                                <Text style={[styles.sectionTitle, { color: textColor }]}>More from {providerName}</Text>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>{t('serviceDetail.moreFrom')} {providerName}</Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 20 }}>
                                     {otherServices.map((item, index) => (
                                         <TouchableOpacity
@@ -433,14 +429,14 @@ export default function ServiceDetailScreen() {
                                             </View>
                                             <Text style={{ fontSize: 14, fontWeight: '700', color: textColor, marginBottom: 4 }} numberOfLines={2}>
                                                 {(() => {
-                                                    const st = item.service_type || 'Service';
+                                                    const st = item.service_type || t('serviceDetail.service');
                                                     if (typeof st === 'string') return st;
-                                                    if (typeof st === 'object' && st) return st.name || st.label || st.slug || 'Service';
-                                                    return 'Service';
+                                                    if (typeof st === 'object' && st) return st.name || st.label || st.slug || t('serviceDetail.service');
+                                                    return t('serviceDetail.service');
                                                 })()}
                                             </Text>
                                             <Text style={{ fontSize: 13, color: primaryColor, fontWeight: '600' }}>
-                                                View Details
+                                                {t('serviceDetail.viewDetails')}
                                             </Text>
                                         </TouchableOpacity>
                                     ))}
@@ -449,7 +445,7 @@ export default function ServiceDetailScreen() {
                         )}
 
                     </View>
-                </ScrollView>
+                </ScrollView >
 
                 {/* Sticky Bottom Bar */}
                 <View style={[styles.bottomBar, { backgroundColor: cardBg, borderColor: borderColor, paddingBottom: insets.bottom + 12 }]}>
@@ -473,7 +469,7 @@ export default function ServiceDetailScreen() {
                             onPress={() => router.push(`/chat/${providerId}`)}
                         >
                             <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
-                            <Text style={styles.primaryButtonText}>Message</Text>
+                            <Text style={styles.primaryButtonText}>{t('serviceDetail.message')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

@@ -104,10 +104,11 @@ export default function PhoneLoginScreen() {
       const result = await login(loginData);
 
       // Only navigate if login was successful (no error thrown)
-      // If OTP is required, navigate to OTP verify screen
-      if (authMethod === 'otp' && result?.requiresOTP) {
+      // If OTP is required (either by otp auth method or verification_token in response),
+      // navigate to OTP verify screen
+      if (result?.requiresOTP) {
         router.push('/auth/otp-verify');
-      } else if (!result || !result.requiresOTP) {
+      } else if (result === undefined || !result.requiresOTP) {
         // Login successful with token - user should be saved and verified
         // Wait a moment for state to update, then navigate
         setTimeout(async () => {

@@ -6,6 +6,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
@@ -33,6 +34,7 @@ interface ChatItem {
 }
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,8 +67,8 @@ export default function ChatScreen() {
         const apiConversations = response.data.conversations || [];
         const mappedConversations: ChatItem[] = apiConversations.map((conv: any) => ({
           id: conv.id.toString(),
-          name: conv.other_user?.name || 'Unknown User',
-          lastMessage: conv.last_message?.message || 'No messages yet',
+          name: conv.other_user?.name || t('chat.unknownUser'),
+          lastMessage: conv.last_message?.message || t('chat.noMessages'),
           time: conv.last_message?.created_at
             ? new Date(conv.last_message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '',
@@ -107,10 +109,10 @@ export default function ChatScreen() {
         undefined,
         true
       );
-      toast.success('Conversation deleted');
+      toast.success(t('chat.deletedSuccess'));
     } catch (error) {
       console.error("Error deleting conversation:", error);
-      toast.error('Failed to delete conversation');
+      toast.error(t('chat.deleteError'));
       // Revert state on error
       fetchConversations();
     }
@@ -167,14 +169,14 @@ export default function ChatScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <ScreenHeader title="Messages" showBackButton={false} />
+      <ScreenHeader title={t('chat.title')} showBackButton={false} />
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor }]}>
         <IconSymbol name="magnifyingglass" size={20} color={textMuted} />
         <TextInput
           style={[styles.searchInput, { color: textColor }]}
-          placeholder="Search conversations..."
+          placeholder={t('chat.searchPlaceholder')}
           placeholderTextColor={textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -193,9 +195,9 @@ export default function ChatScreen() {
       ) : (
         <View style={styles.emptyState}>
           <IconSymbol name="message" size={48} color={textMuted} />
-          <ThemedText style={styles.emptyText}>No conversations yet</ThemedText>
+          <ThemedText style={styles.emptyText}>{t('chat.noConversations')}</ThemedText>
           <ThemedText style={[styles.emptySubtext, { color: textMuted }]}>
-            Start chatting with helpers or businesses
+            {t('chat.startChatting')}
           </ThemedText>
         </View>
       )}
@@ -209,22 +211,22 @@ export default function ChatScreen() {
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
-                <ThemedText type="subtitle" style={styles.modalTitle}>Delete Conversation</ThemedText>
+                <ThemedText type="subtitle" style={styles.modalTitle}>{t('chat.deleteTitle')}</ThemedText>
                 <ThemedText style={styles.modalText}>
-                  Are you sure you want to delete this conversation? This action cannot be undone.
+                  {t('chat.deleteConfirm')}
                 </ThemedText>
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.cancelButton]}
                     onPress={() => setDeleteModalVisible(false)}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={styles.cancelButtonText}>{t('chat.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.deleteButton]}
                     onPress={confirmDeleteConversation}
                   >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
+                    <Text style={styles.deleteButtonText}>{t('chat.delete')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

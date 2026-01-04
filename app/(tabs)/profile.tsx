@@ -2,9 +2,11 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -21,6 +23,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useApp();
+  const { t } = useTranslation();
   const { themeMode, setThemeMode, colorScheme } = useTheme();
 
   // Theme colors
@@ -52,58 +56,58 @@ export default function ProfileScreen() {
   const menuItems = [
     {
       id: 'edit-profile',
-      title: 'Edit Profile',
+      title: t('profile.editProfile'),
       icon: 'person.fill',
       onPress: () => router.push('/profile/edit'),
     },
     {
       id: 'business-dashboard',
-      title: 'Business Dashboard',
+      title: t('profile.businessDashboard'),
       icon: 'briefcase.fill',
       onPress: () => router.push('/business/dashboard'),
       show: user?.userType === 'business',
     },
     {
       id: 'manage-workers',
-      title: 'Manage Workers',
+      title: t('profile.manageWorkers'),
       icon: 'person.3.fill',
       onPress: () => router.push('/workers'),
       show: user?.userType === 'business',
     },
     {
       id: 'service-offerings',
-      title: 'Service Offerings',
+      title: t('profile.serviceOfferings'),
       icon: 'list.bullet',
       onPress: () => router.push('/profile/service-offerings'),
       show: user?.userType === 'helper',
     },
     {
       id: 'bookings',
-      title: 'Job Applications',
+      title: t('profile.jobApplications'),
       icon: 'calendar',
       onPress: () => router.push('/profile/bookings'),
     },
     {
       id: 'notifications',
-      title: 'Notifications',
+      title: t('profile.notifications'),
       icon: 'bell.fill',
       onPress: () => router.push('/notifications'),
     },
     {
       id: 'settings',
-      title: 'Settings',
+      title: t('profile.settings'),
       icon: 'gearshape.fill',
       onPress: () => router.push('/settings'),
     },
     {
       id: 'help',
-      title: 'Help & Support',
+      title: t('profile.helpSupport'),
       icon: 'questionmark.circle.fill',
       onPress: () => router.push('/help'),
     },
     {
       id: 'logout',
-      title: 'Logout',
+      title: t('profile.logout'),
       icon: 'arrow.right.square.fill',
       onPress: handleLogout,
       destructive: true,
@@ -115,7 +119,7 @@ export default function ProfileScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Profile Header */}
-      <ScreenHeader title="Profile" showBackButton={false} />
+      <ScreenHeader title={t('profile.title')} showBackButton={false} />
 
       <ScrollView
         style={styles.scrollView}
@@ -137,10 +141,10 @@ export default function ProfileScreen() {
           <View style={[styles.badge, { backgroundColor: primaryLight }]}>
             <Text style={[styles.badgeText, { color: primaryColor }]}>
               {user?.userType === 'user'
-                ? 'Customer'
+                ? t('profile.customer')
                 : user?.userType === 'helper'
-                  ? 'Helper'
-                  : 'Business'}
+                  ? t('profile.helper')
+                  : t('profile.business')}
             </Text>
           </View>
         </View>
@@ -178,10 +182,49 @@ export default function ProfileScreen() {
           ))}
         </View>
 
+        {/* Language Selection */}
+        <View style={styles.themeSection}>
+          <ThemedText type="subtitle" style={styles.themeSectionTitle}>
+            {t('profile.language')}
+          </ThemedText>
+          <View style={styles.themeOptions}>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                language === 'en' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setLanguage('en')}
+            >
+              <ThemedText style={styles.themeOptionText}>{t('profile.english')}</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                language === 'ur' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setLanguage('ur')}
+            >
+              <ThemedText style={[styles.themeOptionText, { fontFamily: 'System' }]}>{t('profile.urdu')}</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.themeOption,
+                { backgroundColor: cardBg, borderColor },
+                language === 'roman' && { borderColor: primaryColor, borderWidth: 2 }
+              ]}
+              onPress={() => setLanguage('roman')}
+            >
+              <ThemedText style={styles.themeOptionText}>{t('profile.roman')}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Theme Selection */}
         <View style={styles.themeSection}>
           <ThemedText type="subtitle" style={styles.themeSectionTitle}>
-            Appearance
+            {t('profile.appearance')}
           </ThemedText>
           <View style={styles.themeOptions}>
             <TouchableOpacity
@@ -193,7 +236,7 @@ export default function ProfileScreen() {
               onPress={() => setThemeMode('light')}
             >
               <IconSymbol name="sun.max.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.themeOptionText}>Light</ThemedText>
+              <ThemedText style={styles.themeOptionText}>{t('profile.light')}</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -204,7 +247,7 @@ export default function ProfileScreen() {
               onPress={() => setThemeMode('dark')}
             >
               <IconSymbol name="moon.fill" size={24} color={iconColor} />
-              <ThemedText style={styles.themeOptionText}>Dark</ThemedText>
+              <ThemedText style={styles.themeOptionText}>{t('profile.dark')}</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -215,7 +258,7 @@ export default function ProfileScreen() {
               onPress={() => setThemeMode('auto')}
             >
               <IconSymbol name="circle.lefthalf.filled" size={24} color={iconColor} />
-              <ThemedText style={styles.themeOptionText}>Auto</ThemedText>
+              <ThemedText style={styles.themeOptionText}>{t('profile.auto')}</ThemedText>
             </TouchableOpacity>
           </View>
         </View>

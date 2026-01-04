@@ -2,6 +2,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -15,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AboutScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   // Theme colors
@@ -37,7 +39,7 @@ export default function AboutScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Header */}
-      <ScreenHeader title="About Kamwaalay" />
+      <ScreenHeader title={t('about.title')} />
 
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
 
@@ -53,51 +55,51 @@ export default function AboutScreen() {
               />
             </View>
             <ThemedText type="title" style={[styles.appName, { color: textColor }]}>Kamwaalay</ThemedText>
-            <ThemedText style={[styles.version, { color: textMuted }]}>Version 1.0.0</ThemedText>
+            <ThemedText style={[styles.version, { color: textMuted }]}>{t('about.appInfo.version')}</ThemedText>
           </View>
 
           {/* About Section */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              About Us
+              {t('about.aboutUs.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              Kamwaalay is a platform that connects customers with trusted helpers and businesses for household services. Whether you need cleaning, cooking, babysitting, elderly care, or other household services, Kamwaalay makes it easy to find and hire qualified professionals.
+              {t('about.aboutUs.description')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              Our mission is to create a reliable and convenient marketplace where customers can find quality service providers, and helpers and businesses can grow their client base.
+              {t('about.aboutUs.mission')}
             </ThemedText>
           </View>
 
           {/* Features Section */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              Key Features
+              {t('about.features.title')}
             </ThemedText>
             <View style={styles.featureList}>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                <ThemedText style={[styles.featureText, { color: textSecondary }]}>Easy job creation</ThemedText>
+                <ThemedText style={[styles.featureText, { color: textSecondary }]}>{t('about.features.list.jobCreation')}</ThemedText>
               </View>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                <ThemedText style={[styles.featureText, { color: textSecondary }]}>Verified helpers and businesses</ThemedText>
+                <ThemedText style={[styles.featureText, { color: textSecondary }]}>{t('about.features.list.verified')}</ThemedText>
               </View>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                <ThemedText style={[styles.featureText, { color: textSecondary }]}>Secure messaging and communication</ThemedText>
+                <ThemedText style={[styles.featureText, { color: textSecondary }]}>{t('about.features.list.messaging')}</ThemedText>
               </View>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                <ThemedText style={[styles.featureText, { color: textSecondary }]}>Booking management</ThemedText>
+                <ThemedText style={[styles.featureText, { color: textSecondary }]}>{t('about.features.list.booking')}</ThemedText>
               </View>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                <ThemedText style={[styles.featureText, { color: textSecondary }]}>Service offerings management</ThemedText>
+                <ThemedText style={[styles.featureText, { color: textSecondary }]}>{t('about.features.list.serviceOfferings')}</ThemedText>
               </View>
               <View style={styles.featureItem}>
                 <IconSymbol name="checkmark.circle.fill" size={24} color="#34C759" />
-                <ThemedText style={[styles.featureText, { color: textSecondary }]}>Location-based search</ThemedText>
+                <ThemedText style={[styles.featureText, { color: textSecondary }]}>{t('about.features.list.location')}</ThemedText>
               </View>
             </View>
           </View>
@@ -105,7 +107,7 @@ export default function AboutScreen() {
           {/* Contact Section */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              Contact Us
+              {t('about.contact.title')}
             </ThemedText>
             <View style={[styles.contactCard, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.contactRow}>
@@ -118,7 +120,7 @@ export default function AboutScreen() {
               </View>
               <View style={styles.contactRow}>
                 <IconSymbol name="location.fill" size={20} color={primaryColor} />
-                <ThemedText style={[styles.contactText, { color: textColor }]}>Karachi, Pakistan</ThemedText>
+                <ThemedText style={[styles.contactText, { color: textColor }]}>{t('about.contact.address')}</ThemedText>
               </View>
             </View>
           </View>
@@ -126,7 +128,7 @@ export default function AboutScreen() {
           {/* Social Media Section */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              Follow Us
+              {t('about.followUs.title')}
             </ThemedText>
             <View style={styles.socialLinks}>
               <TouchableOpacity
@@ -134,21 +136,7 @@ export default function AboutScreen() {
                 onPress={() => handleSocialLink('https://facebook.com/kamwaalay')}
               >
                 <IconSymbol name="message.fill" size={24} color={primaryColor} />
-                <ThemedText style={[styles.socialText, { color: textColor }]}>Facebook</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialButton, { backgroundColor: cardBg, borderColor }]}
-                onPress={() => handleSocialLink('https://twitter.com/kamwaalay')}
-              >
-                <IconSymbol name="message.fill" size={24} color={primaryColor} />
-                <ThemedText style={[styles.socialText, { color: textColor }]}>Twitter</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialButton, { backgroundColor: cardBg, borderColor }]}
-                onPress={() => handleSocialLink('https://instagram.com/kamwaalay')}
-              >
-                <IconSymbol name="message.fill" size={24} color={primaryColor} />
-                <ThemedText style={[styles.socialText, { color: textColor }]}>Instagram</ThemedText>
+                <ThemedText style={[styles.socialText, { color: textColor }]}>{t('about.followUs.facebook')}</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -159,14 +147,14 @@ export default function AboutScreen() {
               style={[styles.linkButton, { backgroundColor: cardBg, borderColor }]}
               onPress={() => router.push('/terms')}
             >
-              <ThemedText style={[styles.linkText, { color: textColor }]}>Terms & Conditions</ThemedText>
+              <ThemedText style={[styles.linkText, { color: textColor }]}>{t('about.legal.terms')}</ThemedText>
               <IconSymbol name="chevron.right" size={20} color={textMuted} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.linkButton, { backgroundColor: cardBg, borderColor }]}
               onPress={() => router.push('/privacy')}
             >
-              <ThemedText style={[styles.linkText, { color: textColor }]}>Privacy Policy</ThemedText>
+              <ThemedText style={[styles.linkText, { color: textColor }]}>{t('about.legal.privacy')}</ThemedText>
               <IconSymbol name="chevron.right" size={20} color={textMuted} />
             </TouchableOpacity>
           </View>
@@ -174,7 +162,7 @@ export default function AboutScreen() {
           {/* Copyright */}
           <View style={styles.footer}>
             <ThemedText style={[styles.copyright, { color: textMuted }]}>
-              © 2024 Kamwaalay. All rights reserved.
+              {t('about.footer.copyright')}
             </ThemedText>
           </View>
         </View>

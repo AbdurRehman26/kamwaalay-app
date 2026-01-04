@@ -4,6 +4,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -20,6 +21,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ChangePasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { changePassword } = useAuth();
   const insets = useSafeAreaInsets();
@@ -45,16 +47,16 @@ export default function ChangePasswordScreen() {
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
+      return t('changePassword.validation.length');
     }
     if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
+      return t('changePassword.validation.uppercase');
     }
     if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
+      return t('changePassword.validation.lowercase');
     }
     if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number';
+      return t('changePassword.validation.number');
     }
     return null;
   };
@@ -64,12 +66,12 @@ export default function ChangePasswordScreen() {
 
     // Validation
     if (!currentPassword.trim()) {
-      setFormError('Please enter your current password');
+      setFormError(t('changePassword.validation.requiredCurrent'));
       return;
     }
 
     if (!newPassword.trim()) {
-      setFormError('Please enter a new password');
+      setFormError(t('changePassword.validation.requiredNew'));
       return;
     }
 
@@ -80,19 +82,19 @@ export default function ChangePasswordScreen() {
     }
 
     if (newPassword !== confirmPassword) {
-      setFormError('New passwords do not match');
+      setFormError(t('changePassword.validation.matchError'));
       return;
     }
 
     if (currentPassword === newPassword) {
-      setFormError('New password must be different from current password');
+      setFormError(t('changePassword.validation.different'));
       return;
     }
 
     setIsLoading(true);
     try {
       await changePassword(currentPassword, newPassword);
-      Alert.alert('Success', 'Password changed successfully', [
+      Alert.alert(t('changePassword.alerts.success'), t('changePassword.alerts.successMessage'), [
         { text: 'OK', onPress: () => router.back() },
       ]);
       // Clear form
@@ -101,7 +103,7 @@ export default function ChangePasswordScreen() {
       setConfirmPassword('');
     } catch (error: any) {
       // Show backend error inline
-      setFormError(error.message || 'Failed to change password. Please try again.');
+      setFormError(error.message || t('changePassword.alerts.error'));
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +116,7 @@ export default function ChangePasswordScreen() {
         style={styles.keyboardView}
       >
         {/* Header */}
-        <ScreenHeader title="Change Password" />
+        <ScreenHeader title={t('changePassword.title')} />
 
         <ScrollView
           style={styles.scrollView}
@@ -127,19 +129,19 @@ export default function ChangePasswordScreen() {
           <View style={[styles.infoSection, { backgroundColor: cardBg, borderColor: borderColor }]}>
             <IconSymbol name="info.circle.fill" size={24} color={primaryColor} />
             <ThemedText style={[styles.infoText, { color: textColor }]}>
-              Your password must be at least 8 characters long and contain uppercase, lowercase, and numbers.
+              {t('changePassword.info')}
             </ThemedText>
           </View>
 
           {/* Current Password */}
           <View style={styles.section}>
-            <ThemedText style={styles.label}>CURRENT PASSWORD *</ThemedText>
+            <ThemedText style={styles.label}>{t('changePassword.currentPassword')}</ThemedText>
             <View style={[styles.passwordContainer, { backgroundColor: cardBg, borderColor: borderColor }]}>
               <TextInput
                 style={[styles.input, { color: textColor }]}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
-                placeholder="Enter current password"
+                placeholder={t('changePassword.placeholders.current')}
                 placeholderTextColor={textMuted}
                 secureTextEntry={!showCurrentPassword}
                 autoCapitalize="none"
@@ -159,13 +161,13 @@ export default function ChangePasswordScreen() {
 
           {/* New Password */}
           <View style={styles.section}>
-            <ThemedText style={styles.label}>NEW PASSWORD *</ThemedText>
+            <ThemedText style={styles.label}>{t('changePassword.newPassword')}</ThemedText>
             <View style={[styles.passwordContainer, { backgroundColor: cardBg, borderColor: borderColor }]}>
               <TextInput
                 style={[styles.input, { color: textColor }]}
                 value={newPassword}
                 onChangeText={setNewPassword}
-                placeholder="Enter new password"
+                placeholder={t('changePassword.placeholders.new')}
                 placeholderTextColor={textMuted}
                 secureTextEntry={!showNewPassword}
                 autoCapitalize="none"
@@ -186,20 +188,20 @@ export default function ChangePasswordScreen() {
                 styles.helperText,
                 !validatePassword(newPassword) && styles.helperTextSuccess
               ]}>
-                {validatePassword(newPassword) || '✓ Password is valid'}
+                {validatePassword(newPassword) || t('changePassword.validation.valid')}
               </ThemedText>
             )}
           </View>
 
           {/* Confirm New Password */}
           <View style={styles.section}>
-            <ThemedText style={styles.label}>CONFIRM NEW PASSWORD *</ThemedText>
+            <ThemedText style={styles.label}>{t('changePassword.confirmPassword')}</ThemedText>
             <View style={[styles.passwordContainer, { backgroundColor: cardBg, borderColor: borderColor }]}>
               <TextInput
                 style={[styles.input, { color: textColor }]}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                placeholder="Confirm new password"
+                placeholder={t('changePassword.placeholders.confirm')}
                 placeholderTextColor={textMuted}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
@@ -223,8 +225,8 @@ export default function ChangePasswordScreen() {
                 ]}
               >
                 {newPassword === confirmPassword
-                  ? '✓ Passwords match'
-                  : '✗ Passwords do not match'}
+                  ? t('changePassword.validation.match')
+                  : t('changePassword.validation.noMatch')}
               </ThemedText>
             )}
           </View>
@@ -237,7 +239,7 @@ export default function ChangePasswordScreen() {
               disabled={isLoading}
             >
               <Text style={styles.changeButtonText}>
-                {isLoading ? 'Changing Password...' : 'Change Password'}
+                {isLoading ? t('changePassword.actions.changing') : t('changePassword.actions.change')}
               </Text>
             </TouchableOpacity>
 
@@ -251,19 +253,19 @@ export default function ChangePasswordScreen() {
           {/* Security Tips */}
           <View style={[styles.tipsSection, { backgroundColor: cardBg, borderColor: borderColor }]}>
             <ThemedText type="subtitle" style={styles.tipsTitle}>
-              Password Tips
+              {t('changePassword.tips.title')}
             </ThemedText>
             <View style={styles.tipItem}>
               <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
-              <ThemedText style={[styles.tipText, { color: textMuted }]}>Use a unique password</ThemedText>
+              <ThemedText style={[styles.tipText, { color: textMuted }]}>{t('changePassword.tips.unique')}</ThemedText>
             </View>
             <View style={styles.tipItem}>
               <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
-              <ThemedText style={[styles.tipText, { color: textMuted }]}>Don't share your password with anyone</ThemedText>
+              <ThemedText style={[styles.tipText, { color: textMuted }]}>{t('changePassword.tips.share')}</ThemedText>
             </View>
             <View style={styles.tipItem}>
               <IconSymbol name="checkmark.circle.fill" size={16} color="#34C759" />
-              <ThemedText style={[styles.tipText, { color: textMuted }]}>Change your password regularly</ThemedText>
+              <ThemedText style={[styles.tipText, { color: textMuted }]}>{t('changePassword.tips.regular')}</ThemedText>
             </View>
           </View>
         </ScrollView>

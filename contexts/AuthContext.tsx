@@ -332,8 +332,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userId = responseData.user_id || userDataFromApi.id || responseData.id;
 
         // If we have a token, proceed with direct login (user is already authenticated)
-        // This takes priority over OTP verification
-        if (token) {
+        // This takes priority over OTP verification unless verification_token is also present
+        // (though usually they are mutually exclusive)
+        if (token && !responseData.verification_token) {
           console.log('[Login] Token found - proceeding with direct login', {
             userId,
             hasUserData: !!userDataFromApi,
@@ -369,10 +370,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return; // No OTP required - login successful
         }
 
-        // No token - check if OTP verification is required
-        // For OTP flow, API might return user_id but no token yet
-        if (data.authMethod === 'otp') {
-          console.log('[Login] No token found - OTP verification required', {
+        // Check if verification_token is present or OTP auth was requested
+        if (responseData.verification_token || data.authMethod === 'otp') {
+          console.log('[Login] OTP verification required', {
+            hasVerificationToken: !!responseData.verification_token,
             userId,
           });
 
@@ -391,7 +392,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('[Login] Temporary user saved - OTP required');
           return { requiresOTP: true };
         } else {
-          // Password auth but no token - unexpected
+          // Password auth but no token and no verification token - unexpected
           console.error('[Login] Password auth but no token received');
           throw new Error('Unexpected response from server');
         }

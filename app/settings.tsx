@@ -15,9 +15,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { themeMode, setThemeMode, colorScheme } = useTheme();
 
@@ -33,7 +35,7 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <ScreenHeader title="Settings" />
+      <ScreenHeader title={t('settings.title')} />
 
       <ScrollView
         style={styles.scrollView}
@@ -48,7 +50,7 @@ export default function SettingsScreen() {
           {/* Theme Settings */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Appearance
+              {t('settings.appearance.title')}
             </ThemedText>
             <View style={[styles.settingItem, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.settingLeft}>
@@ -57,7 +59,7 @@ export default function SettingsScreen() {
                   size={24}
                   color={iconColor}
                 />
-                <ThemedText style={styles.settingLabel}>Theme</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('settings.appearance.theme')}</ThemedText>
               </View>
             </View>
             <View style={styles.themeOptions}>
@@ -70,7 +72,7 @@ export default function SettingsScreen() {
                 onPress={() => setThemeMode('light')}
               >
                 <IconSymbol name="sun.max.fill" size={20} color={iconColor} />
-                <ThemedText style={styles.themeOptionText}>Light</ThemedText>
+                <ThemedText style={styles.themeOptionText}>{t('settings.appearance.light')}</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -81,7 +83,7 @@ export default function SettingsScreen() {
                 onPress={() => setThemeMode('dark')}
               >
                 <IconSymbol name="moon.fill" size={20} color={iconColor} />
-                <ThemedText style={styles.themeOptionText}>Dark</ThemedText>
+                <ThemedText style={styles.themeOptionText}>{t('settings.appearance.dark')}</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -92,7 +94,7 @@ export default function SettingsScreen() {
                 onPress={() => setThemeMode('auto')}
               >
                 <IconSymbol name="circle.lefthalf.filled" size={20} color={iconColor} />
-                <ThemedText style={styles.themeOptionText}>Auto</ThemedText>
+                <ThemedText style={styles.themeOptionText}>{t('settings.appearance.auto')}</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -103,7 +105,7 @@ export default function SettingsScreen() {
           {user?.userType === 'business' && (
             <View style={styles.section}>
               <ThemedText type="subtitle" style={styles.sectionTitle}>
-                Business
+                {t('settings.business.title')}
               </ThemedText>
               <TouchableOpacity
                 style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
@@ -111,7 +113,7 @@ export default function SettingsScreen() {
               >
                 <View style={styles.menuItemLeft}>
                   <IconSymbol name="chart.bar.fill" size={24} color={iconColor} />
-                  <ThemedText style={styles.menuItemText}>Business Dashboard</ThemedText>
+                  <ThemedText style={styles.menuItemText}>{t('settings.business.dashboard')}</ThemedText>
                 </View>
                 <IconSymbol name="chevron.right" size={20} color={textSecondary} />
               </TouchableOpacity>
@@ -121,7 +123,7 @@ export default function SettingsScreen() {
               >
                 <View style={styles.menuItemLeft}>
                   <IconSymbol name="person.2.fill" size={24} color={iconColor} />
-                  <ThemedText style={styles.menuItemText}>Manage Workers</ThemedText>
+                  <ThemedText style={styles.menuItemText}>{t('settings.business.workers')}</ThemedText>
                 </View>
                 <IconSymbol name="chevron.right" size={20} color={textSecondary} />
               </TouchableOpacity>
@@ -131,7 +133,7 @@ export default function SettingsScreen() {
           {/* Account Settings */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Account
+              {t('settings.account.title')}
             </ThemedText>
             <TouchableOpacity
               style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
@@ -139,7 +141,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <IconSymbol name="person.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.menuItemText}>Edit Profile</ThemedText>
+                <ThemedText style={styles.menuItemText}>{t('settings.account.editProfile')}</ThemedText>
               </View>
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
@@ -149,7 +151,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <IconSymbol name="lock.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.menuItemText}>Change Password</ThemedText>
+                <ThemedText style={styles.menuItemText}>{t('settings.account.changePassword')}</ThemedText>
               </View>
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
@@ -158,7 +160,7 @@ export default function SettingsScreen() {
           {/* App Settings */}
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              App
+              {t('settings.app.title')}
             </ThemedText>
             <TouchableOpacity
               style={[styles.menuItem, { backgroundColor: cardBg, borderColor }]}
@@ -166,7 +168,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <IconSymbol name="info.circle.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.menuItemText}>About</ThemedText>
+                <ThemedText style={styles.menuItemText}>{t('settings.app.about')}</ThemedText>
               </View>
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
@@ -176,7 +178,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <IconSymbol name="doc.text.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.menuItemText}>Terms & Conditions</ThemedText>
+                <ThemedText style={styles.menuItemText}>{t('settings.app.terms')}</ThemedText>
               </View>
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>
@@ -186,7 +188,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.menuItemLeft}>
                 <IconSymbol name="hand.raised.fill" size={24} color={iconColor} />
-                <ThemedText style={styles.menuItemText}>Privacy Policy</ThemedText>
+                <ThemedText style={styles.menuItemText}>{t('settings.app.privacy')}</ThemedText>
               </View>
               <IconSymbol name="chevron.right" size={20} color={textSecondary} />
             </TouchableOpacity>

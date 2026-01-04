@@ -1,6 +1,7 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -11,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TermsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   // Theme colors
@@ -27,123 +29,122 @@ export default function TermsScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Header */}
-      <ScreenHeader title="Terms & Conditions" />
+      <ScreenHeader title={t('terms.title')} />
 
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
 
         {/* Content Container */}
         <View style={styles.content}>
-          <ThemedText style={[styles.lastUpdated, { color: textMuted }]}>Last Updated: January 2024</ThemedText>
+          <ThemedText style={[styles.lastUpdated, { color: textMuted }]}>{t('terms.lastUpdated')}</ThemedText>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              1. Acceptance of Terms
+              {t('terms.section1.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              By accessing and using the Kamwaalay mobile application, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+              {t('terms.section1.content')}
             </ThemedText>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              2. Use License
+              {t('terms.section2.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              Permission is granted to temporarily download one copy of the materials on Kamwaalay's mobile application for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
+              {t('terms.section2.content')}
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Modify or copy the materials</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Use the materials for any commercial purpose</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Attempt to decompile or reverse engineer any software</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Remove any copyright or other proprietary notations</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section2.list.modify')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section2.list.commercial')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section2.list.decompile')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section2.list.remove')}</ThemedText>
             </View>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              3. User Accounts
+              {t('terms.section3.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account or password. You must notify us immediately of any unauthorized use of your account.
+              {t('terms.section3.content')}
             </ThemedText>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              4. Jobs and Bookings
+              {t('terms.section4.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              When you create a job or apply to provide services, you agree to:
+              {t('terms.section4.content')}
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Provide accurate and complete information</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Honor all commitments made through the platform</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Communicate professionally with other users</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Pay or receive payment as agreed upon</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section4.list.accurate')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section4.list.honor')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section4.list.communicate')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section4.list.payment')}</ThemedText>
             </View>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              5. Prohibited Activities
+              {t('terms.section5.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              You agree not to:
+              {t('terms.section5.content')}
             </ThemedText>
             <View style={styles.list}>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Post false, misleading, or fraudulent information</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Harass, abuse, or harm other users</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Violate any applicable laws or regulations</ThemedText>
-              <ThemedText style={[styles.listItem, { color: textSecondary }]}>• Interfere with the operation of the service</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section5.list.false')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section5.list.harass')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section5.list.violate')}</ThemedText>
+              <ThemedText style={[styles.listItem, { color: textSecondary }]}>{t('terms.section5.list.interfere')}</ThemedText>
             </View>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              6. Limitation of Liability
+              {t('terms.section6.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              Kamwaalay acts as a platform connecting users with service providers. We are not responsible for the quality, safety, or legality of services provided by users. We do not guarantee the accuracy of user-provided information.
+              {t('terms.section6.content')}
             </ThemedText>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              7. Payment Terms
+              {t('terms.section7.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              All payments are processed through secure payment methods. Users are responsible for all charges incurred through their account. Refunds are subject to our refund policy and the terms agreed upon between users.
+              {t('terms.section7.content')}
             </ThemedText>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              8. Termination
+              {t('terms.section8.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              We reserve the right to terminate or suspend your account and access to the service immediately, without prior notice, for any breach of these Terms and Conditions.
+              {t('terms.section8.content')}
             </ThemedText>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              9. Changes to Terms
+              {t('terms.section9.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              Kamwaalay reserves the right to revise these terms at any time. By continuing to use the service after changes are made, you agree to be bound by the revised terms.
+              {t('terms.section9.content')}
             </ThemedText>
           </View>
 
           <View style={styles.section}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              10. Contact Information
+              {t('terms.section10.title')}
             </ThemedText>
             <ThemedText style={[styles.text, { color: textSecondary }]}>
-              If you have any questions about these Terms and Conditions, please contact us at:
+              {t('terms.section10.content')}
             </ThemedText>
             <ThemedText style={[styles.contactInfo, { color: primaryColor }]}>
-              Email: legal@kamwaalay.com{'\n'}
-              Phone: +92-300-1234567
+              {t('terms.section10.contactInfo')}
             </ThemedText>
           </View>
         </View>

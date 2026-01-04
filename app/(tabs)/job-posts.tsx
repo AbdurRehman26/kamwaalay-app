@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { notificationService } from '@/services/notification.service';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -66,6 +67,7 @@ interface JobPost {
 
 
 export default function JobPostsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const { applyToJob, serviceTypes } = useApp();
@@ -366,7 +368,7 @@ export default function JobPostsScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Allow location access to pin your location on map');
+        Alert.alert(t('common.error'), 'Allow location access to pin your location on map');
         return;
       }
 
@@ -434,7 +436,7 @@ export default function JobPostsScreen() {
 
       setIsMapVisible(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to get address details');
+      Alert.alert(t('common.error'), 'Failed to get address details');
     } finally {
       setIsGeocoding(false);
     }
@@ -444,21 +446,21 @@ export default function JobPostsScreen() {
 
   const handleApply = async (requestId: string) => {
     if (!user?.id) {
-      Alert.alert('Error', 'Please login to apply');
+      Alert.alert(t('common.error'), t('jobPosts.card.loginToApply'));
       return;
     }
 
     const request = allRequests.find((r) => r.id === requestId);
     if (request?.applicants?.includes(user.id)) {
-      Alert.alert('Already Applied', 'You have already applied to this job');
+      Alert.alert(t('jobPosts.card.applied'), 'You have already applied to this job');
       return;
     }
 
     try {
       await applyToJob(requestId, user.id);
-      Alert.alert('Success', 'You have successfully applied to this job!');
+      Alert.alert(t('common.success'), 'You have successfully applied to this job!');
     } catch (error) {
-      Alert.alert('Error', 'Failed to apply. Please try again.');
+      Alert.alert(t('common.error'), 'Failed to apply. Please try again.');
     }
   };
 
@@ -489,9 +491,10 @@ export default function JobPostsScreen() {
     const isOpen = request.status === 'open';
     const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
 
+
     // Format date
     const formatDate = (dateString: string) => {
-      if (!dateString) return 'Date not specified';
+      if (!dateString) return t('jobPosts.card.dateNotSpecified');
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', {
         weekday: 'short',
@@ -505,14 +508,17 @@ export default function JobPostsScreen() {
     const formatPostedDate = (dateString: string) => {
       if (!dateString) return '';
       const date = new Date(dateString);
-      return `Posted ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return `${t('jobPosts.card.posted')} ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     };
 
     const formatWorkType = (type?: string) => {
-      if (!type) return 'Part Time';
+      if (!type) return t('home.jobCard.partTime');
       return type
         .split(/[_\s]/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .map(word => {
+          const mapped = t(`home.jobCard.${word.toLowerCase()}`);
+          return mapped !== `home.jobCard.${word.toLowerCase()}` ? mapped : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })
         .join(' ');
     };
 
@@ -631,9 +637,9 @@ export default function JobPostsScreen() {
 
             {/* Special Requirements Box */}
             <View style={[styles.requirementsBox, { backgroundColor: cardBg, borderColor: borderColor }]}>
-              <Text style={[styles.requirementsTitle, { color: textSecondary }]}>SPECIAL REQUIREMENTS</Text>
+              <Text style={[styles.requirementsTitle, { color: textSecondary }]}>{t('jobPosts.card.specialRequirements')}</Text>
               <Text style={[styles.requirementsText, { color: textMuted }]} numberOfLines={2}>
-                "{request.description || 'No special requirements specified'}"
+                "{request.description || t('jobPosts.card.noRequirements')}"
               </Text>
             </View>
 
@@ -643,7 +649,7 @@ export default function JobPostsScreen() {
             {/* Footer */}
             <View style={styles.cardFooter}>
               <Text style={styles.applicantsText}>
-                {request.applicants?.length || 0} Applicants
+                {request.applicants?.length || 0} {t('jobPosts.card.applicants')}
               </Text>
 
               {user?.userType === 'user' && request.userId === user?.id ? (
@@ -653,14 +659,14 @@ export default function JobPostsScreen() {
                     onPress={() => router.push(`/job/edit/${request.id}`)}
                   >
                     <IconSymbol name="pencil" size={14} color="#38BDF8" />
-                    <Text style={[styles.actionButtonText, { color: '#38BDF8' }]}>Edit</Text>
+                    <Text style={[styles.actionButtonText, { color: '#38BDF8' }]}>{t('jobPosts.card.edit')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={styles.actionButton}
                     onPress={() => handleContactApplicants(request)}
                   >
-                    <Text style={styles.actionButtonText}>Applicants</Text>
+                    <Text style={styles.actionButtonText}>{t('jobPosts.card.viewApplicants')}</Text>
                     <IconSymbol name="arrow.right" size={16} color="#818CF8" />
                   </TouchableOpacity>
                 </View>
@@ -671,7 +677,7 @@ export default function JobPostsScreen() {
                   disabled={!isHelperOrBusiness && !!user}
                 >
                   <Text style={styles.actionButtonText}>
-                    {!user ? 'Login to Apply' : (isHelperOrBusiness ? (hasApplied ? 'Applied' : 'Apply Now') : 'Helpers Only')}
+                    {!user ? t('jobPosts.card.loginToApply') : (isHelperOrBusiness ? (hasApplied ? t('jobPosts.card.applied') : t('jobPosts.card.applyNow')) : t('jobPosts.card.helpersOnly'))}
                   </Text>
                   {(!user || isHelperOrBusiness) && <IconSymbol name="arrow.right" size={16} color="#818CF8" />}
                 </TouchableOpacity>
@@ -700,7 +706,7 @@ export default function JobPostsScreen() {
 
       {/* Header */}
       <ScreenHeader
-        title={user?.userType === 'user' ? 'My Jobs' : 'Find Jobs'}
+        title={user?.userType === 'user' ? t('jobPosts.myJobs') : t('jobPosts.findJobs')}
         showBackButton={false}
         rightElement={
           user?.userType === 'user' ? (
@@ -722,7 +728,7 @@ export default function JobPostsScreen() {
             <IconSymbol name="magnifyingglass" size={20} color={textMuted} />
             <TextInput
               style={[styles.searchInput, { color: textColor }]}
-              placeholder="Search jobs..."
+              placeholder={t('jobPosts.searchPlaceholder')}
               placeholderTextColor={textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -757,7 +763,7 @@ export default function JobPostsScreen() {
                 { color: textSecondary },
                 selectedTab === 'my' && { color: '#FFFFFF' }
               ]}>
-                My Jobs ({myRequests.length})
+                {t('jobPosts.tabs.my')} ({myRequests.length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -788,7 +794,7 @@ export default function JobPostsScreen() {
           {isLoading && jobs.length === 0 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={primaryColor} />
-              <Text style={[styles.loadingText, { color: textSecondary }]}>Loading jobs...</Text>
+              <Text style={[styles.loadingText, { color: textSecondary }]}>{t('jobPosts.empty.loading')}</Text>
             </View>
           ) : filteredRequests.length > 0 ? (
             <View style={styles.content}>
@@ -800,19 +806,19 @@ export default function JobPostsScreen() {
                 <IconSymbol name="doc.text.fill" size={48} color={textMuted} />
               </View>
               <Text style={[styles.emptyTitle, { color: textColor }]}>
-                {user?.userType === 'user' ? 'No Jobs Yet' : 'No Jobs Found'}
+                {user?.userType === 'user' ? t('jobPosts.empty.noJobsYet') : t('jobPosts.empty.noJobsFound')}
               </Text>
               <Text style={[styles.emptyText, { color: textSecondary }]}>
                 {user?.userType === 'user' ? (
-                  'Create your first job to get started'
+                  t('jobPosts.empty.createStart')
                 ) : activeFiltersCount > 0 ? (
-                  'No requests match your filters. Try adjusting your filters.'
+                  t('jobPosts.empty.noMatch')
                 ) : searchQuery.trim() ? (
-                  'Try adjusting your search'
+                  t('jobPosts.empty.adjustSearch')
                 ) : selectedTab === 'applied' ? (
-                  "You haven't applied to any requests yet"
+                  t('jobPosts.empty.notApplied')
                 ) : (
-                  'No jobs available at the moment'
+                  t('jobPosts.empty.noJobsAvailable')
                 )}
               </Text>
               {user?.userType === 'user' && (
@@ -820,7 +826,7 @@ export default function JobPostsScreen() {
                   style={[styles.createButton, { backgroundColor: primaryColor }]}
                   onPress={() => router.push('/job/create')}
                 >
-                  <Text style={styles.createButtonText}>Create Your First Job</Text>
+                  <Text style={styles.createButtonText}>{t('jobPosts.createFirstJob')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -838,7 +844,7 @@ export default function JobPostsScreen() {
             <View style={styles.modalOverlay}>
               <View style={[styles.modalContent, { backgroundColor }]}>
                 <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
-                  <Text style={[styles.modalTitle, { color: textColor }]}>Filters</Text>
+                  <Text style={[styles.modalTitle, { color: textColor }]}>{t('jobPosts.filterModal.title')}</Text>
                   <TouchableOpacity onPress={() => setShowFilterModal(false)}>
                     <IconSymbol name="xmark" size={24} color={textColor} />
                   </TouchableOpacity>
@@ -848,7 +854,7 @@ export default function JobPostsScreen() {
                   {/* Services Filter */}
                   <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
                     <Text style={[styles.filterSectionTitle, { color: textColor }]}>
-                      Service Types
+                      {t('jobPosts.filterModal.serviceTypes')}
                     </Text>
                     <View style={styles.chipContainer}>
                       {availableServices.map((service) => {
@@ -891,10 +897,10 @@ export default function JobPostsScreen() {
                   {/* Pin Location Filter */}
                   <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
                     <Text style={[styles.filterSectionTitle, { color: textColor }]}>
-                      Location
+                      {t('jobPosts.filterModal.location')}
                     </Text>
                     <Text style={[styles.filterHelpText, { color: textMuted }]}>
-                      Pin a location on the map to filter nearby jobs
+                      {t('jobPosts.filterModal.pinHelp')}
                     </Text>
                     {filters.pinLocation?.address && (
                       <View style={[styles.pinLocationDisplay, { backgroundColor: cardBg, borderColor }]}>
@@ -921,7 +927,7 @@ export default function JobPostsScreen() {
                     >
                       <IconSymbol name="location.fill" size={18} color={primaryColor} />
                       <Text style={[styles.pinButtonText, { color: primaryColor }]}>
-                        {filters.pinLocation ? 'Change Location' : 'Pin Location on Map'}
+                        {filters.pinLocation ? t('jobPosts.filterModal.changeLocation') : t('jobPosts.filterModal.pinLocation')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -929,11 +935,11 @@ export default function JobPostsScreen() {
                   {/* Budget Filter */}
                   <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
                     <Text style={[styles.filterSectionTitle, { color: textColor }]}>
-                      Budget Range
+                      {t('jobPosts.filterModal.budgetRange')}
                     </Text>
                     <View style={styles.budgetContainer}>
                       <View style={styles.budgetInputContainer}>
-                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>Min (₨)</Text>
+                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>{t('jobPosts.filterModal.min')} (₨)</Text>
                         <TextInput
                           style={[styles.budgetInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
                           placeholder="0"
@@ -950,7 +956,7 @@ export default function JobPostsScreen() {
                         />
                       </View>
                       <View style={styles.budgetInputContainer}>
-                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>Max (₨)</Text>
+                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>{t('jobPosts.filterModal.max')} (₨)</Text>
                         <TextInput
                           style={[styles.budgetInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
                           placeholder="No limit"
@@ -975,13 +981,13 @@ export default function JobPostsScreen() {
                     style={[styles.clearFiltersButton, { backgroundColor: cardBg }]}
                     onPress={clearFilters}
                   >
-                    <Text style={[styles.clearFiltersText, { color: textSecondary }]}>Clear All</Text>
+                    <Text style={[styles.clearFiltersText, { color: textSecondary }]}>{t('jobPosts.filterModal.clearAll')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.applyFiltersButton, { backgroundColor: primaryColor }]}
                     onPress={() => setShowFilterModal(false)}
                   >
-                    <Text style={styles.applyFiltersText}>Apply Filters</Text>
+                    <Text style={styles.applyFiltersText}>{t('jobPosts.filterModal.apply')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1021,13 +1027,13 @@ export default function JobPostsScreen() {
             </MapView>
 
             <View style={[styles.mapOverlay, { bottom: Platform.OS === 'ios' ? 40 : 20 }]}>
-              <Text style={styles.mapInstruction}>Drag marker or move map to position</Text>
+              <Text style={styles.mapInstruction}>{t('jobPosts.map.dragMarker')}</Text>
               <View style={styles.mapButtons}>
                 <TouchableOpacity
                   style={[styles.mapButton, styles.cancelButton]}
                   onPress={() => setIsMapVisible(false)}
                 >
-                  <Text style={styles.mapButtonText}>Cancel</Text>
+                  <Text style={styles.mapButtonText}>{t('jobPosts.map.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
@@ -1037,7 +1043,7 @@ export default function JobPostsScreen() {
                   {isGeocoding ? (
                     <ActivityIndicator color="#FFF" size="small" />
                   ) : (
-                    <Text style={[styles.mapButtonText, { color: '#FFF' }]}>Confirm Location</Text>
+                    <Text style={[styles.mapButtonText, { color: '#FFF' }]}>{t('jobPosts.map.confirm')}</Text>
                   )}
                 </TouchableOpacity>
               </View>

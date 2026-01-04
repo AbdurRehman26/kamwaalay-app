@@ -7,6 +7,7 @@ import { Colors } from '@/constants/theme';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -105,6 +106,8 @@ interface FilterState {
   nearMe: boolean;
   minExperience: number | null;
   minRating: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export default function ExploreScreen() {
@@ -113,6 +116,7 @@ export default function ExploreScreen() {
   const { getHelpers, serviceTypes = [] } = useApp();
   const insets = useSafeAreaInsets();
   const { colorScheme } = useTheme();
+  const { t } = useTranslation();
   const isDark = colorScheme === 'dark';
   const themeColors = Colors[isDark ? 'dark' : 'light'];
   const [mainTab, setMainTab] = useState<'helpers'>('helpers');
@@ -966,7 +970,7 @@ export default function ExploreScreen() {
               gap: 4
             }}>
               <IconSymbol name="checkmark.circle.fill" size={14} color="#FFFFFF" />
-              <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>VERIFIED</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>{t('explore.verified')}</Text>
             </View>
           )}
         </View>
@@ -986,7 +990,7 @@ export default function ExploreScreen() {
             {apiRole === 'business' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View>
-                  <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>Total Workers</Text>
+                  <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 2, textTransform: 'uppercase' }}>{t('explore.totalWorkers')}</Text>
                   <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '700' }}>
                     {item.total_workers || 0}
                   </Text>
@@ -997,24 +1001,24 @@ export default function ExploreScreen() {
               <>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Religion</Text>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>{t('explore.religion')}</Text>
                     <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{item.religion ? (typeof item.religion === 'object' ? (item.religion as any).label : item.religion) : '-'}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Languages</Text>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>{t('explore.languages')}</Text>
                     <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>
-                      {Array.isArray(item.languages) && item.languages.length > 0 ? `${item.languages.length} Spoken` : '-'}
+                      {Array.isArray(item.languages) && item.languages.length > 0 ? `${item.languages.length} ${t('explore.spoken')}` : '-'}
                     </Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Age</Text>
-                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{item.age ? `${item.age} Years` : '-'}</Text>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>{t('explore.age')}</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{item.age ? `${item.age} ${t('explore.years')}` : '-'}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
-                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>Exp.</Text>
-                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{experience || 'Entry'}</Text>
+                    <Text style={{ fontSize: 10, color: themeColors.textSecondary, marginBottom: 1, textTransform: 'uppercase' }}>{t('explore.exp')}</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>{experience || t('explore.entry')}</Text>
                   </View>
                 </View>
               </>
@@ -1027,7 +1031,7 @@ export default function ExploreScreen() {
             if (srvs.length === 0) return null;
             return (
               <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: themeColors.textSecondary, marginBottom: 8, textTransform: 'uppercase' }}>Expertise</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: themeColors.textSecondary, marginBottom: 8, textTransform: 'uppercase' }}>{t('explore.expertise')}</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                   {srvs.slice(0, 4).map((s, i) => (
                     <View key={i} style={{
@@ -1072,15 +1076,15 @@ export default function ExploreScreen() {
           <View>
             {apiRole !== 'business' && (
               <>
-                <Text style={{ fontSize: 11, color: themeColors.textSecondary }}>Starting Rate</Text>
+                <Text style={{ fontSize: 11, color: themeColors.textSecondary }}>{t('explore.startingRate')}</Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: themeColors.primary }}>
-                  {price > 0 ? `₨${(price / 1000).toFixed(0)}k` : 'N/A'} <Text style={{ fontSize: 12, fontWeight: 'normal', color: themeColors.textSecondary }}>/mo</Text>
+                  {price > 0 ? `₨${(price / 1000).toFixed(0)}k` : 'N/A'} <Text style={{ fontSize: 12, fontWeight: 'normal', color: themeColors.textSecondary }}>{t('explore.mo')}</Text>
                 </Text>
               </>
             )}
             {apiRole === 'business' && (
               <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontWeight: '500' }}>
-                Business Account
+                {t('explore.businessAccount')}
               </Text>
             )}
           </View>
@@ -1226,7 +1230,7 @@ export default function ExploreScreen() {
     <ThemedView style={styles.container}>
       {/* Header */}
       <ScreenHeader
-        title="Explore"
+        title={t('explore.title')}
         showBackButton={false}
         rightElement={
           serviceFilter ? (
@@ -1254,7 +1258,7 @@ export default function ExploreScreen() {
           <IconSymbol name="magnifyingglass" size={20} color={themeColors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: themeColors.text }]}
-            placeholder={mainTab === 'helpers' ? "Search helpers..." : "Search services..."}
+            placeholder={mainTab === 'helpers' ? t('explore.searchHelpers') : t('explore.searchServices')}
             placeholderTextColor={themeColors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -1278,13 +1282,13 @@ export default function ExploreScreen() {
         <View style={styles.results}>
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Helpers ({filteredProviders.length})
+              {t('explore.helpers')} ({filteredProviders.length})
             </ThemedText>
             {isLoadingHelpers ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#6366F1" />
                 <ThemedText style={styles.loadingText}>
-                  Loading helpers...
+                  {t('explore.loadingHelpers')}
                 </ThemedText>
               </View>
             ) : filteredProviders.length > 0 ? (
@@ -1294,8 +1298,8 @@ export default function ExploreScreen() {
                 <IconSymbol name="person.fill" size={48} color="#CCCCCC" />
                 <ThemedText style={styles.emptyText}>
                   {searchQuery.trim() || serviceFilter
-                    ? 'No helpers found matching your search'
-                    : 'No helpers available at the moment'}
+                    ? t('explore.noHelpersFound')
+                    : t('explore.noHelpersAvailable')}
                 </ThemedText>
               </View>
             )}
@@ -1313,7 +1317,7 @@ export default function ExploreScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF' }]}>
             <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
-              <ThemedText type="title" style={[styles.modalTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Filters</ThemedText>
+              <ThemedText type="title" style={[styles.modalTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>{t('explore.filter')}</ThemedText>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
                 <IconSymbol name="xmark" size={24} color={isDark ? '#F8FAFC' : '#000000'} />
               </TouchableOpacity>
@@ -1323,12 +1327,12 @@ export default function ExploreScreen() {
               {/* Type/Role Filter - Only show for Helpers tab */}
               {mainTab === 'helpers' && (
                 <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
-                  <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Type</ThemedText>
+                  <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>{t('explore.type')}</ThemedText>
                   <View style={styles.chipContainer}>
                     {[
-                      { id: 'all', label: 'All' },
-                      { id: 'helper', label: 'Helpers' },
-                      { id: 'business', label: 'Businesses' }
+                      { id: 'all', label: t('explore.all') },
+                      { id: 'helper', label: t('explore.individual') },
+                      { id: 'business', label: t('explore.business') }
                     ].map((option) => (
                       <TouchableOpacity
                         key={option.id}
@@ -1363,7 +1367,7 @@ export default function ExploreScreen() {
 
               {/* Services Filter */}
               <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
-                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Services</ThemedText>
+                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>{t('explore.services')}</ThemedText>
                 <View style={styles.chipContainer}>
                   {availableServices.map((service) => (
                     <TouchableOpacity
@@ -1405,7 +1409,7 @@ export default function ExploreScreen() {
 
               {/* Cities and Near Me Filter */}
               <View style={[styles.filterSection, { borderBottomColor: isDark ? '#334155' : '#F0F0F0' }]}>
-                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>City & Location</ThemedText>
+                <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>{t('explore.cityLocation')}</ThemedText>
 
                 {/* Near Me Toggle */}
                 <TouchableOpacity
@@ -1441,7 +1445,7 @@ export default function ExploreScreen() {
                         : (isDark ? '#CBD5E1' : '#666666')
                     }
                   ]}>
-                    Pin Near Me
+                    {t('explore.pinNearMe')}
                   </Text>
                 </TouchableOpacity>
 
@@ -1456,7 +1460,7 @@ export default function ExploreScreen() {
                         marginBottom: 8
                       }
                     ]}
-                    placeholder="Search city..."
+                    placeholder={t('explore.searchCity')}
                     placeholderTextColor={isDark ? '#94A3B8' : '#999999'}
                     value={citySearch}
                     onChangeText={setCitySearch}
@@ -1545,7 +1549,7 @@ export default function ExploreScreen() {
                         })}
                       {cities.length === 0 && !isLoadingCities && (
                         <View style={{ padding: 16, alignItems: 'center' }}>
-                          <Text style={{ color: isDark ? '#94A3B8' : '#666666' }}>No cities found</Text>
+                          <Text style={{ color: isDark ? '#94A3B8' : '#666666' }}>{t('explore.noCitiesFound')}</Text>
                         </View>
                       )}
                       {isLoadingCities && (
@@ -1560,7 +1564,7 @@ export default function ExploreScreen() {
               {/* Experience Filter - Only show for Helpers tab */}
               {mainTab === 'helpers' && (
                 <View style={[styles.filterSection, { borderBottomColor: 'transparent' }]}>
-                  <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>Minimum Experience (Years)</ThemedText>
+                  <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>{t('explore.minExperience')}</ThemedText>
                   <View style={styles.experienceContainer}>
                     {[0, 1, 2, 3, 5, 10].map((years) => (
                       <TouchableOpacity
@@ -1591,7 +1595,7 @@ export default function ExploreScreen() {
                               : (isDark ? '#CBD5E1' : '#666666')
                           }
                         ]}>
-                          {years === 0 ? 'Any' : `${years}+`}
+                          {years === 0 ? t('explore.any') : `${years}+`}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -1612,7 +1616,7 @@ export default function ExploreScreen() {
                 <ThemedText style={[
                   styles.clearFiltersText,
                   { color: isDark ? '#CBD5E1' : '#666666' }
-                ]}>Clear All</ThemedText>
+                ]}>{t('explore.clearAll')}</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -1626,7 +1630,7 @@ export default function ExploreScreen() {
                   }
                 }}
               >
-                <ThemedText style={styles.applyFiltersText}>Apply Filters</ThemedText>
+                <ThemedText style={styles.applyFiltersText}>{t('explore.applyFilters')}</ThemedText>
               </TouchableOpacity>
             </View>
           </View>

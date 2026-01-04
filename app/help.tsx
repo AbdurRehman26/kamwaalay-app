@@ -2,6 +2,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -16,46 +17,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const FAQ_ITEMS = [
-  {
-    id: '1',
-    question: 'How do I create a job?',
-    answer:
-      'Go to the Home tab and tap "Post a Job". Fill in the service details, location, and budget, then submit your job. Helpers and businesses will be able to see and apply to your job.',
-  },
-  {
-    id: '2',
-    question: 'How do I apply to a job?',
-    answer:
-      'Browse available jobs in the Requests tab. When you find a job you want to apply to, tap "Apply Now". You can also contact the customer directly using the "Contact" button.',
-  },
-  {
-    id: '3',
-    question: 'How do I manage my service offerings?',
-    answer:
-      'Go to your Profile, then tap "Service Offerings". You can add, edit, or remove your service offerings and locations from there.',
-  },
-  {
-    id: '4',
-    question: 'How do I contact a helper or business?',
-    answer:
-      'You can contact helpers or businesses by tapping on their profile and using the "Contact" or "Chat" button. This will open a chat conversation where you can discuss details.',
-  },
-  {
-    id: '5',
-    question: 'How do I update my profile?',
-    answer:
-      'Go to your Profile tab, then tap "Edit Profile". You can update your name, email, bio, and other profile information from there.',
-  },
-  {
-    id: '6',
-    question: 'What should I do if I have a problem?',
-    answer:
-      'You can contact our support team using the contact information below, or send us a message through the app. We typically respond within 24 hours.',
-  },
-];
+
 
 export default function HelpScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
   const [contactMessage, setContactMessage] = useState('');
@@ -83,11 +48,11 @@ export default function HelpScreen() {
         if (supported) {
           Linking.openURL(url);
         } else {
-          Alert.alert('Error', 'Email client is not available on this device');
+          Alert.alert(t('help.contact.alertTitle'), t('help.contact.errorClient'));
         }
       })
       .catch(() => {
-        Alert.alert('Error', 'Unable to open email client');
+        Alert.alert(t('help.contact.alertTitle'), t('help.contact.errorOpen'));
       });
   };
 
@@ -98,7 +63,7 @@ export default function HelpScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Header */}
-      <ScreenHeader title="Help & Support" />
+      <ScreenHeader title={t('help.title')} />
 
       <ScrollView style={[styles.scrollView, { backgroundColor }]} showsVerticalScrollIndicator={false}>
 
@@ -107,25 +72,25 @@ export default function HelpScreen() {
           {/* Send Message Section */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              Send us a Message
+              {t('help.contact.title')}
             </ThemedText>
             <View style={styles.inputGroup}>
-              <ThemedText style={[styles.label, { color: textColor }]}>Subject</ThemedText>
+              <ThemedText style={[styles.label, { color: textColor }]}>{t('help.contact.subjectLabel')}</ThemedText>
               <TextInput
                 style={[styles.input, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
                 value={contactSubject}
                 onChangeText={setContactSubject}
-                placeholder="Enter subject"
+                placeholder={t('help.contact.subjectPlaceholder')}
                 placeholderTextColor={textMuted}
               />
             </View>
             <View style={styles.inputGroup}>
-              <ThemedText style={[styles.label, { color: textColor }]}>Message</ThemedText>
+              <ThemedText style={[styles.label, { color: textColor }]}>{t('help.contact.messageLabel')}</ThemedText>
               <TextInput
                 style={[styles.input, styles.textArea, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
                 value={contactMessage}
                 onChangeText={setContactMessage}
-                placeholder="Describe your issue or question..."
+                placeholder={t('help.contact.messagePlaceholder')}
                 placeholderTextColor={textMuted}
                 multiline
                 numberOfLines={5}
@@ -133,31 +98,31 @@ export default function HelpScreen() {
               />
             </View>
             <TouchableOpacity style={[styles.sendButton, { backgroundColor: primaryColor }]} onPress={handleEmailSupport}>
-              <Text style={styles.sendButtonText}>Send Message</Text>
+              <Text style={styles.sendButtonText}>{t('help.contact.sendButton')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* FAQ Section */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              Frequently Asked Questions
+              {t('help.faq.title')}
             </ThemedText>
-            {FAQ_ITEMS.map((item) => (
-              <View key={item.id} style={[styles.faqItem, { borderColor }]}>
+            {['q1', 'q2', 'q3', 'q4', 'q5', 'q6'].map((key) => (
+              <View key={key} style={[styles.faqItem, { borderColor }]}>
                 <TouchableOpacity
                   style={[styles.faqQuestion, { backgroundColor: backgroundColor }]}
-                  onPress={() => toggleFAQ(item.id)}
+                  onPress={() => toggleFAQ(key)}
                 >
-                  <ThemedText style={[styles.faqQuestionText, { color: textColor }]}>{item.question}</ThemedText>
+                  <ThemedText style={[styles.faqQuestionText, { color: textColor }]}>{t(`help.faq.${key}.question`)}</ThemedText>
                   <IconSymbol
-                    name={expandedFAQ === item.id ? 'chevron.up' : 'chevron.down'}
+                    name={expandedFAQ === key ? 'chevron.up' : 'chevron.down'}
                     size={20}
                     color={primaryColor}
                   />
                 </TouchableOpacity>
-                {expandedFAQ === item.id && (
+                {expandedFAQ === key && (
                   <View style={[styles.faqAnswer, { backgroundColor: cardBg, borderTopColor: borderColor }]}>
-                    <ThemedText style={[styles.faqAnswerText, { color: textSecondary }]}>{item.answer}</ThemedText>
+                    <ThemedText style={[styles.faqAnswerText, { color: textSecondary }]}>{t(`help.faq.${key}.answer`)}</ThemedText>
                   </View>
                 )}
               </View>
@@ -167,14 +132,14 @@ export default function HelpScreen() {
           {/* Additional Resources */}
           <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
             <ThemedText type="subtitle" style={[styles.sectionTitle, { color: textColor }]}>
-              Additional Resources
+              {t('help.resources.title')}
             </ThemedText>
             <TouchableOpacity
               style={[styles.resourceItem, { backgroundColor: backgroundColor, borderColor }]}
               onPress={() => router.push('/terms')}
             >
               <IconSymbol name="doc.text.fill" size={24} color={primaryColor} />
-              <ThemedText style={[styles.resourceText, { color: textColor }]}>Terms & Conditions</ThemedText>
+              <ThemedText style={[styles.resourceText, { color: textColor }]}>{t('help.resources.terms')}</ThemedText>
               <IconSymbol name="chevron.right" size={20} color={textMuted} />
             </TouchableOpacity>
             <TouchableOpacity
@@ -182,7 +147,7 @@ export default function HelpScreen() {
               onPress={() => router.push('/privacy')}
             >
               <IconSymbol name="hand.raised.fill" size={24} color={primaryColor} />
-              <ThemedText style={[styles.resourceText, { color: textColor }]}>Privacy Policy</ThemedText>
+              <ThemedText style={[styles.resourceText, { color: textColor }]}>{t('help.resources.privacy')}</ThemedText>
               <IconSymbol name="chevron.right" size={20} color={textMuted} />
             </TouchableOpacity>
             <TouchableOpacity
@@ -190,7 +155,7 @@ export default function HelpScreen() {
               onPress={() => router.push('/about')}
             >
               <IconSymbol name="info.circle.fill" size={24} color={primaryColor} />
-              <ThemedText style={[styles.resourceText, { color: textColor }]}>About Kamwaalay</ThemedText>
+              <ThemedText style={[styles.resourceText, { color: textColor }]}>{t('help.resources.about')}</ThemedText>
               <IconSymbol name="chevron.right" size={20} color={textMuted} />
             </TouchableOpacity>
           </View>

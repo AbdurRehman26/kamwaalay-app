@@ -3,6 +3,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Notification, notificationService } from '@/services/notification.service';
 import { useRouter } from 'expo-router';
 import {
@@ -23,6 +24,7 @@ import React, { useEffect, useState } from 'react';
 // ... (imports)
 
 export default function NotificationsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ export default function NotificationsScreen() {
           if (response.error) {
             setError(response.error);
           } else {
-            setError('Failed to load notifications');
+            setError(t('notifications.loadingError'));
           }
         }
       }
@@ -80,7 +82,7 @@ export default function NotificationsScreen() {
       if (err.message?.includes('404') || err.message?.toLowerCase().includes('not found')) {
         setNotifications([]);
       } else {
-        setError(err.message || 'An error occurred while loading notifications');
+        setError(err.message || t('notifications.generalError'));
       }
     } finally {
       setLoading(false);
@@ -123,13 +125,13 @@ export default function NotificationsScreen() {
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) return t('notifications.time.justNow');
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return `${minutes}${t('notifications.time.minutesAgo')}`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return `${hours}${t('notifications.time.hoursAgo')}`;
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
+    if (days < 7) return `${days}${t('notifications.time.daysAgo')}`;
     return date.toLocaleDateString();
   };
 
@@ -173,14 +175,14 @@ export default function NotificationsScreen() {
 
       {/* Header */}
       <ScreenHeader
-        title="Notifications"
+        title={t('notifications.title')}
         rightElement={
           <TouchableOpacity
             onPress={handleMarkAllAsRead}
             style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 }}
           >
             <IconSymbol name="checkmark.circle.fill" size={16} color="#6366F1" />
-            <Text style={{ color: '#6366F1', fontSize: 14, fontWeight: '600' }}>Read All</Text>
+            <Text style={{ color: '#6366F1', fontSize: 14, fontWeight: '600' }}>{t('notifications.readAll')}</Text>
           </TouchableOpacity>
         }
       />
@@ -206,7 +208,7 @@ export default function NotificationsScreen() {
             <View style={styles.centerContainer}>
               <ThemedText style={{ color: textColor }}>{error}</ThemedText>
               <TouchableOpacity style={[styles.retryButton, { backgroundColor: primaryColor }]} onPress={fetchNotifications}>
-                <Text style={styles.retryText}>Retry</Text>
+                <Text style={styles.retryText}>{t('notifications.retry')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -214,7 +216,7 @@ export default function NotificationsScreen() {
               {notifications.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <IconSymbol name="bell.slash" size={48} color={iconMuted} />
-                  <ThemedText style={[styles.emptyText, { color: textSecondary }]}>No notifications yet</ThemedText>
+                  <ThemedText style={[styles.emptyText, { color: textSecondary }]}>{t('notifications.empty')}</ThemedText>
                 </View>
               ) : (
                 notifications.map((notification) => (

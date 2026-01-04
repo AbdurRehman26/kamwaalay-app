@@ -248,7 +248,7 @@ export default function OTPVerifyScreen() {
 
           <View style={[styles.demoHint, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
             <IconSymbol name="lightbulb.fill" size={16} color={primaryColor} />
-            <Text style={[styles.demoHintText, { color: primaryColor }]}>Demo: Enter any 6-digit code (e.g., 123456)</Text>
+            <Text style={[styles.demoHintText, { color: primaryColor }]}>Enter any 6-digit code (e.g., 123456)</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

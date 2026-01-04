@@ -151,7 +151,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (data: { phone?: string; email?: string; password?: string; authMethod: 'otp' | 'password' }) => Promise<{ requiresOTP?: boolean } | void>;
-  register: (data: { name: string; phone?: string; email?: string; password: string; password_confirmation: string; role: 'user' | 'helper' | 'business' }) => Promise<{ success: boolean; message?: string }>;
+  register: (data: { name: string; phone?: string; email?: string; password: string; password_confirmation: string; role: 'user' | 'helper' | 'business', city_id?: number }) => Promise<{ success: boolean; message?: string }>;
   verifyOTP: (otp: string) => Promise<boolean>;
   resendOTP: () => Promise<void>;
   selectUserType: (userType: UserType) => Promise<void>;
@@ -438,7 +438,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (data: { name: string; phone?: string; email?: string; password: string; password_confirmation: string; role: 'user' | 'helper' | 'business' }) => {
+  const register = async (data: { name: string; phone?: string; email?: string; password: string; password_confirmation: string; role: 'user' | 'helper' | 'business', city_id?: number }) => {
     try {
       const response = await apiService.post(
         API_ENDPOINTS.AUTH.REGISTER,
@@ -449,6 +449,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password: data.password,
           password_confirmation: data.password_confirmation,
           role: data.role,
+          city_id: data.city_id,
         },
         undefined,
         false // No auth required for registration

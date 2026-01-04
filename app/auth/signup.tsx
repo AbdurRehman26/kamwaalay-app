@@ -1,5 +1,10 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
+import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
+import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -16,16 +21,19 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width } = Dimensions.get('window');
 
 export default function SignupScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { register } = useAuth();
+  const { setLanguage } = useApp();
+  const { t, language } = useTranslation();
+
+  // Form State
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'user' | 'helper' | 'business'>('user');
@@ -34,8 +42,8 @@ export default function SignupScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
+  // Theme Colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
@@ -46,34 +54,69 @@ export default function SignupScreen() {
   const errorColor = useThemeColor({}, 'error');
   const iconColor = useThemeColor({}, 'icon');
 
+  // City Selection State
+  const [cities, setCities] = useState<{ id: number; name: string }[]>([]);
+  const [selectedCity, setSelectedCity] = useState<{ id: number; name: string } | null>(null);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [searchCityQuery, setSearchCityQuery] = useState('');
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+
+  React.useEffect(() => {
+    fetchCities();
+  }, []);
+
+  const fetchCities = async () => {
+    try {
+      setIsLoadingCities(true);
+      const response = await apiService.get(API_ENDPOINTS.CITIES.LIST);
+      if (response.success && response.data) {
+        setCities(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch cities:', error);
+    } finally {
+      setIsLoadingCities(false);
+    }
+  };
+
+  const filteredCities = cities.filter(city =>
+    city.name.toLowerCase().includes(searchCityQuery.toLowerCase())
+  );
+
   const handleSignup = async () => {
     if (!name.trim()) {
-      toast.error('Please enter your name');
+      toast.error(t('auth.pleaseEnterName'));
       return;
     }
 
     if (!phoneNumber.trim()) {
-      toast.error('Please enter your phone number');
+      toast.error(t('auth.pleaseEnterValidPhone'));
       return;
     }
 
     if (phoneNumber.length < 10) {
-      toast.error('Please enter a valid phone number');
+      toast.error(t('auth.pleaseEnterValidPhone'));
+      return;
+    }
+
+    if (!selectedCity) {
+      toast.error(t('auth.pleaseSelectCity'));
       return;
     }
 
     if (!password.trim()) {
-      toast.error('Please enter a password');
+      toast.error(t('auth.pleaseEnterPassword'));
       return;
     }
 
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters long');
+      toast.error(t('auth.passwordMinLength'));
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('auth.passwordsDoNotMatch'));
       return;
     }
 
@@ -89,6 +132,7 @@ export default function SignupScreen() {
         password,
         password_confirmation: confirmPassword,
         role,
+        city_id: selectedCity.id,
       });
 
       // Show success message if provided by backend
@@ -96,8 +140,8 @@ export default function SignupScreen() {
         setSuccessMessage(result.message);
         toast.success(result.message);
       } else {
-        setSuccessMessage('Account created successfully! Please verify your OTP.');
-        toast.success('Account created successfully! Please verify your OTP.');
+        setSuccessMessage(t('auth.accountCreatedSuccess'));
+        toast.success(t('auth.accountCreatedSuccess'));
       }
 
       // Wait a moment to show the success message, then navigate
@@ -138,18 +182,62 @@ export default function SignupScreen() {
           <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
           <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
+          <View style={[styles.langContainer, { top: insets.top + 10 }]}>
+            <TouchableOpacity
+              style={[styles.langButton, { backgroundColor: cardBg }]}
+              onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
+            >
+              <Text style={[styles.langText, { color: primaryColor }]}>
+                {language === 'en' ? 'English' : language === 'ur' ? 'اردو' : 'Roman Urdu'}
+              </Text>
+              <IconSymbol name="chevron.down" size={16} color={primaryColor} />
+            </TouchableOpacity>
+
+            {showLanguageDropdown && (
+              <View style={[styles.langDropdown, { backgroundColor: cardBg }]}>
+                <TouchableOpacity
+                  style={[styles.langOption, language === 'en' && { backgroundColor: primaryLight }]}
+                  onPress={() => {
+                    setLanguage('en');
+                    setShowLanguageDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.langOptionText, { color: textColor }]}>English</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.langOption, language === 'ur' && { backgroundColor: primaryLight }]}
+                  onPress={() => {
+                    setLanguage('ur');
+                    setShowLanguageDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.langOptionText, { color: textColor }]}>اردو</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.langOption, language === 'roman' && { backgroundColor: primaryLight }]}
+                  onPress={() => {
+                    setLanguage('roman');
+                    setShowLanguageDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.langOptionText, { color: textColor }]}>Roman Urdu</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
           <View style={styles.content}>
             {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
-              <Text style={[styles.welcomeText, { color: textColor }]}>Create Account</Text>
+              <Text style={[styles.welcomeText, { color: textColor }]}>{t('auth.createAccount')}</Text>
               <Text style={[styles.subtitleText, { color: textSecondary }]}>
-                Join us to find or provide household services
+                {t('auth.joinUs')}
               </Text>
             </View>
 
             {/* Role Selection */}
             <View style={styles.section}>
-              <Text style={[styles.label, { color: textColor }]}>I want to join as a</Text>
+              <Text style={[styles.label, { color: textColor }]}>{t('auth.joinAs')}</Text>
               <View style={styles.roleContainer}>
                 <TouchableOpacity
                   style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'user' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
@@ -159,7 +247,7 @@ export default function SignupScreen() {
                     <Text style={styles.roleEmoji}>🏠</Text>
                   </View>
                   <Text style={[styles.roleTitle, { color: textSecondary }, role === 'user' && [styles.roleTitleActive, { color: primaryColor }]]}>
-                    Customer
+                    {t('auth.customer')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -170,7 +258,7 @@ export default function SignupScreen() {
                     <Text style={styles.roleEmoji}>👷</Text>
                   </View>
                   <Text style={[styles.roleTitle, { color: textSecondary }, role === 'helper' && [styles.roleTitleActive, { color: primaryColor }]]}>
-                    Worker
+                    {t('auth.worker')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -181,7 +269,7 @@ export default function SignupScreen() {
                     <Text style={styles.roleEmoji}>💼</Text>
                   </View>
                   <Text style={[styles.roleTitle, { color: textSecondary }, role === 'business' && [styles.roleTitleActive, { color: primaryColor }]]}>
-                    Business
+                    {t('auth.business')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -190,12 +278,12 @@ export default function SignupScreen() {
             {/* Form Fields */}
             <View style={styles.formSection}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Full Name</Text>
+                <Text style={[styles.label, { color: textColor }]}>{t('auth.fullName')}</Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <IconSymbol name="person.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: textColor }]}
-                    placeholder="Enter your full name"
+                    placeholder={t('auth.enterFullName')}
                     placeholderTextColor={textSecondary}
                     value={name}
                     onChangeText={setName}
@@ -205,7 +293,7 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                <Text style={[styles.label, { color: textColor }]}>{t('auth.phoneNumber')}</Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <View style={styles.prefixContainer}>
                     <Text style={styles.flag}>🇵🇰</Text>
@@ -225,15 +313,87 @@ export default function SignupScreen() {
                 </View>
               </View>
 
+              {/* City Selection */}
+              <View style={[styles.inputGroup, { zIndex: 10 }]}>
+                <Text style={[styles.label, { color: textColor }]}>{t('auth.city')}</Text>
+                <TouchableOpacity
+                  style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, justifyContent: 'space-between' }]}
+                  onPress={() => setShowCityDropdown(!showCityDropdown)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
+                    <Text style={[styles.input, { color: selectedCity ? textColor : textSecondary, paddingVertical: 16 }]}>
+                      {selectedCity ? selectedCity.name : t('auth.selectCity')}
+                    </Text>
+                  </View>
+                  <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
+                </TouchableOpacity>
+
+                {showCityDropdown && (
+                  <View style={[styles.cityDropdown, { backgroundColor: cardBg, borderColor }]}>
+                    <View style={[styles.searchContainer, { borderBottomColor: borderColor }]}>
+                      <IconSymbol name="magnifyingglass" size={16} color={textSecondary} />
+                      <TextInput
+                        style={[styles.searchInput, { color: textColor }]}
+                        placeholder={t('auth.searchCity')}
+                        placeholderTextColor={textSecondary}
+                        value={searchCityQuery}
+                        onChangeText={setSearchCityQuery}
+                        autoFocus
+                      />
+                    </View>
+
+                    <ScrollView style={styles.cityList} nestedScrollEnabled>
+                      {isLoadingCities ? (
+                        <View style={styles.loadingContainer}>
+                          <Text style={{ color: textSecondary }}>{t('auth.loadingCities')}</Text>
+                        </View>
+                      ) : filteredCities.length > 0 ? (
+                        filteredCities.map((city) => (
+                          <TouchableOpacity
+                            key={city.id}
+                            style={[
+                              styles.cityItem,
+                              { borderBottomColor: borderColor },
+                              selectedCity?.id === city.id && { backgroundColor: primaryLight }
+                            ]}
+                            onPress={() => {
+                              setSelectedCity(city);
+                              setShowCityDropdown(false);
+                              setSearchCityQuery('');
+                            }}
+                          >
+                            <Text style={[
+                              styles.cityItemText,
+                              { color: textColor },
+                              selectedCity?.id === city.id && { color: primaryColor, fontWeight: '600' }
+                            ]}>
+                              {city.name}
+                            </Text>
+                            {selectedCity?.id === city.id && (
+                              <IconSymbol name="checkmark" size={16} color={primaryColor} />
+                            )}
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <View style={styles.loadingContainer}>
+                          <Text style={{ color: textSecondary }}>{t('auth.noCitiesFound')}</Text>
+                        </View>
+                      )}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
 
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Password</Text>
+                <Text style={[styles.label, { color: textColor }]}>{t('auth.password')}</Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: textColor }]}
-                    placeholder="Create a password"
+                    placeholder={t('auth.createPassword')}
                     placeholderTextColor={textSecondary}
                     secureTextEntry={!showPassword}
                     value={password}
@@ -254,12 +414,12 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Confirm Password</Text>
+                <Text style={[styles.label, { color: textColor }]}>{t('auth.confirmPassword')}</Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: textColor }]}
-                    placeholder="Confirm your password"
+                    placeholder={t('auth.confirmYourPassword')}
                     placeholderTextColor={textSecondary}
                     secureTextEntry={!showConfirmPassword}
                     value={confirmPassword}
@@ -305,9 +465,9 @@ export default function SignupScreen() {
                 disabled={!name.trim() || !password.trim() || password.length < 8 || isLoading}
               >
                 {isLoading ? (
-                  <Text style={styles.submitButtonText}>Creating Account...</Text>
+                  <Text style={styles.submitButtonText}>{t('auth.creatingAccount')}</Text>
                 ) : (
-                  <Text style={styles.submitButtonText}>Sign Up</Text>
+                  <Text style={styles.submitButtonText}>{t('auth.signUp')}</Text>
                 )}
                 {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
               </TouchableOpacity>
@@ -315,16 +475,16 @@ export default function SignupScreen() {
 
             {/* Footer */}
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: textSecondary }]}>Already have an account?</Text>
+              <Text style={[styles.footerText, { color: textSecondary }]}>{t('auth.alreadyHaveAccount')}</Text>
               <TouchableOpacity onPress={() => router.push('/auth/phone-login')}>
-                <Text style={[styles.footerLink, { color: primaryColor }]}>Login</Text>
+                <Text style={[styles.footerLink, { color: primaryColor }]}>{t('auth.login')}</Text>
               </TouchableOpacity>
             </View>
 
             <Text style={[styles.termsText, { color: textSecondary }]}>
-              By registering, you agree to our{' '}
-              <Text style={[styles.linkText, { color: primaryColor }]}>Terms</Text> and{' '}
-              <Text style={[styles.linkText, { color: primaryColor }]}>Privacy Policy</Text>
+              {t('auth.byRegistering')} {' '}
+              <Text style={[styles.linkText, { color: primaryColor }]}>{t('auth.terms')}</Text> {t('auth.and')}{' '}
+              <Text style={[styles.linkText, { color: primaryColor }]}>{t('auth.privacyPolicy')}</Text>
             </Text>
           </View>
         </ScrollView>
@@ -572,6 +732,98 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#6366F1',
     fontWeight: '600',
+  },
+  cityDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    borderWidth: 1,
+    borderRadius: 16,
+    marginTop: 4,
+    maxHeight: 250,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    height: 24,
+    padding: 0,
+  },
+  cityList: {
+    maxHeight: 200,
+  },
+  cityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6', // Will be overridden
+  },
+  cityItemText: {
+    fontSize: 14,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langContainer: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 50,
+  },
+  langButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  langText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  langDropdown: {
+    position: 'absolute',
+    top: '120%',
+    right: 0,
+    minWidth: 140,
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  langOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  langOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

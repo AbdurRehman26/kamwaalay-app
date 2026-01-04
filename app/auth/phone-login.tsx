@@ -1,5 +1,8 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '@/utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -18,14 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const TEST_ACCOUNTS = {
-  business: '9876543210',
-  helper: '9876543211',
-  user: '9876543212',
-};
 const { width } = Dimensions.get('window');
-
-import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function PhoneLoginScreen() {
   const insets = useSafeAreaInsets();
@@ -35,10 +31,13 @@ export default function PhoneLoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+  const { setLanguage } = useApp();
+  const { t, language } = useTranslation();
 
-  const backgroundColor = useThemeColor({}, 'background');
+  const themeBackgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
   const primaryColor = useThemeColor({}, 'primary');
@@ -76,14 +75,14 @@ export default function PhoneLoginScreen() {
     try {
       // Validate phone number
       if (phoneNumber.length < 10) {
-        toast.error('Please enter a valid phone number');
+        toast.error(t('auth.pleaseEnterValidPhone'));
         setIsLoading(false);
         return;
       }
 
       // Validate password if using password auth
       if (authMethod === 'password' && !password.trim()) {
-        toast.error('Please enter your password');
+        toast.error(t('auth.pleaseEnterPassword'));
         setIsLoading(false);
         return;
       }
@@ -131,7 +130,7 @@ export default function PhoneLoginScreen() {
       }
     } catch (error: any) {
       // Extract backend error message
-      const errorMsg = error.message || error.error || 'Login failed. Please try again.';
+      const errorMsg = error.message || error.error || t('auth.loginFailed');
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
       return;
@@ -140,9 +139,7 @@ export default function PhoneLoginScreen() {
     }
   };
 
-  const handleFillTestAccount = (number: string) => {
-    setPhoneNumber(number);
-  };
+
 
   const isFormValid = () => {
     if (phoneNumber.length < 10) return false;
@@ -151,7 +148,7 @@ export default function PhoneLoginScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: themeBackgroundColor }]}>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -166,6 +163,50 @@ export default function PhoneLoginScreen() {
           <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
           <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
+          <View style={[styles.langContainer, { top: insets.top + 10 }]}>
+            <TouchableOpacity
+              style={[styles.langButton, { backgroundColor: cardBg }]}
+              onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
+            >
+              <Text style={[styles.langText, { color: primaryColor }]}>
+                {language === 'en' ? 'English' : language === 'ur' ? 'اردو' : 'Roman Urdu'}
+              </Text>
+              <IconSymbol name="chevron.down" size={16} color={primaryColor} />
+            </TouchableOpacity>
+
+            {showLanguageDropdown && (
+              <View style={[styles.langDropdown, { backgroundColor: cardBg }]}>
+                <TouchableOpacity
+                  style={[styles.langOption, language === 'en' && { backgroundColor: primaryLight }]}
+                  onPress={() => {
+                    setLanguage('en');
+                    setShowLanguageDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.langOptionText, { color: textColor }]}>English</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.langOption, language === 'ur' && { backgroundColor: primaryLight }]}
+                  onPress={() => {
+                    setLanguage('ur');
+                    setShowLanguageDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.langOptionText, { color: textColor }]}>اردو</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.langOption, language === 'roman' && { backgroundColor: primaryLight }]}
+                  onPress={() => {
+                    setLanguage('roman');
+                    setShowLanguageDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.langOptionText, { color: textColor }]}>Roman Urdu</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
           <View style={styles.content}>
             {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 40 }]}>
@@ -176,9 +217,9 @@ export default function PhoneLoginScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={[styles.welcomeText, { color: textColor }]}>Welcome Back!</Text>
+              <Text style={[styles.welcomeText, { color: textColor }]}>{t('auth.welcomeBack')}</Text>
               <Text style={[styles.subtitleText, { color: textSecondary }]}>
-                Login to access your personalized services
+                {t('auth.loginSubtitle')}
               </Text>
             </View>
 
@@ -189,7 +230,7 @@ export default function PhoneLoginScreen() {
                 onPress={() => setAuthMethod('password')}
               >
                 <Text style={[styles.tabText, { color: textSecondary }, authMethod === 'password' && [styles.activeTabText, { color: textColor }]]}>
-                  Password
+                  {t('auth.password')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -197,7 +238,7 @@ export default function PhoneLoginScreen() {
                 onPress={() => setAuthMethod('otp')}
               >
                 <Text style={[styles.tabText, { color: textSecondary }, authMethod === 'otp' && [styles.activeTabText, { color: textColor }]]}>
-                  OTP Login
+                  {t('auth.otpLogin')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -205,7 +246,7 @@ export default function PhoneLoginScreen() {
             {/* Form Section */}
             <View style={styles.formSection}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                <Text style={[styles.label, { color: textColor }]}>{t('auth.phoneNumber')}</Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <View style={styles.prefixContainer}>
                     <Text style={styles.flag}>🇵🇰</Text>
@@ -227,12 +268,12 @@ export default function PhoneLoginScreen() {
 
               {authMethod === 'password' && (
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: textColor }]}>Password</Text>
+                  <Text style={[styles.label, { color: textColor }]}>{t('auth.password')}</Text>
                   <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                     <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                     <TextInput
                       style={[styles.input, { color: textColor }]}
-                      placeholder="Enter your password"
+                      placeholder={t('auth.enterPassword')}
                       placeholderTextColor={textSecondary}
                       secureTextEntry={!showPassword}
                       value={password}
@@ -260,32 +301,7 @@ export default function PhoneLoginScreen() {
                 </View>
               )}
 
-              {authMethod === 'otp' && (
-                <View style={styles.devOptionsContainer}>
-                  <Text style={styles.devOptionsTitle}>DEVELOPER OPTIONS (DEBUG MODE)</Text>
 
-                  <TouchableOpacity
-                    style={[styles.devButton, { backgroundColor: '#2563EB' }]}
-                    onPress={() => handleFillTestAccount(TEST_ACCOUNTS.business)}
-                  >
-                    <Text style={styles.devButtonText}>🏢 Sign in as Test Business</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.devButton, { backgroundColor: '#D97706' }]}
-                    onPress={() => handleFillTestAccount(TEST_ACCOUNTS.helper)}
-                  >
-                    <Text style={styles.devButtonText}>🧹 Sign in as Test Helper</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.devButton, { backgroundColor: '#16A34A' }]}
-                    onPress={() => handleFillTestAccount(TEST_ACCOUNTS.user)}
-                  >
-                    <Text style={styles.devButtonText}>👤 Sign in as Test User</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
 
               <TouchableOpacity
                 style={[
@@ -297,10 +313,10 @@ export default function PhoneLoginScreen() {
                 disabled={!isFormValid() || isLoading}
               >
                 {isLoading ? (
-                  <Text style={styles.submitButtonText}>Processing...</Text>
+                  <Text style={styles.submitButtonText}>{t('auth.processing')}</Text>
                 ) : (
                   <Text style={styles.submitButtonText}>
-                    {authMethod === 'otp' ? 'Send Verification Code' : 'Login'}
+                    {authMethod === 'otp' ? t('auth.sendVerificationCode') : t('auth.login')}
                   </Text>
                 )}
                 {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
@@ -309,9 +325,9 @@ export default function PhoneLoginScreen() {
 
             {/* Footer */}
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: textSecondary }]}>Don't have an account?</Text>
+              <Text style={[styles.footerText, { color: textSecondary }]}>{t('auth.dontHaveAccount')}</Text>
               <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-                <Text style={[styles.footerLink, { color: primaryColor }]}>Create Account</Text>
+                <Text style={[styles.footerLink, { color: primaryColor }]}>{t('auth.createAccount')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -485,42 +501,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
-  devOptionsContainer: {
-    marginTop: 10,
-    marginBottom: 24,
-    padding: 16,
-    backgroundColor: '#1E293B', // Dark slate blue background
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-    borderStyle: 'dashed',
-    alignItems: 'stretch',
-    gap: 12,
-  },
-  devOptionsTitle: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  devButton: {
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  devButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+
   submitButton: {
     backgroundColor: '#6366F1',
     borderRadius: 16,
@@ -559,6 +540,50 @@ const styles = StyleSheet.create({
     color: '#6366F1',
     fontSize: 14,
     fontWeight: '700',
+  },
+  langContainer: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 50,
+  },
+  langButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  langText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  langDropdown: {
+    position: 'absolute',
+    top: '120%',
+    right: 0,
+    minWidth: 140,
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  langOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  langOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

@@ -8,6 +8,8 @@ interface AppContextType {
   jobs: Job[];
   helpers: any[];
   serviceTypes: any[];
+  language: 'en' | 'ur' | 'roman';
+  setLanguage: (lang: 'en' | 'ur' | 'roman') => Promise<void>;
   addJob: (request: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => Promise<void>;
   applyToJob: (requestId: string, applicantId: string) => Promise<void>;
   getJobs: () => Job[];
@@ -21,6 +23,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [helpers, setHelpers] = useState<any[]>([]);
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+  const [language, setLanguageState] = useState<'en' | 'ur' | 'roman'>('en');
   const isRefreshingJobs = useRef(false);
   const { user } = useAuth(); // Get user from AuthContext
 
@@ -31,6 +34,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadData = async () => {
     try {
+      try {
+        const storedLang = await AsyncStorage.getItem('language');
+        if (storedLang === 'ur' || storedLang === 'roman') {
+          setLanguageState(storedLang as 'en' | 'ur' | 'roman');
+        }
+      } catch (e) {
+        // ignore
+      }
+
       // Load service types (available for all users)
       try {
         const serviceTypesResponse = await apiService.get(
@@ -309,9 +321,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const applyToJob = async (requestId: string, applicantId: string) => {
     try {
       const updated = jobs.map((req) =>
-          req.id === requestId
-              ? { ...req, applicants: [...req.applicants, applicantId] }
-              : req
+        req.id === requestId
+          ? { ...req, applicants: [...req.applicants, applicantId] }
+          : req
       );
       setJobs(updated);
       await AsyncStorage.setItem('jobs', JSON.stringify(updated));
@@ -328,12 +340,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setLanguage = async (lang: 'en' | 'ur' | 'roman') => {
+    setLanguageState(lang);
+    await AsyncStorage.setItem('language', lang);
+  };
+
   return (
     <AppContext.Provider
       value={{
         jobs,
         helpers,
         serviceTypes,
+        language,
+        setLanguage,
         addJob,
         applyToJob,
         getJobs: () => Array.isArray(jobs) ? jobs : [],
@@ -354,6 +373,8 @@ export function useApp() {
       jobs: [],
       helpers: [],
       serviceTypes: [],
+      language: 'en',
+      setLanguage: async () => { },
       addJob: async () => { },
       applyToJob: async () => { },
       getJobs: () => [],

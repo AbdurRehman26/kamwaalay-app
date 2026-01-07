@@ -46,6 +46,11 @@ export const roman = {
         passwordMinLength: 'Password kam az kam 8 haroof ka hona chahiye',
         passwordsDoNotMatch: 'Password match nahi karte',
         accountCreatedSuccess: 'Account kamyabi se ban gaya! Barah-e-karam apne OTP ki tasdeeq karen.',
+        next: 'Agla',
+        back: 'Wapis',
+        selectRole: 'Apna kirdaar muntakhib karen',
+        enterDetails: 'Apni tafseelat darj karen',
+        setPassword: 'Apna password set karen',
     },
     profile: {
         title: 'Profile',

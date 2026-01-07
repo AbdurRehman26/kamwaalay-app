@@ -1,12 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { apiService } from '@/services/api';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -59,10 +55,6 @@ export default function Step1ServiceOffer({
   onNext,
 }: Step1ServiceOfferProps) {
   const { serviceTypes } = useApp();
-  const [locationSearch, setLocationSearch] = useState('');
-  const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
@@ -75,99 +67,22 @@ export default function Step1ServiceOffer({
   const borderColor = useThemeColor({}, 'border');
   const errorColor = useThemeColor({}, 'error');
 
-  useEffect(() => {
-    const searchTimeout = setTimeout(() => {
-      if (locationSearch.trim().length >= 2) {
-        searchLocations(locationSearch.trim());
-      } else if (locationSearch.trim().length === 0) {
-        setFilteredLocations([]);
-        setShowLocationDropdown(false);
-      }
-    }, 300);
 
-    return () => clearTimeout(searchTimeout);
-  }, [locationSearch]);
 
-  const searchLocations = async (query: string) => {
-    try {
-      setIsLoadingLocations(true);
-      setShowLocationDropdown(true);
 
-      const response = await apiService.get(
-        API_ENDPOINTS.LOCATIONS.SEARCH,
-        undefined,
-        { q: query },
-        false
-      );
-
-      if (response.success && response.data) {
-        let locationsData: Location[] = [];
-
-        if (response.data.locations) {
-          locationsData = Array.isArray(response.data.locations.data)
-            ? response.data.locations.data
-            : Array.isArray(response.data.locations)
-              ? response.data.locations
-              : [];
-        } else if (Array.isArray(response.data)) {
-          locationsData = response.data;
-        } else if (response.data.data) {
-          locationsData = Array.isArray(response.data.data) ? response.data.data : [];
-        }
-
-        const mappedLocations: Location[] = locationsData.map((loc: any) => ({
-          id: loc.id || loc.location_id || loc.name,
-          name: loc.name || loc.location_name || '',
-          area: loc.area || loc.area_name,
-        }));
-
-        setFilteredLocations(mappedLocations);
-        setShowLocationDropdown(mappedLocations.length > 0);
-      } else {
-        setFilteredLocations([]);
-        setShowLocationDropdown(false);
-      }
-    } catch (error) {
-      setFilteredLocations([]);
-      setShowLocationDropdown(false);
-    } finally {
-      setIsLoadingLocations(false);
-    }
-  };
-
-  const handleLocationSelect = (location: Location) => {
-    if (!data.locations.find((loc) => loc.id === location.id)) {
-      onChange({
-        ...data,
-        locations: [...data.locations, location],
-      });
-    }
-    setLocationSearch('');
-    setShowLocationDropdown(false);
-  };
-
-  const handleLocationRemove = (locationId: number | string) => {
-    onChange({
-      ...data,
-      locations: data.locations.filter((loc) => loc.id !== locationId),
-    });
-  };
-
-  const toggleServiceType = (serviceSlug: string) => {
-    const isSelected = data.serviceTypes.includes(serviceSlug);
+  const toggleServiceType = (serviceId: string | number) => {
+    const idString = serviceId.toString();
+    const isSelected = data.serviceTypes.includes(idString);
     onChange({
       ...data,
       serviceTypes: isSelected
-        ? data.serviceTypes.filter((slug) => slug !== serviceSlug)
-        : [...data.serviceTypes, serviceSlug],
+        ? data.serviceTypes.filter((id) => id !== idString)
+        : [...data.serviceTypes, idString],
     });
   };
 
   const handleNext = () => {
     if (data.serviceTypes.length === 0) {
-      return;
-    }
-    if (data.locations.length === 0) {
       return;
     }
     if (!data.workType) {
@@ -196,8 +111,8 @@ export default function Step1ServiceOffer({
             </ThemedText>
             <View style={styles.serviceTypesContainer}>
               {serviceTypes.map((service: ServiceType) => {
-                const serviceSlug = service.slug || service.name.toLowerCase().replace(/\s+/g, '-');
-                const isSelected = data.serviceTypes.includes(serviceSlug);
+                const serviceId = service.id.toString();
+                const isSelected = data.serviceTypes.includes(serviceId);
                 return (
                   <TouchableOpacity
                     key={service.id.toString()}
@@ -206,7 +121,7 @@ export default function Step1ServiceOffer({
                       { backgroundColor: cardBg, borderColor },
                       isSelected && { borderColor: primaryColor, backgroundColor: primaryLight },
                     ]}
-                    onPress={() => toggleServiceType(serviceSlug)}
+                    onPress={() => toggleServiceType(service.id)}
                   >
                     {/* Use API icon/image if available, otherwise fallback to emoji */}
                     <Text style={styles.serviceEmoji}>{service.icon || '🔧'}</Text>
@@ -225,67 +140,6 @@ export default function Step1ServiceOffer({
             </View>
           </View>
 
-          {/* Locations */}
-          <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>
-              Select Locations <Text style={[styles.required, { color: errorColor }]}>*</Text>
-            </ThemedText>
-            <ThemedText style={[styles.instruction, { color: textSecondary }]}>
-              Add locations for this offer. You can add multiple locations.
-            </ThemedText>
-
-            {/* Selected Locations */}
-            {data.locations.length > 0 && (
-              <View style={styles.selectedLocationsContainer}>
-                {data.locations.map((loc, index) => (
-                  <View key={loc.id || `location-${index}`} style={[styles.locationTag, { backgroundColor: primaryLight }]}>
-                    <Text style={[styles.locationTagText, { color: primaryColor }]}>
-                      {loc.area || loc.name}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => handleLocationRemove(loc.id)}
-                      style={styles.removeTagButton}
-                    >
-                      <IconSymbol name="xmark.circle.fill" size={16} color={errorColor} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Location Search */}
-            <View style={styles.locationSearchContainer}>
-              <TextInput
-                style={[styles.locationInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
-                placeholder="Search location (e.g., Karachi, Clifton or type area name)..."
-                placeholderTextColor={textMuted}
-                value={locationSearch}
-                onChangeText={setLocationSearch}
-              />
-              {isLoadingLocations && (
-                <ActivityIndicator size="small" color={primaryColor} style={styles.loader} />
-              )}
-            </View>
-
-            {/* Location Dropdown */}
-            {showLocationDropdown && filteredLocations.length > 0 && (
-              <View style={[styles.locationDropdown, { backgroundColor: cardBg, borderColor }]}>
-                <ScrollView style={styles.locationDropdownScroll} nestedScrollEnabled>
-                  {filteredLocations.map((loc, index) => (
-                    <TouchableOpacity
-                      key={loc.id || `filtered-location-${index}`}
-                      style={[styles.locationDropdownItem, { borderBottomColor: borderColor }]}
-                      onPress={() => handleLocationSelect(loc)}
-                    >
-                      <Text style={[styles.locationDropdownText, { color: textColor }]}>
-                        {loc.area || loc.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          </View>
 
           {/* Work Type */}
           <View style={styles.inputGroup}>
@@ -350,14 +204,12 @@ export default function Step1ServiceOffer({
             styles.nextButton,
             { backgroundColor: primaryColor },
             (data.serviceTypes.length === 0 ||
-              data.locations.length === 0 ||
               !data.workType) &&
             { backgroundColor: textMuted, opacity: 0.5 },
           ]}
           onPress={handleNext}
           disabled={
             data.serviceTypes.length === 0 ||
-            data.locations.length === 0 ||
             !data.workType
           }
         >

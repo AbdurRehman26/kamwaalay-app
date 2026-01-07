@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import {
   Dimensions,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -30,6 +31,9 @@ export default function SignupScreen() {
   const { register } = useAuth();
   const { setLanguage } = useApp();
   const { t, language } = useTranslation();
+
+  // Step State
+  const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
   const [name, setName] = useState('');
@@ -52,7 +56,6 @@ export default function SignupScreen() {
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
   const errorColor = useThemeColor({}, 'error');
-  const iconColor = useThemeColor({}, 'icon');
 
   // City Selection State
   const [cities, setCities] = useState<{ id: number; name: string }[]>([]);
@@ -84,12 +87,31 @@ export default function SignupScreen() {
     city.name.toLowerCase().includes(searchCityQuery.toLowerCase())
   );
 
-  const handleSignup = async () => {
-    if (!name.trim()) {
-      toast.error(t('auth.pleaseEnterName'));
-      return;
+  const handleNextStep = () => {
+    // Validate current step before proceeding
+    if (currentStep === 1) {
+      // Role is always selected (default is 'user'), proceed
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      if (!name.trim()) {
+        toast.error(t('auth.pleaseEnterName'));
+        return;
+      }
+      if (!selectedCity) {
+        toast.error(t('auth.pleaseSelectCity'));
+        return;
+      }
+      setCurrentStep(3);
     }
+  };
 
+  const handleBackStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSignup = async () => {
     if (!phoneNumber.trim()) {
       toast.error(t('auth.pleaseEnterValidPhone'));
       return;
@@ -97,11 +119,6 @@ export default function SignupScreen() {
 
     if (phoneNumber.length < 10) {
       toast.error(t('auth.pleaseEnterValidPhone'));
-      return;
-    }
-
-    if (!selectedCity) {
-      toast.error(t('auth.pleaseSelectCity'));
       return;
     }
 
@@ -132,7 +149,7 @@ export default function SignupScreen() {
         password,
         password_confirmation: confirmPassword,
         role,
-        city_id: selectedCity.id,
+        city_id: selectedCity!.id,
       });
 
       // Show success message if provided by backend
@@ -165,6 +182,331 @@ export default function SignupScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1:
+        return t('auth.selectRole') || t('auth.joinAs');
+      case 2:
+        return t('auth.enterDetails') || t('auth.fullName');
+      case 3:
+        return t('auth.setPassword') || t('auth.password');
+      default:
+        return '';
+    }
+  };
+
+  const renderStepIndicator = () => (
+    <View style={styles.stepIndicatorContainer}>
+      {[1, 2, 3].map((step) => (
+        <View key={step} style={styles.stepItem}>
+          <View
+            style={[
+              styles.stepCircle,
+              { borderColor: primaryColor },
+              currentStep >= step && { backgroundColor: primaryColor },
+            ]}
+          >
+            {currentStep > step ? (
+              <IconSymbol name="checkmark" size={14} color="#FFF" />
+            ) : (
+              <Text
+                style={[
+                  styles.stepNumber,
+                  { color: currentStep >= step ? '#FFF' : primaryColor },
+                ]}
+              >
+                {step}
+              </Text>
+            )}
+          </View>
+          {step < 3 && (
+            <View
+              style={[
+                styles.stepLine,
+                { backgroundColor: currentStep > step ? primaryColor : borderColor },
+              ]}
+            />
+          )}
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderStep1 = () => (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: textColor }]}>{t('auth.joinAs')}</Text>
+      <View style={styles.roleContainer}>
+        <TouchableOpacity
+          style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'user' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
+          onPress={() => setRole('user')}
+        >
+          <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'user' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
+            <Text style={styles.roleEmoji}>🏠</Text>
+          </View>
+          <Text style={[styles.roleTitle, { color: textSecondary }, role === 'user' && [styles.roleTitleActive, { color: primaryColor }]]}>
+            {t('auth.customer')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'helper' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
+          onPress={() => setRole('helper')}
+        >
+          <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'helper' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
+            <Text style={styles.roleEmoji}>👷</Text>
+          </View>
+          <Text style={[styles.roleTitle, { color: textSecondary }, role === 'helper' && [styles.roleTitleActive, { color: primaryColor }]]}>
+            {t('auth.worker')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'business' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
+          onPress={() => setRole('business')}
+        >
+          <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'business' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
+            <Text style={styles.roleEmoji}>💼</Text>
+          </View>
+          <Text style={[styles.roleTitle, { color: textSecondary }, role === 'business' && [styles.roleTitleActive, { color: primaryColor }]]}>
+            {t('auth.business')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderStep2 = () => (
+    <View style={[styles.formSection, styles.step2Container]}>
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: textColor }]}>{t('auth.fullName')}</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <IconSymbol name="person.fill" size={20} color={textSecondary} style={styles.inputIcon} />
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder={t('auth.enterFullName')}
+            placeholderTextColor={textSecondary}
+            value={name}
+            onChangeText={setName}
+            autoComplete="name"
+          />
+        </View>
+      </View>
+
+      {/* City Selection */}
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: textColor }]}>{t('auth.city')}</Text>
+        <TouchableOpacity
+          style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, justifyContent: 'space-between' }]}
+          onPress={() => setShowCityDropdown(true)}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
+            <Text style={[styles.input, { color: selectedCity ? textColor : textSecondary, paddingVertical: 16 }]}>
+              {selectedCity ? selectedCity.name : t('auth.selectCity')}
+            </Text>
+          </View>
+          <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
+        </TouchableOpacity>
+      </View>
+
+      {/* City Selection Modal */}
+      <Modal
+        visible={showCityDropdown}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => {
+          setShowCityDropdown(false);
+          setSearchCityQuery('');
+        }}
+      >
+        <View style={[styles.modalContainer, { backgroundColor }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>{t('auth.selectCity')}</Text>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => {
+                setShowCityDropdown(false);
+                setSearchCityQuery('');
+              }}
+            >
+              <IconSymbol name="xmark" size={24} color={textColor} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.modalSearchContainer, { backgroundColor: cardBg, borderColor }]}>
+            <IconSymbol name="magnifyingglass" size={20} color={textSecondary} />
+            <TextInput
+              style={[styles.modalSearchInput, { color: textColor }]}
+              placeholder={t('auth.searchCity')}
+              placeholderTextColor={textSecondary}
+              value={searchCityQuery}
+              onChangeText={setSearchCityQuery}
+              autoFocus
+            />
+            {searchCityQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchCityQuery('')}>
+                <IconSymbol name="xmark.circle.fill" size={20} color={textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <ScrollView style={styles.modalCityList}>
+            {isLoadingCities ? (
+              <View style={styles.loadingContainer}>
+                <Text style={{ color: textSecondary }}>{t('auth.loadingCities')}</Text>
+              </View>
+            ) : filteredCities.length > 0 ? (
+              filteredCities.map((city) => (
+                <TouchableOpacity
+                  key={city.id}
+                  style={[
+                    styles.modalCityItem,
+                    { borderBottomColor: borderColor },
+                    selectedCity?.id === city.id && { backgroundColor: primaryLight }
+                  ]}
+                  onPress={() => {
+                    setSelectedCity(city);
+                    setShowCityDropdown(false);
+                    setSearchCityQuery('');
+                  }}
+                >
+                  <View style={styles.modalCityItemContent}>
+                    <IconSymbol name="mappin.and.ellipse" size={20} color={selectedCity?.id === city.id ? primaryColor : textSecondary} />
+                    <Text style={[
+                      styles.modalCityItemText,
+                      { color: textColor },
+                      selectedCity?.id === city.id && { color: primaryColor, fontWeight: '600' }
+                    ]}>
+                      {city.name}
+                    </Text>
+                  </View>
+                  {selectedCity?.id === city.id && (
+                    <IconSymbol name="checkmark.circle.fill" size={24} color={primaryColor} />
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.loadingContainer}>
+                <Text style={{ color: textSecondary }}>{t('auth.noCitiesFound')}</Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+    </View>
+  );
+
+  const renderStep3 = () => (
+    <View style={styles.formSection}>
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: textColor }]}>{t('auth.phoneNumber')}</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <View style={styles.prefixContainer}>
+            <Text style={styles.flag}>🇵🇰</Text>
+            <Text style={[styles.prefix, { color: textColor }]}>+92</Text>
+          </View>
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder="300 1234567"
+            placeholderTextColor={textSecondary}
+            keyboardType="phone-pad"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            maxLength={10}
+            autoComplete="tel"
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: textColor }]}>{t('auth.password')}</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder={t('auth.createPassword')}
+            placeholderTextColor={textSecondary}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            autoComplete="password-new"
+          />
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            style={styles.eyeButton}
+          >
+            <IconSymbol
+              name={showPassword ? "eye.fill" : "eye.slash.fill"}
+              size={20}
+              color={textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: textColor }]}>{t('auth.confirmPassword')}</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder={t('auth.confirmYourPassword')}
+            placeholderTextColor={textSecondary}
+            secureTextEntry={!showConfirmPassword}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            autoComplete="password-new"
+          />
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            style={styles.eyeButton}
+          >
+            <IconSymbol
+              name={showConfirmPassword ? "eye.fill" : "eye.slash.fill"}
+              size={20}
+              color={textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Success Message Display */}
+      {successMessage && (
+        <View style={[styles.successCard, { backgroundColor: '#F0FDF4' }]}>
+          <IconSymbol name="checkmark.circle.fill" size={16} color="#2E7D32" />
+          <Text style={[styles.successText, { color: '#15803D' }]}>{successMessage}</Text>
+        </View>
+      )}
+
+      {/* Error Message Display */}
+      {errorMessage && (
+        <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
+          <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
+          <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return renderStep1();
+      case 2:
+        return renderStep2();
+      case 3:
+        return renderStep3();
+      default:
+        return null;
+    }
+  };
+
+  const canProceed = () => {
+    if (currentStep === 1) return true;
+    if (currentStep === 2) return name.trim() && selectedCity;
+    if (currentStep === 3) return phoneNumber.trim() && password.trim() && password.length >= 8 && password === confirmPassword;
+    return false;
   };
 
   return (
@@ -231,246 +573,61 @@ export default function SignupScreen() {
             <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
               <Text style={[styles.welcomeText, { color: textColor }]}>{t('auth.createAccount')}</Text>
               <Text style={[styles.subtitleText, { color: textSecondary }]}>
-                {t('auth.joinUs')}
+                {getStepTitle()}
               </Text>
             </View>
 
-            {/* Role Selection */}
-            <View style={styles.section}>
-              <Text style={[styles.label, { color: textColor }]}>{t('auth.joinAs')}</Text>
-              <View style={styles.roleContainer}>
+            {/* Step Indicator */}
+            {renderStepIndicator()}
+
+            {/* Current Step Content */}
+            {renderCurrentStep()}
+
+            {/* Spacer to push buttons to bottom on step 2 */}
+            {currentStep === 2 && <View style={styles.step2Spacer} />}
+
+            {/* Navigation Buttons */}
+            <View style={styles.navigationContainer}>
+              {currentStep > 1 && (
                 <TouchableOpacity
-                  style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'user' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
-                  onPress={() => setRole('user')}
+                  style={[styles.backButton, { borderColor }]}
+                  onPress={handleBackStep}
                 >
-                  <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'user' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
-                    <Text style={styles.roleEmoji}>🏠</Text>
-                  </View>
-                  <Text style={[styles.roleTitle, { color: textSecondary }, role === 'user' && [styles.roleTitleActive, { color: primaryColor }]]}>
-                    {t('auth.customer')}
-                  </Text>
+                  <IconSymbol name="arrow.left" size={20} color={textColor} />
+                  <Text style={[styles.backButtonText, { color: textColor }]}>{t('auth.back') || 'Back'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'helper' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
-                  onPress={() => setRole('helper')}
-                >
-                  <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'helper' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
-                    <Text style={styles.roleEmoji}>👷</Text>
-                  </View>
-                  <Text style={[styles.roleTitle, { color: textSecondary }, role === 'helper' && [styles.roleTitleActive, { color: primaryColor }]]}>
-                    {t('auth.worker')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.roleCard, { backgroundColor: cardBg, borderColor }, role === 'business' && [styles.roleCardActive, { backgroundColor: primaryLight, borderColor: primaryColor }]]}
-                  onPress={() => setRole('business')}
-                >
-                  <View style={[styles.roleIconContainer, { backgroundColor: primaryLight }, role === 'business' && [styles.roleIconContainerActive, { backgroundColor: cardBg }]]}>
-                    <Text style={styles.roleEmoji}>💼</Text>
-                  </View>
-                  <Text style={[styles.roleTitle, { color: textSecondary }, role === 'business' && [styles.roleTitleActive, { color: primaryColor }]]}>
-                    {t('auth.business')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Form Fields */}
-            <View style={styles.formSection}>
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>{t('auth.fullName')}</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-                  <IconSymbol name="person.fill" size={20} color={textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, { color: textColor }]}
-                    placeholder={t('auth.enterFullName')}
-                    placeholderTextColor={textSecondary}
-                    value={name}
-                    onChangeText={setName}
-                    autoComplete="name"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>{t('auth.phoneNumber')}</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-                  <View style={styles.prefixContainer}>
-                    <Text style={styles.flag}>🇵🇰</Text>
-                    <Text style={[styles.prefix, { color: textColor }]}>+92</Text>
-                  </View>
-                  <View style={[styles.divider, { backgroundColor: borderColor }]} />
-                  <TextInput
-                    style={[styles.input, { color: textColor }]}
-                    placeholder="300 1234567"
-                    placeholderTextColor={textSecondary}
-                    keyboardType="phone-pad"
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    maxLength={10}
-                    autoComplete="tel"
-                  />
-                </View>
-              </View>
-
-              {/* City Selection */}
-              <View style={[styles.inputGroup, { zIndex: 10 }]}>
-                <Text style={[styles.label, { color: textColor }]}>{t('auth.city')}</Text>
-                <TouchableOpacity
-                  style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, justifyContent: 'space-between' }]}
-                  onPress={() => setShowCityDropdown(!showCityDropdown)}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
-                    <Text style={[styles.input, { color: selectedCity ? textColor : textSecondary, paddingVertical: 16 }]}>
-                      {selectedCity ? selectedCity.name : t('auth.selectCity')}
-                    </Text>
-                  </View>
-                  <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
-                </TouchableOpacity>
-
-                {showCityDropdown && (
-                  <View style={[styles.cityDropdown, { backgroundColor: cardBg, borderColor }]}>
-                    <View style={[styles.searchContainer, { borderBottomColor: borderColor }]}>
-                      <IconSymbol name="magnifyingglass" size={16} color={textSecondary} />
-                      <TextInput
-                        style={[styles.searchInput, { color: textColor }]}
-                        placeholder={t('auth.searchCity')}
-                        placeholderTextColor={textSecondary}
-                        value={searchCityQuery}
-                        onChangeText={setSearchCityQuery}
-                        autoFocus
-                      />
-                    </View>
-
-                    <ScrollView style={styles.cityList} nestedScrollEnabled>
-                      {isLoadingCities ? (
-                        <View style={styles.loadingContainer}>
-                          <Text style={{ color: textSecondary }}>{t('auth.loadingCities')}</Text>
-                        </View>
-                      ) : filteredCities.length > 0 ? (
-                        filteredCities.map((city) => (
-                          <TouchableOpacity
-                            key={city.id}
-                            style={[
-                              styles.cityItem,
-                              { borderBottomColor: borderColor },
-                              selectedCity?.id === city.id && { backgroundColor: primaryLight }
-                            ]}
-                            onPress={() => {
-                              setSelectedCity(city);
-                              setShowCityDropdown(false);
-                              setSearchCityQuery('');
-                            }}
-                          >
-                            <Text style={[
-                              styles.cityItemText,
-                              { color: textColor },
-                              selectedCity?.id === city.id && { color: primaryColor, fontWeight: '600' }
-                            ]}>
-                              {city.name}
-                            </Text>
-                            {selectedCity?.id === city.id && (
-                              <IconSymbol name="checkmark" size={16} color={primaryColor} />
-                            )}
-                          </TouchableOpacity>
-                        ))
-                      ) : (
-                        <View style={styles.loadingContainer}>
-                          <Text style={{ color: textSecondary }}>{t('auth.noCitiesFound')}</Text>
-                        </View>
-                      )}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-
-
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>{t('auth.password')}</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-                  <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, { color: textColor }]}
-                    placeholder={t('auth.createPassword')}
-                    placeholderTextColor={textSecondary}
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                    autoComplete="password-new"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeButton}
-                  >
-                    <IconSymbol
-                      name={showPassword ? "eye.fill" : "eye.slash.fill"}
-                      size={20}
-                      color={textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>{t('auth.confirmPassword')}</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-                  <IconSymbol name="lock.fill" size={20} color={textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, { color: textColor }]}
-                    placeholder={t('auth.confirmYourPassword')}
-                    placeholderTextColor={textSecondary}
-                    secureTextEntry={!showConfirmPassword}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    autoComplete="password-new"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={styles.eyeButton}
-                  >
-                    <IconSymbol
-                      name={showConfirmPassword ? "eye.fill" : "eye.slash.fill"}
-                      size={20}
-                      color={textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Success Message Display */}
-              {successMessage && (
-                <View style={[styles.successCard, { backgroundColor: '#F0FDF4' }]}>
-                  <IconSymbol name="checkmark.circle.fill" size={16} color="#2E7D32" />
-                  <Text style={[styles.successText, { color: '#15803D' }]}>{successMessage}</Text>
-                </View>
               )}
 
-              {/* Error Message Display */}
-              {errorMessage && (
-                <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
-                  <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
-                  <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
-                </View>
+              {currentStep < 3 ? (
+                <TouchableOpacity
+                  style={[
+                    styles.nextButton,
+                    { backgroundColor: primaryColor, shadowColor: primaryColor },
+                    currentStep > 1 && styles.nextButtonWithBack,
+                  ]}
+                  onPress={handleNextStep}
+                >
+                  <Text style={styles.nextButtonText}>{t('auth.next') || 'Next'}</Text>
+                  <IconSymbol name="arrow.right" size={20} color="#FFF" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    { backgroundColor: primaryColor, shadowColor: primaryColor },
+                    (!canProceed() || isLoading) && [styles.submitButtonDisabled, { backgroundColor: borderColor }]
+                  ]}
+                  onPress={handleSignup}
+                  disabled={!canProceed() || isLoading}
+                >
+                  {isLoading ? (
+                    <Text style={styles.submitButtonText}>{t('auth.creatingAccount')}</Text>
+                  ) : (
+                    <Text style={styles.submitButtonText}>{t('auth.signUp')}</Text>
+                  )}
+                  {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
+                </TouchableOpacity>
               )}
-
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  { backgroundColor: primaryColor, shadowColor: primaryColor },
-                  (!name.trim() || !password.trim() || password.length < 8 || isLoading) && [styles.submitButtonDisabled, { backgroundColor: borderColor }]
-                ]}
-                onPress={handleSignup}
-                disabled={!name.trim() || !password.trim() || password.length < 8 || isLoading}
-              >
-                {isLoading ? (
-                  <Text style={styles.submitButtonText}>{t('auth.creatingAccount')}</Text>
-                ) : (
-                  <Text style={styles.submitButtonText}>{t('auth.signUp')}</Text>
-                )}
-                {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
-              </TouchableOpacity>
             </View>
 
             {/* Footer */}
@@ -528,7 +685,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   headerSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   welcomeText: {
     fontSize: 32,
@@ -542,8 +699,41 @@ const styles = StyleSheet.create({
     color: '#666666',
     lineHeight: 24,
   },
+  stepIndicatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 32,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumber: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  stepLine: {
+    width: 40,
+    height: 2,
+    marginHorizontal: 8,
+  },
   section: {
     marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   roleContainer: {
     flexDirection: 'row',
@@ -595,7 +785,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   formSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   inputGroup: {
     marginBottom: 20,
@@ -681,7 +871,48 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
+  navigationContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  backButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  nextButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 56,
+    borderRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  nextButtonWithBack: {
+    flex: 1,
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
   submitButton: {
+    flex: 1,
     backgroundColor: '#6366F1',
     borderRadius: 16,
     height: 56,
@@ -714,11 +945,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: '#6B7280',
-    fontSize: 14,
+    fontSize: 16,
   },
   footerLink: {
     color: '#6366F1',
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '700',
   },
   termsText: {
@@ -771,7 +1002,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6', // Will be overridden
+    borderBottomColor: '#F3F4F6',
   },
   cityItemText: {
     fontSize: 14,
@@ -825,13 +1056,65 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  step2Container: {
+    flex: 1,
+  },
+  step2Spacer: {
+    flex: 1,
+    minHeight: 100,
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 4,
+  },
+  modalSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  modalCityList: {
+    flex: 1,
+  },
+  modalCityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  modalCityItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalCityItemText: {
+    fontSize: 16,
+  },
 });
-
-
-
-
-
-
-
-
-

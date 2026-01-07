@@ -46,6 +46,11 @@ export const ur = {
         passwordMinLength: 'پاس ورڈ کم از کم 8 حروف کا ہونا چاہیے',
         passwordsDoNotMatch: 'پاس ورڈ میچ نہیں کرتے',
         accountCreatedSuccess: 'اکاؤنٹ کامیابی سے بن گیا! براہ کرم اپنے او ٹی پی کی تصدیق کریں۔',
+        next: 'اگلا',
+        back: 'واپس',
+        selectRole: 'اپنا کردار منتخب کریں',
+        enterDetails: 'اپنی تفصیلات درج کریں',
+        setPassword: 'اپنا پاس ورڈ سیٹ کریں',
     },
     profile: {
         title: 'پروفائل',

@@ -47,6 +47,9 @@ interface CompleteProfileData {
   gender: string;
   religion: string;
   languages: number[];
+  address?: string; // New
+  latitude?: number; // New
+  longitude?: number; // New
 }
 
 const STEP_LABELS = ['Service Offer', 'Verification', 'Complete Profile'];
@@ -89,6 +92,9 @@ export default function HelperProfileScreen() {
     gender: '',
     religion: '',
     languages: [],
+    address: '',
+    latitude: undefined,
+    longitude: undefined,
   });
 
   const handleNext = () => {
@@ -109,18 +115,24 @@ export default function HelperProfileScreen() {
       return;
     }
 
+    if (!profileData.address || !profileData.latitude || !profileData.longitude) {
+      setErrorMessage('Please pin your location on the map in the final step.');
+      setErrorModalVisible(true);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Map service offer data to service offerings
-      const serviceOfferings = serviceOfferData.serviceTypes.map((serviceType) => ({
-        id: `${serviceType}-${Date.now()}`,
-        serviceName: serviceType,
-        category: serviceType,
+      const serviceOfferings = serviceOfferData.serviceTypes.map((serviceId) => ({
+        id: serviceId,
+        serviceName: `Service ${serviceId}`, // We only have ID here, real name will be fetched/updated by API
+        category: serviceId,
         description: serviceOfferData.description,
         price: serviceOfferData.monthlyRate ? parseFloat(serviceOfferData.monthlyRate) : undefined,
         priceUnit: 'month' as const,
-        locations: serviceOfferData.locations.map((loc) => loc.area || loc.name),
+        locations: [profileData.address || ''], // Use specific address
       }));
 
       // Create HelperProfile with all data
@@ -129,7 +141,7 @@ export default function HelperProfileScreen() {
         bio: profileData.bio,
         experience: profileData.experience,
         serviceOfferings,
-        locations: serviceOfferData.locations.map((loc) => loc.area || loc.name),
+        locations: [profileData.address || ''],
         age: profileData.age,
         gender: profileData.gender,
         religion: profileData.religion,
@@ -145,10 +157,28 @@ export default function HelperProfileScreen() {
         },
         serviceOffer: {
           serviceTypes: serviceOfferData.serviceTypes,
-          locations: serviceOfferData.locations,
+          // If the API supports detailed location object in locations array, we can construct it
+          // OR if we updated AuthContext to look for locations elsewhere.
+          // For now, let's assume we pass the address/coords in a way AuthContext understands if we modify it,
+          // or we just pass it here and handle it in AuthContext.
+          // Since completeOnboarding takes specific structure, we should adhere to it or modify it.
+          // Let's pass the raw address string in locations for now as placeholder if API expects string/number array,
+          // BUT we are modifying AuthContext to look for lat/long too.
+          locations: serviceOfferData.locations, // Keep this empty if step 1 doesn't have it
           workType: serviceOfferData.workType,
           monthlyRate: serviceOfferData.monthlyRate,
-          description: serviceOfferData.description
+          description: serviceOfferData.description,
+          // Pass new fields to completeOnboarding (we need to update AuthContext type signature if strictly typed, but it's apt to accept additional props if typed 'any' or extended)
+          // Actually completeOnboarding signature is:
+          // (profileData: HelperProfile | BusinessProfile, additionalData?: { ... })
+          // We can add fields to additionalData object even if type definition in this file doesn't show it, if we cast or update type.
+          // Let's pass it in serviceOffer or a new field.
+          // We'll add it to 'serviceOffer' part of additionalData as that seems most relevant place for 'locations'.
+          ...({
+            latitude: profileData.latitude,
+            longitude: profileData.longitude,
+            address: profileData.address
+          } as any)
         }
       });
 

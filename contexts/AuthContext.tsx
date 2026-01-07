@@ -938,7 +938,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           gender: 'gender' in profileData && profileData.gender ? profileData.gender.toLowerCase() : undefined,
           religion: 'religion' in profileData ? profileData.religion : undefined,
           languages: 'languages' in profileData ? profileData.languages : undefined,
+          // Add location coordinates
+          latitude: (additionalData?.serviceOffer as any)?.latitude,
+          longitude: (additionalData?.serviceOffer as any)?.longitude,
+          address: (additionalData?.serviceOffer as any)?.address,
         };
+
+        console.log('[AuthContext] Helper onboarding payload:', JSON.stringify(apiData, null, 2));
 
         const response = await apiService.post(endpoint, apiData);
 

@@ -1,12 +1,16 @@
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import * as Location from 'expo-location'; // Added import
 import React from 'react';
 import {
   ActivityIndicator,
+  Modal, // Added import
+  SafeAreaView, // Added import
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +26,9 @@ interface CompleteProfileData {
   gender: string;
   religion: string;
   languages: number[];
+  address?: string; // New
+  latitude?: number; // New
+  longitude?: number; // New
 }
 
 interface Step3CompleteProfileProps {
@@ -110,8 +117,155 @@ export default function Step3CompleteProfile({
     onChange({ ...data, languages: updatedLanguages });
   };
 
-  const handleSubmit = () => {
-    onSubmit();
+  // Map State
+  const [address, setAddress] = React.useState(data.address || '');
+  const [pinLocation, setPinLocation] = React.useState<{ latitude: number; longitude: number } | null>(
+    data.latitude && data.longitude ? { latitude: data.latitude, longitude: data.longitude } : null
+  );
+  const [isMapVisible, setIsMapVisible] = React.useState(false);
+  const [mapRegion, setMapRegion] = React.useState<Region>({
+    latitude: 24.8607,
+    longitude: 67.0011,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [isGeocoding, setIsGeocoding] = React.useState(false);
+
+  const getCurrentLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        // PERMISSION DENIED
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      setMapRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setPinLocation({ latitude, longitude });
+    } catch (error) {
+      console.log('Error getting location:', error);
+    }
+  };
+
+  const openMap = () => {
+    setIsMapVisible(true);
+    if (!pinLocation) {
+      getCurrentLocation();
+    } else {
+      setMapRegion({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    }
+  };
+
+  const handleMapConfirm = async () => {
+    if (!pinLocation) return;
+
+    setIsMapVisible(false);
+    setIsGeocoding(true);
+
+    try {
+      // Update parent data with coordinates immediately
+      onChange({
+        ...data,
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude,
+      });
+
+      const result = await Location.reverseGeocodeAsync({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude
+      });
+
+      if (result.length > 0) {
+        const addr = result[0];
+        const formattedAddress = [
+          addr.street,
+          addr.district,
+          addr.city,
+          addr.region
+        ].filter(Boolean).join(', ');
+
+        setAddress(formattedAddress);
+        // Update parent data with address
+        onChange({
+          ...data,
+          latitude: pinLocation.latitude,
+          longitude: pinLocation.longitude,
+          address: formattedAddress,
+        });
+      }
+    } catch (error) {
+      console.log('Error reverse geocoding:', error);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  const renderMapModal = () => {
+    return (
+      <Modal
+        visible={isMapVisible}
+        animationType="slide"
+        onRequestClose={() => setIsMapVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={styles.mapContainer}>
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              region={mapRegion}
+              onRegionChangeComplete={(region) => {
+                setMapRegion(region);
+                setPinLocation({
+                  latitude: region.latitude,
+                  longitude: region.longitude,
+                });
+              }}
+            >
+              <Marker
+                coordinate={{
+                  latitude: mapRegion.latitude,
+                  longitude: mapRegion.longitude,
+                }}
+              />
+            </MapView>
+
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapInstruction}>
+                Drag map to pin exact location
+              </Text>
+            </View>
+
+            <View style={styles.mapButtons}>
+              <TouchableOpacity
+                style={[styles.mapButton, styles.cancelButton]}
+                onPress={() => setIsMapVisible(false)}
+              >
+                <Text style={[styles.mapButtonText, { color: '#FF3B30' }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
+                onPress={handleMapConfirm}
+              >
+                <Text style={[styles.mapButtonText, { color: '#fff' }]}>Confirm Location</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    );
   };
 
   return (
@@ -127,6 +281,35 @@ export default function Step3CompleteProfile({
         </View>
 
         <View style={styles.form}>
+          {/* Address with Map Pin */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={[styles.label, { color: textColor }]}>Address / Location</ThemedText>
+            <View style={{ gap: 10 }}>
+              <TextInput
+                style={[styles.input, { backgroundColor: cardBg, borderColor, color: textMuted, opacity: 0.8 }]}
+                placeholder="Select location on map"
+                placeholderTextColor={textMuted}
+                value={address}
+                editable={false}
+              />
+              <TouchableOpacity
+                style={[styles.pinButton, { backgroundColor: cardBg, borderColor: primaryColor }]}
+                onPress={openMap}
+              >
+                <IconSymbol name="location.fill" size={20} color={primaryColor} />
+                <Text style={[styles.pinButtonText, { color: primaryColor }]}>
+                  {address ? 'Change Location' : 'Pin Location on Map'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {isGeocoding && (
+              <View style={styles.helperTextContainer}>
+                <ActivityIndicator size="small" color={primaryColor} />
+                <Text style={[styles.helperText, { color: textMuted }]}>Getting address...</Text>
+              </View>
+            )}
+          </View>
+
           {/* Years of Experience */}
           <View style={styles.inputGroup}>
             <ThemedText style={[styles.label, { color: textColor }]}>Years of Experience</ThemedText>
@@ -304,7 +487,7 @@ export default function Step3CompleteProfile({
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.submitButton, { backgroundColor: primaryColor, opacity: isLoading ? 0.7 : 1 }]}
-            onPress={handleSubmit}
+            onPress={onSubmit}
             disabled={isLoading}
           >
             {isLoading ? (
@@ -315,6 +498,8 @@ export default function Step3CompleteProfile({
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {renderMapModal()}
     </ThemedView>
   );
 }
@@ -379,6 +564,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 8,
     marginTop: -4,
+  },
+  helperTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
   },
   religionContainer: {
     gap: 8,
@@ -466,6 +657,73 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginTop: 8,
+  },
+  pinButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  mapContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  map: {
+    flex: 1,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  mapInstruction: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mapButtons: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mapButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cancelButton: {
+    backgroundColor: '#fff',
+  },
+  confirmButton: {
+
+  },
+  mapButtonText: {
     fontSize: 16,
     fontWeight: '700',
   },

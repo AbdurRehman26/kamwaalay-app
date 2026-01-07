@@ -46,6 +46,11 @@ export const en = {
         passwordMinLength: 'Password must be at least 8 characters long',
         passwordsDoNotMatch: 'Passwords do not match',
         accountCreatedSuccess: 'Account created successfully! Please verify your OTP.',
+        next: 'Next',
+        back: 'Back',
+        selectRole: 'Select your role',
+        enterDetails: 'Enter your details',
+        setPassword: 'Set your password',
     },
     profile: {
         title: 'Profile',

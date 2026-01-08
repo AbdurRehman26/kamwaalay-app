@@ -2,7 +2,7 @@
   "expo": {
     "name": "kamwaalay-app",
     "slug": "kamwaalay-app",
-    "version": "1.0.3",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kamwaalayapp",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.kamwaalay.app",
-      "versionCode": 15,
+      "versionCode": 18,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/icon.png"
@@ -32,13 +32,13 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "resizeMode": "contain",
+          "resizeMode": "cover",
           "backgroundColor": "#2563EB",
           "dark": {
             "backgroundColor": "#2563EB"
           },
           "android": {
-            "resizeMode": "contain",
+            "resizeMode": "cover",
             "backgroundColor": "#2563EB"
           },
           "ios": {

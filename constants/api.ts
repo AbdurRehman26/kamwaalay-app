@@ -135,7 +135,7 @@ export const API_ENDPOINTS = {
     LIST: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',
     MARK_READ: '/notifications/:id/read',
-    MARK_ALL_READ: '/notifications/read-all',
+    MARK_ALL_READ: '/notifications/mark-all-read',
   },
 
   // Home

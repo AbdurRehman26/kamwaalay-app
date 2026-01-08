@@ -26,7 +26,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 export default function BusinessVerificationScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, refreshProfile } = useAuth();
 
     const [nicImage, setNicImage] = useState<string | null>(null);
     const [nicImageName, setNicImageName] = useState<string | null>(null);
@@ -142,7 +142,9 @@ export default function BusinessVerificationScreen() {
 
             if (response.success) {
                 toast.success('Verification submitted successfully!');
-                router.replace('/(tabs)');
+                // Refresh profile to update onboarding status in context
+                await refreshProfile();
+                router.replace('/business/dashboard');
             } else {
                 toast.error(response.message || 'Failed to submit verification');
             }
@@ -333,7 +335,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
         borderRadius: 12,
         alignItems: 'center',
-        alignSelf: 'flex-end',
+        alignSelf: 'center',
     },
     submitButtonText: {
         color: '#FFF',

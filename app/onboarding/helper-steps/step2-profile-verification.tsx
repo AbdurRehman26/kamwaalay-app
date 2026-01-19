@@ -141,10 +141,12 @@ export default function Step2ProfileVerification({
             </ThemedText>
             <TextInput
               style={[styles.input, { backgroundColor: cardBg, borderColor, color: textColor }]}
-              placeholder="e.g., 42101-1234567-1"
+              placeholder="e.g., 4210112345671"
               placeholderTextColor={textMuted}
               value={data.nicNumber}
-              onChangeText={(value) => onChange({ ...data, nicNumber: value })}
+              onChangeText={(value) => onChange({ ...data, nicNumber: value.replace(/[^0-9]/g, '') })}
+              maxLength={13}
+              keyboardType="number-pad"
               autoCapitalize="none"
               autoCorrect={false}
             />

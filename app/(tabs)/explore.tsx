@@ -1194,12 +1194,8 @@ export default function ExploreScreen() {
     // Assuming API handles it or we just show all if no lat/long available locally.
     const matchesNearMe = !filters.nearMe || true;
 
-    // Filter by minimum experience
-    const matchesExperience = filters.minExperience === null ||
-      (h.experience_years !== undefined && h.experience_years >= filters.minExperience);
-
     return matchesRole && matchesSearch && matchesServiceFilter && matchesServices &&
-      matchesCity && matchesNearMe && matchesExperience;
+      matchesCity && matchesNearMe;
   });
 
   // Count active filters for current tab
@@ -1224,6 +1220,7 @@ export default function ExploreScreen() {
       minRating: null,
     });
     setSelectedFilter('all');
+    router.setParams({ service: undefined, service_type_id: undefined });
   };
 
   return (
@@ -1561,47 +1558,7 @@ export default function ExploreScreen() {
               </View>
 
 
-              {/* Experience Filter - Only show for Helpers tab */}
-              {mainTab === 'helpers' && (
-                <View style={[styles.filterSection, { borderBottomColor: 'transparent' }]}>
-                  <ThemedText type="subtitle" style={[styles.filterSectionTitle, { color: isDark ? '#F8FAFC' : '#000000' }]}>{t('explore.minExperience')}</ThemedText>
-                  <View style={styles.experienceContainer}>
-                    {[0, 1, 2, 3, 5, 10].map((years) => (
-                      <TouchableOpacity
-                        key={years}
-                        style={[
-                          styles.experienceChip,
-                          {
-                            backgroundColor: filters.minExperience === years
-                              ? themeColors.primary
-                              : (isDark ? '#334155' : '#F5F5F5'),
-                            borderColor: filters.minExperience === years
-                              ? themeColors.primary
-                              : (isDark ? '#475569' : '#E0E0E0')
-                          }
-                        ]}
-                        onPress={() => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            minExperience: prev.minExperience === years ? null : years,
-                          }));
-                        }}
-                      >
-                        <Text style={[
-                          styles.experienceChipText,
-                          {
-                            color: filters.minExperience === years
-                              ? '#FFFFFF'
-                              : (isDark ? '#CBD5E1' : '#666666')
-                          }
-                        ]}>
-                          {years === 0 ? t('explore.any') : `${years}+`}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
+
 
             </ScrollView>
 

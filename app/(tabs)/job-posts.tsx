@@ -44,8 +44,7 @@ interface FilterState {
     longitude: number;
     address?: string;
   } | null;
-  minBudget: number | null;
-  maxBudget: number | null;
+
 }
 
 interface JobPost {
@@ -131,8 +130,7 @@ export default function JobPostsScreen() {
   const [filters, setFilters] = useState<FilterState>({
     services: [],
     pinLocation: null,
-    minBudget: null,
-    maxBudget: null,
+
   });
 
   // For users: show their own requests
@@ -297,8 +295,7 @@ export default function JobPostsScreen() {
     let count = 0;
     if (filters.services.length > 0) count += filters.services.length;
     if (filters.pinLocation) count += 1;
-    if (filters.minBudget !== null) count += 1;
-    if (filters.maxBudget !== null) count += 1;
+
     return count;
   }, [filters]);
 
@@ -343,13 +340,7 @@ export default function JobPostsScreen() {
     // Note: This is a placeholder - actual implementation would require lat/lng on job posts
     // and a geo-distance calculation
 
-    // Apply budget filters
-    if (filters.minBudget !== null) {
-      requests = requests.filter((r) => r.budget && r.budget >= filters.minBudget!);
-    }
-    if (filters.maxBudget !== null) {
-      requests = requests.filter((r) => r.budget && r.budget <= filters.maxBudget!);
-    }
+
 
     return requests;
   };
@@ -358,8 +349,7 @@ export default function JobPostsScreen() {
     setFilters({
       services: [],
       pinLocation: null,
-      minBudget: null,
-      maxBudget: null,
+
     });
   };
 
@@ -932,48 +922,7 @@ export default function JobPostsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Budget Filter */}
-                  <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
-                    <Text style={[styles.filterSectionTitle, { color: textColor }]}>
-                      {t('jobPosts.filterModal.budgetRange')}
-                    </Text>
-                    <View style={styles.budgetContainer}>
-                      <View style={styles.budgetInputContainer}>
-                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>{t('jobPosts.filterModal.min')} (₨)</Text>
-                        <TextInput
-                          style={[styles.budgetInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
-                          placeholder="0"
-                          placeholderTextColor={textMuted}
-                          keyboardType="numeric"
-                          value={filters.minBudget !== null ? filters.minBudget.toString() : ''}
-                          onChangeText={(text) => {
-                            const value = text.trim() === '' ? null : parseInt(text, 10);
-                            setFilters({
-                              ...filters,
-                              minBudget: isNaN(value as number) ? null : value,
-                            });
-                          }}
-                        />
-                      </View>
-                      <View style={styles.budgetInputContainer}>
-                        <Text style={[styles.budgetLabel, { color: textSecondary }]}>{t('jobPosts.filterModal.max')} (₨)</Text>
-                        <TextInput
-                          style={[styles.budgetInput, { backgroundColor: cardBg, borderColor, color: textColor }]}
-                          placeholder="No limit"
-                          placeholderTextColor={textMuted}
-                          keyboardType="numeric"
-                          value={filters.maxBudget !== null ? filters.maxBudget.toString() : ''}
-                          onChangeText={(text) => {
-                            const value = text.trim() === '' ? null : parseInt(text, 10);
-                            setFilters({
-                              ...filters,
-                              maxBudget: isNaN(value as number) ? null : value,
-                            });
-                          }}
-                        />
-                      </View>
-                    </View>
-                  </View>
+
                 </ScrollView>
 
                 <View style={[styles.modalFooter, { borderTopColor: borderColor }]}>

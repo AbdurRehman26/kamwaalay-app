@@ -218,11 +218,12 @@ export default function BusinessVerificationScreen() {
                             </Text>
                             <TextInput
                                 style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-                                placeholder="e.g. 42101-1234567-8"
+                                placeholder="e.g. 4210112345678"
                                 placeholderTextColor={textSecondary}
                                 value={nicNumber}
-                                onChangeText={setNicNumber}
-                                keyboardType="default"
+                                onChangeText={(text) => setNicNumber(text.replace(/[^0-9]/g, ''))}
+                                maxLength={13}
+                                keyboardType="number-pad"
                                 autoCapitalize="none"
                             />
                         </View>

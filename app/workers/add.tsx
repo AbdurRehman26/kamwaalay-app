@@ -95,7 +95,7 @@ export default function AddWorkerScreen() {
 
     const [availability, setAvailability] = useState('full_time');
     const [showAvailabilityPicker, setShowAvailabilityPicker] = useState(false);
-    const [skills, setSkills] = useState('');
+
     const [bio, setBio] = useState('');
 
     // Location State
@@ -306,7 +306,7 @@ export default function AddWorkerScreen() {
                 religion,
                 languages,
                 availability,
-                skills: skills.trim() || null,
+
                 bio: bio.trim() || null,
                 address: locationData.address,
                 city: locationData.city,
@@ -330,7 +330,7 @@ export default function AddWorkerScreen() {
             setReligion('');
             setLanguages([]);
             setAvailability('full_time');
-            setSkills('');
+
             setBio('');
             setLocationData(null);
 
@@ -663,19 +663,7 @@ export default function AddWorkerScreen() {
                             )}
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: textColor }]}>Skills</Text>
-                            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-                                <IconSymbol name="star.fill" size={20} color={textMuted} style={styles.inputIcon} />
-                                <TextInput
-                                    style={[styles.input, { color: textColor }]}
-                                    placeholder="e.g. Cooking, Cleaning"
-                                    placeholderTextColor={textMuted}
-                                    value={skills}
-                                    onChangeText={setSkills}
-                                />
-                            </View>
-                        </View>
+
 
                         <View style={styles.inputGroup}>
                             <Text style={[styles.label, { color: textColor }]}>Bio / Description</Text>

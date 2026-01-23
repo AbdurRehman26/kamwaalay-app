@@ -139,57 +139,36 @@ function RootLayoutNav() {
         }
       }
     }
-    // If user exists and is verified, and is in auth group, redirect to appropriate screen
-    else if (user && user.isVerified !== false && inAuthGroup) {
-      try {
-        // Check for incomplete business onboarding FIRST
-        if (user.userType === 'business' && user.onboardingStatus !== 'completed') {
-          // Business user with incomplete onboarding - force to business verification
-          if (currentPath !== 'onboarding/business') {
-            router.replace('/onboarding/business');
-            return;
-          }
-          return; // Already on business verification, let them stay
+    // If user exists and is verified
+    else if (user && user.isVerified !== false) {
+      // 1. Check if user type is selected
+      if (!user.userType) {
+        if (currentPath !== 'auth/user-type') {
+          try {
+            router.replace('/auth/user-type');
+          } catch (error) { }
         }
+        return;
+      }
 
-        if (user.onboardingStatus === 'completed') {
+      // 2. Check onboarding status
+      if (user.onboardingStatus !== 'completed') {
+        const isAllowedPath = segments[0] === 'onboarding' || currentPath === 'auth/user-type';
+
+        if (!isAllowedPath) {
+          try {
+            router.replace('/onboarding/start');
+          } catch (error) { }
+          return;
+        }
+        return;
+      }
+
+      // 3. Onboarding is completed - redirect away from auth/onboarding pages
+      if (inAuthGroup) {
+        try {
           router.replace('/(tabs)');
-          return;
-        }
-
-        // Allow navigation to specific onboarding screens (helper-profile, business-profile)
-        // only if onboarding is not yet completed
-        if (currentPath === 'onboarding/helper-profile' || currentPath === 'onboarding/business-profile') {
-          return;
-        }
-
-        if (user.onboardingStatus === 'in_progress') {
-          router.replace('/onboarding/start');
-        } else if (user.userType) {
-          router.replace('/onboarding/start');
-        } else {
-          router.replace('/auth/user-type');
-        }
-      } catch (error) {
-        // Navigation error
-      }
-    }
-    // Business users trying to access non-auth routes without completing onboarding
-    else if (user && user.isVerified !== false && !inAuthGroup &&
-      user.userType === 'business' && user.onboardingStatus !== 'completed') {
-      try {
-        router.replace('/onboarding/business');
-      } catch (error) {
-        // Navigation error
-      }
-    }
-    // If user exists and is verified but not in auth group, and is in tabs, that's fine
-    // But if user is not verified and somehow got to tabs, redirect to OTP verify
-    else if (user && user.isVerified === false && !inAuthGroup) {
-      try {
-        router.replace('/auth/otp-verify');
-      } catch (error) {
-        // Navigation error
+        } catch (error) { }
       }
     }
   }, [user, isLoading, segments, router]);

@@ -114,7 +114,8 @@ export default function ProfileViewScreen() {
                 const detail = business.location_details?.[0] || {};
                 const address = business.address || business.user?.address;
                 const area = detail.area || detail.area_name || business.area;
-                const city = detail.city_name || detail.city || business.city || business.user?.city;
+                const rawCity = detail.city_name || detail.city || business.city || business.user?.city;
+                const city = typeof rawCity === 'object' && rawCity !== null ? rawCity.name : rawCity;
 
                 if (address) return address;
                 if (area && city) return `${city}, ${area}`;
@@ -200,7 +201,8 @@ export default function ProfileViewScreen() {
                 const detail = helper.location_details?.[0] || {};
                 const address = helper.address || helper.user?.address;
                 const area = detail.area || detail.area_name || helper.area;
-                const city = detail.city_name || detail.city || helper.city || helper.user?.city;
+                const rawCity = detail.city_name || detail.city || helper.city || helper.user?.city;
+                const city = typeof rawCity === 'object' && rawCity !== null ? rawCity.name : rawCity;
 
                 if (address) return address;
                 if (area && city) return `${city}, ${area}`;

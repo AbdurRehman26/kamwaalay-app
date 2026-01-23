@@ -513,7 +513,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 60,
   },
   title: {
     fontSize: 28,
@@ -644,6 +643,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     fontSize: 16,
@@ -654,6 +654,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   submitButtonText: {
     color: '#FFFFFF',

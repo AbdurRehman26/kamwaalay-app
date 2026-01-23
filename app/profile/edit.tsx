@@ -1,3 +1,4 @@
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
@@ -8,12 +9,14 @@ import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -112,6 +115,157 @@ export default function EditProfileScreen() {
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [showReligionDropdown, setShowReligionDropdown] = useState(false);
+
+  // Map & Location State
+  const [address, setAddress] = useState((user as any)?.address || (user?.profileData as any)?.businessAddress || '');
+  const [pinLocation, setPinLocation] = useState<{ latitude: number; longitude: number } | null>(
+    (user as any)?.latitude && (user as any)?.longitude
+      ? { latitude: parseFloat((user as any).latitude), longitude: parseFloat((user as any).longitude) }
+      : null
+  );
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: 24.8607,
+    longitude: 67.0011,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Initialize map region if location exists
+  React.useEffect(() => {
+    if ((user as any)?.latitude && (user as any)?.longitude) {
+      setMapRegion({
+        latitude: parseFloat((user as any).latitude),
+        longitude: parseFloat((user as any).longitude),
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    }
+  }, [user]);
+
+  const getCurrentLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      setMapRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setPinLocation({ latitude, longitude });
+    } catch (error) {
+      console.log('Error getting location:', error);
+    }
+  };
+
+  const openMap = () => {
+    setIsMapVisible(true);
+    if (!pinLocation) {
+      getCurrentLocation();
+    } else {
+      setMapRegion({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    }
+  };
+
+  const handleMapConfirm = async () => {
+    if (!pinLocation) return;
+
+    setIsMapVisible(false);
+    setIsGeocoding(true);
+
+    try {
+      const result = await Location.reverseGeocodeAsync({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude
+      });
+
+      if (result.length > 0) {
+        const addr = result[0];
+        const formattedAddress = [
+          addr.street,
+          addr.district,
+          addr.city,
+          addr.region
+        ].filter(Boolean).join(', ');
+
+        setAddress(formattedAddress);
+      }
+    } catch (error) {
+      console.log('Error reverse geocoding:', error);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  const renderMapModal = () => {
+    return (
+      <Modal
+        visible={isMapVisible}
+        animationType="slide"
+        onRequestClose={() => setIsMapVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={{ height: insets.top, backgroundColor: backgroundColor }} />
+          <View style={styles.mapContainer}>
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              region={mapRegion}
+              onRegionChangeComplete={(region) => {
+                setMapRegion(region);
+                setPinLocation({
+                  latitude: region.latitude,
+                  longitude: region.longitude,
+                });
+              }}
+            >
+              <Marker
+                coordinate={{
+                  latitude: mapRegion.latitude,
+                  longitude: mapRegion.longitude,
+                }}
+              />
+            </MapView>
+
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapInstruction}>
+                Drag map to pin exact location
+              </Text>
+            </View>
+
+            <View style={styles.mapButtons}>
+              <TouchableOpacity
+                style={[styles.mapButton, styles.cancelButton]}
+                onPress={() => setIsMapVisible(false)}
+              >
+                <Text style={[styles.mapButtonText, { color: '#FF3B30' }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
+                onPress={handleMapConfirm}
+              >
+                <Text style={[styles.mapButtonText, { color: '#fff' }]}>Confirm Location</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   React.useEffect(() => {
     if (user?.userType === 'helper') {
@@ -312,6 +466,13 @@ export default function EditProfileScreen() {
         profileUpdateData.languages = languages;
       }
 
+      // Add location data for all users
+      if (address) profileUpdateData.address = address;
+      if (pinLocation) {
+        profileUpdateData.latitude = pinLocation.latitude;
+        profileUpdateData.longitude = pinLocation.longitude;
+      }
+
       await updateUser(profileUpdateData);
       toast.success(t('profileEdit.toasts.updateSuccess'));
       // router.back(); // Keep user on the same screen as requested
@@ -496,6 +657,35 @@ export default function EditProfileScreen() {
                 </View>
               )}
 
+              {/* Address with Map Pin */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.address') || 'Address / Location'}</Text>
+                <View style={{ gap: 10 }}>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: cardBg, borderColor, color: textMuted }]}
+                    placeholder={t('profileEdit.placeholders.pinLocation') || "Select location on map"}
+                    placeholderTextColor={textMuted}
+                    value={address}
+                    editable={false}
+                  />
+                  <TouchableOpacity
+                    style={[styles.pinButton, { backgroundColor: cardBg, borderColor: primaryColor }]}
+                    onPress={openMap}
+                  >
+                    <IconSymbol name="location.fill" size={20} color={primaryColor} />
+                    <Text style={[styles.pinButtonText, { color: primaryColor }]}>
+                      {address ? (t('profileEdit.actions.changeLocation') || 'Change Location') : (t('profileEdit.actions.pinLocation') || 'Pin Location on Map')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {isGeocoding && (
+                  <View style={styles.helperTextContainer}>
+                    <ActivityIndicator size="small" color={primaryColor} />
+                    <Text style={[styles.helperText, { color: textMuted }]}>Getting address...</Text>
+                  </View>
+                )}
+              </View>
+
               {/* Profile Details for Helpers ONLY */}
               {user?.userType === 'helper' && (
                 <>
@@ -665,6 +855,7 @@ export default function EditProfileScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {renderMapModal()}
     </View>
   );
 }
@@ -798,6 +989,79 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     gap: 8,
+  },
+  pinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginTop: 8,
+  },
+  pinButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  helperTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+  },
+  mapContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  map: {
+    flex: 1,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  mapInstruction: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mapButtons: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mapButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cancelButton: {
+    backgroundColor: '#fff',
+  },
+  confirmButton: {
+
+  },
+  mapButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   badgeText: {
     fontSize: 14,

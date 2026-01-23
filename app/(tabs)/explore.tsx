@@ -1175,9 +1175,8 @@ export default function ExploreScreen() {
       role.includes(searchQuery.toLowerCase()) ||
       bio.includes(searchQuery.toLowerCase());
 
-    const matchesServiceFilter = !serviceFilter ||
-      service.includes(serviceFilter.toLowerCase()) ||
-      serviceFilter.toLowerCase().includes(service);
+    // matchesServiceFilter removed - we rely on filters.services (initialized from params)
+    // to allow user to deselect/change filters without URL params forcing persistence.
 
     // Filter by selected services
     const matchesServices = filters.services.length === 0 ||
@@ -1194,7 +1193,7 @@ export default function ExploreScreen() {
     // Assuming API handles it or we just show all if no lat/long available locally.
     const matchesNearMe = !filters.nearMe || true;
 
-    return matchesRole && matchesSearch && matchesServiceFilter && matchesServices &&
+    return matchesRole && matchesSearch && matchesServices &&
       matchesCity && matchesNearMe;
   });
 
@@ -1229,13 +1228,6 @@ export default function ExploreScreen() {
       <ScreenHeader
         title={t('explore.title')}
         showBackButton={false}
-        rightElement={
-          serviceFilter ? (
-            <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
-              <IconSymbol name="xmark.circle.fill" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          ) : undefined
-        }
       />
 
       <ScrollView

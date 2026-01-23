@@ -18,8 +18,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface JobSummary {
     id: string;
     serviceName: string;
@@ -34,6 +33,7 @@ export default function JobApplyScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
     const { user } = useAuth();
+    const insets = useSafeAreaInsets();
 
     const [job, setJob] = useState<JobSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -149,117 +149,114 @@ export default function JobApplyScreen() {
         >
             <Stack.Screen options={{ headerShown: false }} />
             <View style={[styles.container, { backgroundColor }]}>
-                <SafeAreaView style={styles.safeArea} edges={['top']}>
-                    {/* Header */}
-                    <ScreenHeader title="Apply for Job" />
+                {/* Header */}
+                <ScreenHeader title="Apply for Job" />
 
-                    <ScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.content}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {/* Job Details Card */}
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-                            <View style={styles.cardHeader}>
-                                <IconSymbol name="doc.text.fill" size={20} color={textMuted} />
-                                <Text style={[styles.cardTitle, { color: textColor }]}>Job Details</Text>
-                            </View>
-
-                            <View style={styles.detailsGrid}>
-                                <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
-                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>Service Type</Text>
-                                    <Text style={[styles.detailValue, { color: textColor }]}>{job.serviceName}</Text>
-                                </View>
-
-                                <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
-                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>Work Type</Text>
-                                    <Text style={[styles.detailValue, { color: textColor }]}>{job.workType}</Text>
-                                </View>
-
-                                <View style={[styles.detailBox, { backgroundColor: primaryLight, width: '100%' }]}>
-                                    <Text style={[styles.detailLabel, { color: primaryColor }]}>Location</Text>
-                                    <Text style={[styles.detailValue, { color: textColor }]}>{job.location}</Text>
-                                </View>
-                            </View>
-
-                            {job.specialRequirements && (
-                                <View style={[styles.specialReqBox, { backgroundColor: '#F3E8FF' }]}>
-                                    <IconSymbol name="exclamationmark.circle" size={16} color="#7C3AED" />
-                                    <View style={{ marginLeft: 8, flex: 1 }}>
-                                        <Text style={[styles.detailLabel, { color: '#7C3AED', marginBottom: 2 }]}>Special Requirements</Text>
-                                        <Text style={[styles.detailValue, { color: '#4C1D95' }]}>{job.specialRequirements}</Text>
-                                    </View>
-                                </View>
-                            )}
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.content}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Job Details Card */}
+                    <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+                        <View style={styles.cardHeader}>
+                            <IconSymbol name="doc.text.fill" size={20} color={textMuted} />
+                            <Text style={[styles.cardTitle, { color: textColor }]}>Job Details</Text>
                         </View>
 
-                        {/* Application Form */}
-                        <View style={[styles.card, { backgroundColor: cardBg, borderColor, marginTop: 24 }]}>
-                            <View style={styles.cardHeader}>
-                                <IconSymbol name="pencil.and.outline" size={20} color="#F59E0B" />
-                                <Text style={[styles.cardTitle, { color: textColor }]}>Your Application</Text>
+                        <View style={styles.detailsGrid}>
+                            <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
+                                <Text style={[styles.detailLabel, { color: primaryColor }]}>Service Type</Text>
+                                <Text style={[styles.detailValue, { color: textColor }]}>{job.serviceName}</Text>
                             </View>
 
-                            <View style={styles.formGroup}>
-                                <Text style={[styles.label, { color: textSecondary }]}>
-                                    Application Message <Text style={{ color: errorColor }}>*</Text>
-                                </Text>
-                                <TextInput
-                                    style={[styles.textArea, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
-                                    multiline
-                                    numberOfLines={6}
-                                    placeholder="Tell the client why you're perfect for this job. Mention your experience, skills, and availability..."
-                                    placeholderTextColor={textMuted}
-                                    value={message}
-                                    onChangeText={setMessage}
-                                    textAlignVertical="top"
-                                />
+                            <View style={[styles.detailBox, { backgroundColor: primaryLight }]}>
+                                <Text style={[styles.detailLabel, { color: primaryColor }]}>Work Type</Text>
+                                <Text style={[styles.detailValue, { color: textColor }]}>{job.workType}</Text>
                             </View>
 
-                            <View style={styles.formGroup}>
-                                <Text style={[styles.label, { color: textSecondary }]}>Proposed Monthly Rate (PKR) (Optional)</Text>
-                                <TextInput
-                                    style={[styles.input, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
-                                    placeholder={job.budget ? `e.g., ${job.budget}` : "e.g., 50000"}
-                                    placeholderTextColor={textMuted}
-                                    keyboardType="numeric"
-                                    value={proposedRate}
-                                    onChangeText={setProposedRate}
-                                />
+                            <View style={[styles.detailBox, { backgroundColor: primaryLight, width: '100%' }]}>
+                                <Text style={[styles.detailLabel, { color: primaryColor }]}>Location</Text>
+                                <Text style={[styles.detailValue, { color: textColor }]}>{job.location}</Text>
                             </View>
                         </View>
 
-                    </ScrollView>
+                        {job.specialRequirements && (
+                            <View style={[styles.specialReqBox, { backgroundColor: '#F3E8FF' }]}>
+                                <IconSymbol name="exclamationmark.circle" size={16} color="#7C3AED" />
+                                <View style={{ marginLeft: 8, flex: 1 }}>
+                                    <Text style={[styles.detailLabel, { color: '#7C3AED', marginBottom: 2 }]}>Special Requirements</Text>
+                                    <Text style={[styles.detailValue, { color: '#4C1D95' }]}>{job.specialRequirements}</Text>
+                                </View>
+                            </View>
+                        )}
+                    </View>
 
-                    {/* Footer Actions */}
-                    <View style={[styles.footer, { backgroundColor: cardBg, borderTopColor: borderColor }]}>
-                        <View style={styles.footerButtons}>
-                            <TouchableOpacity
-                                style={[styles.cancelButton, { backgroundColor: '#F3F4F6' }]}
-                                onPress={() => router.back()}
-                                disabled={isSubmitting}
-                            >
-                                <Text style={[styles.cancelButtonText, { color: textSecondary }]}>Cancel</Text>
-                            </TouchableOpacity>
+                    {/* Application Form */}
+                    <View style={[styles.card, { backgroundColor: cardBg, borderColor, marginTop: 24 }]}>
+                        <View style={styles.cardHeader}>
+                            <IconSymbol name="pencil.and.outline" size={20} color="#F59E0B" />
+                            <Text style={[styles.cardTitle, { color: textColor }]}>Your Application</Text>
+                        </View>
 
-                            <TouchableOpacity
-                                style={[
-                                    styles.submitButton,
-                                    { backgroundColor: primaryColor, opacity: isSubmitting ? 0.7 : 1 }
-                                ]}
-                                onPress={handleSubmit}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <ActivityIndicator color="white" />
-                                ) : (
-                                    <Text style={styles.submitButtonText}>Submit Application</Text>
-                                )}
-                            </TouchableOpacity>
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, { color: textSecondary }]}>
+                                Application Message <Text style={{ color: errorColor }}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={[styles.textArea, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
+                                multiline
+                                numberOfLines={6}
+                                placeholder="Tell the client why you're perfect for this job. Mention your experience, skills, and availability..."
+                                placeholderTextColor={textMuted}
+                                value={message}
+                                onChangeText={setMessage}
+                                textAlignVertical="top"
+                            />
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, { color: textSecondary }]}>Proposed Monthly Rate (PKR) (Optional)</Text>
+                            <TextInput
+                                style={[styles.input, { backgroundColor: backgroundColor, color: textColor, borderColor }]}
+                                placeholder={job.budget ? `e.g., ${job.budget}` : "e.g., 50000"}
+                                placeholderTextColor={textMuted}
+                                keyboardType="numeric"
+                                value={proposedRate}
+                                onChangeText={setProposedRate}
+                            />
                         </View>
                     </View>
 
-                </SafeAreaView >
+                </ScrollView>
+
+                {/* Footer Actions */}
+                <View style={[styles.footer, { backgroundColor: cardBg, borderTopColor: borderColor, paddingBottom: insets.bottom + 20 }]}>
+                    <View style={styles.footerButtons}>
+                        <TouchableOpacity
+                            style={[styles.cancelButton, { backgroundColor: '#F3F4F6' }]}
+                            onPress={() => router.back()}
+                            disabled={isSubmitting}
+                        >
+                            <Text style={[styles.cancelButtonText, { color: textSecondary }]}>Cancel</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.submitButton,
+                                { backgroundColor: primaryColor, opacity: isSubmitting ? 0.7 : 1 }
+                            ]}
+                            onPress={handleSubmit}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text style={styles.submitButtonText}>Submit Application</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </View >
         </KeyboardAvoidingView >
     );

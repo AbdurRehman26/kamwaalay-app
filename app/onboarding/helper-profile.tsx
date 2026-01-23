@@ -265,7 +265,7 @@ export default function HelperProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
 
-      <View style={[styles.content, { paddingTop: insets.top }]}>
+      <View style={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Stepper
           currentStep={currentStep}
           totalSteps={3}

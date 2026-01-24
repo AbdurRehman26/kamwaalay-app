@@ -221,6 +221,8 @@ export const ur = {
         actions: {
             save: 'محفوظ کریں',
             changePhoto: 'تصویر تبدیل کرنے کے لیے تھپتھپائیں',
+            pinLocation: 'نقشے پر مقام پن کریں',
+            changeLocation: 'مقام تبدیل کریں',
             selectCity: 'شہر منتخب کریں',
             selectGender: 'جنس منتخب کریں',
             selectReligion: 'مذہب منتخب کریں',
@@ -234,6 +236,7 @@ export const ur = {
             fullName: 'پورا نام',
             businessName: 'کاروبار کا نام',
             phoneNumber: 'فون نمبر',
+            address: 'پتہ / مقام',
             city: 'شہر',
             age: 'عمر',
             gender: 'جنس',

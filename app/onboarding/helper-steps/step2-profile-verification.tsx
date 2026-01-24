@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { toast } from '@/utils/toast';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
   ScrollView,
@@ -47,37 +48,59 @@ export default function Step2ProfileVerification({
   const successColor = useThemeColor({}, 'success');
 
   const handleNICUpload = async () => {
-    // TODO: Implement file upload when expo-image-picker and expo-document-picker are installed
-    toast.info('File upload will be implemented with expo-image-picker and expo-document-picker');
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
 
-    // Simulate file upload for now
-    const mockFile = {
-      uri: 'file://mock-nic.jpg',
-      name: 'NIC.jpg',
-      type: 'image/jpeg',
-    };
-    setNicFileUri('file://mock-nic.jpg');
-    onChange({
-      ...data,
-      nicFile: mockFile,
-    });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const file = {
+          uri: asset.uri,
+          name: asset.fileName || 'NIC_Image.jpg',
+          type: asset.mimeType || 'image/jpeg',
+        };
+        setNicFileUri(asset.uri);
+        onChange({
+          ...data,
+          nicFile: file,
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to pick NIC image');
+      console.error(error);
+    }
   };
 
   const handlePhotoUpload = async () => {
-    // TODO: Implement file upload when expo-image-picker is installed
-    toast.info('File upload will be implemented with expo-image-picker');
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-    // Simulate file upload for now
-    const mockFile = {
-      uri: 'file://mock-photo.jpg',
-      name: 'Photo.jpg',
-      type: 'image/jpeg',
-    };
-    setPhotoFileUri('file://mock-photo.jpg');
-    onChange({
-      ...data,
-      photoFile: mockFile,
-    });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const file = {
+          uri: asset.uri,
+          name: asset.fileName || 'Profile_Photo.jpg',
+          type: asset.mimeType || 'image/jpeg',
+        };
+
+        setPhotoFileUri(asset.uri);
+        onChange({
+          ...data,
+          photoFile: file,
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to pick photo');
+      console.error(error);
+    }
   };
 
   const handleNext = () => {

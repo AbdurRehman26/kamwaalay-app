@@ -10,13 +10,14 @@ import {
   ActivityIndicator,
   Dimensions,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,22 +30,25 @@ export default function OnboardingStartScreen() {
   const router = useRouter();
   const { user, updateUser, logout } = useAuth();
   const [name, setName] = useState('');
-  const [cityId, setCityId] = useState<number | null>(null);
-  const [cities, setCities] = useState<any[]>([]);
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [isLoadingCities, setIsLoadingCities] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // City Selection State
+  const [cityId, setCityId] = useState<number | null>(null);
+  const [cities, setCities] = useState<any[]>([]);
+  const [isCityModalVisible, setIsCityModalVisible] = useState(false);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
   const primaryColor = useThemeColor({}, 'primary');
   const primaryLight = useThemeColor({}, 'primaryLight');
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
   const errorColor = useThemeColor({}, 'error');
-  const iconColor = useThemeColor({}, 'icon');
 
   // Prefill name if it exists in user context
   useEffect(() => {
@@ -119,6 +123,11 @@ export default function OnboardingStartScreen() {
   const handleContinue = async () => {
     if (!name.trim()) {
       toast.error('Please enter your name');
+      return;
+    }
+
+    if (user?.userType === 'user' && !cityId) {
+      toast.error('Please select your city');
       return;
     }
 
@@ -206,6 +215,98 @@ export default function OnboardingStartScreen() {
     }
   };
 
+  const filteredCities = cities.filter(city =>
+    city.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const renderCityModal = () => {
+    return (
+      <Modal
+        visible={isCityModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsCityModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.modalTitle, { color: textColor }]}>Select City</Text>
+              <TouchableOpacity onPress={() => setIsCityModalVisible(false)}>
+                <IconSymbol name="xmark" size={24} color={textColor} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.searchContainer, { backgroundColor }]}>
+              <IconSymbol name="magnifyingglass" size={20} color={textSecondary} />
+              <TextInput
+                style={[styles.searchInput, { color: textColor }]}
+                placeholder="Search city..."
+                placeholderTextColor={textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <IconSymbol name="xmark.circle.fill" size={16} color={textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView
+              style={styles.cityList}
+              contentContainerStyle={styles.cityListContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled={true}
+            >
+              {isLoadingCities ? (
+                <ActivityIndicator size="large" color={primaryColor} style={{ marginTop: 20 }} />
+              ) : filteredCities.length > 0 ? (
+                filteredCities.map((city: any, index: number) => {
+                  const isSelected = cityId === city.id;
+                  return (
+                    <TouchableOpacity
+                      key={city.id}
+                      style={[
+                        styles.cityItem,
+                        {
+                          borderBottomColor: borderColor,
+                          borderBottomWidth: index === filteredCities.length - 1 ? 0 : 1,
+                          backgroundColor: isSelected ? (primaryLight + '30') : 'transparent'
+                        }
+                      ]}
+                      onPress={() => {
+                        setCityId(city.id);
+                        setIsCityModalVisible(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.cityItemText,
+                          {
+                            color: isSelected ? primaryColor : textColor,
+                            fontWeight: isSelected ? '600' : '400'
+                          }
+                        ]}
+                      >
+                        {city.name}
+                      </Text>
+                      {isSelected && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyStateText, { color: textSecondary }]}>No cities found</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Decorative Background Elements */}
@@ -262,7 +363,7 @@ export default function OnboardingStartScreen() {
                   <Text style={[styles.label, { color: textColor }]}>City</Text>
                   <TouchableOpacity
                     style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}
-                    onPress={() => setShowCityDropdown(!showCityDropdown)}
+                    onPress={() => setIsCityModalVisible(true)}
                   >
                     <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
                     <Text style={[styles.input, { color: cityId ? textColor : textSecondary, paddingVertical: 16 }]}>
@@ -270,30 +371,6 @@ export default function OnboardingStartScreen() {
                     </Text>
                     <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
                   </TouchableOpacity>
-
-                  {showCityDropdown && (
-                    <View style={[styles.dropdownList, { backgroundColor: cardBg, borderColor, maxHeight: 200 }]}>
-                      <ScrollView nestedScrollEnabled>
-                        {isLoadingCities ? (
-                          <ActivityIndicator size="small" color={primaryColor} style={{ padding: 20 }} />
-                        ) : (
-                          cities.map((city: any) => (
-                            <TouchableOpacity
-                              key={city.id}
-                              style={[styles.dropdownItem, { borderBottomColor: borderColor }]}
-                              onPress={() => {
-                                setCityId(city.id);
-                                setShowCityDropdown(false);
-                              }}
-                            >
-                              <Text style={[styles.dropdownText, { color: textColor }]}>{city.name}</Text>
-                              {cityId === city.id && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-                            </TouchableOpacity>
-                          ))
-                        )}
-                      </ScrollView>
-                    </View>
-                  )}
                 </View>
               )}
             </View>
@@ -327,6 +404,8 @@ export default function OnboardingStartScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {renderCityModal()}
     </View>
   );
 }
@@ -466,25 +545,68 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
-  dropdownList: {
-    position: 'absolute',
-    top: 80,
-    left: 0,
-    right: 0,
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: 'hidden',
-    zIndex: 200,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxHeight: '80%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 14,
+    alignItems: 'center',
+    padding: 16,
     borderBottomWidth: 1,
   },
-  dropdownText: {
-    fontSize: 15,
-    fontWeight: '500',
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalBody: {
+    padding: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  cityList: {
+    maxHeight: 300,
+  },
+  cityListContent: {
+    paddingBottom: 8,
+  },
+  cityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  cityItemText: {
+    fontSize: 14,
+  },
+  emptyState: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
   },
 });

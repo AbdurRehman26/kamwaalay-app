@@ -2,7 +2,7 @@
   "expo": {
     "name": "kamwaalay-app",
     "slug": "kamwaalay-app",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kamwaalayapp",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.kamwaalay.app",
-      "versionCode": 23,
+      "versionCode": 25,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/icon.png"
@@ -24,7 +24,12 @@
         "ACCESS_FINE_LOCATION"
       ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB4F0Yni1_tvWafK6rsMLtvndf3h5kTNR8"
+        }
+      }
     },
     "web": {
       "output": "static",

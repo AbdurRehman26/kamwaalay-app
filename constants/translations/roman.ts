@@ -221,6 +221,8 @@ export const roman = {
         actions: {
             save: 'Save Karen',
             changePhoto: 'Photo tabdeel karne ke liye tap karen',
+            pinLocation: 'Naqshe par muqam pin karen',
+            changeLocation: 'Muqam tabdeel karen',
             selectCity: 'Shehar Muntakhib Karen',
             selectGender: 'Jins Muntakhib Karen',
             selectReligion: 'Mazhab Muntakhib Karen',
@@ -234,6 +236,7 @@ export const roman = {
             fullName: 'Pura Naam',
             businessName: 'Karobar ka Naam',
             phoneNumber: 'Phone Number',
+            address: 'Pata / Muqam',
             city: 'Shehar',
             age: 'Umar',
             gender: 'Jins',

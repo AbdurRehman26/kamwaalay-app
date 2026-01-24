@@ -117,7 +117,14 @@ export default function EditProfileScreen() {
   const [showReligionDropdown, setShowReligionDropdown] = useState(false);
 
   // Map & Location State
-  const [address, setAddress] = useState((user as any)?.address || (user?.profileData as any)?.businessAddress || '');
+  // Map & Location State
+  const [address, setAddress] = useState(
+    (user as any)?.profile?.pin_address ||
+    (user?.userType === 'helper' ? (user?.profileData as any)?.pin_address : null) ||
+    (user as any)?.address ||
+    (user?.profileData as any)?.businessAddress ||
+    ''
+  );
   const [pinLocation, setPinLocation] = useState<{ latitude: number; longitude: number } | null>(
     (user as any)?.latitude && (user as any)?.longitude
       ? { latitude: parseFloat((user as any).latitude), longitude: parseFloat((user as any).longitude) }

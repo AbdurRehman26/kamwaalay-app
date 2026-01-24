@@ -924,29 +924,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
 
-        const apiData = {
-          services,
-          work_type: workType,
-          monthly_rate: monthlyRate,
-          description: additionalData?.serviceOffer?.description || '',
-          locations,
-          nic_number: nicNumber,
-          bio: 'bio' in profileData ? profileData.bio : undefined,
-          experience_years: 'experience' in profileData && profileData.experience ? parseInt(profileData.experience) || 0 : undefined,
-          skills: undefined,
-          age: 'age' in profileData ? profileData.age : undefined,
-          gender: 'gender' in profileData && profileData.gender ? profileData.gender.toLowerCase() : undefined,
-          religion: 'religion' in profileData ? profileData.religion : undefined,
-          languages: 'languages' in profileData ? profileData.languages : undefined,
-          // Add location coordinates
-          latitude: (additionalData?.serviceOffer as any)?.latitude,
-          longitude: (additionalData?.serviceOffer as any)?.longitude,
-          address: (additionalData?.serviceOffer as any)?.address,
-        };
 
-        console.log('[AuthContext] Helper onboarding payload:', JSON.stringify(apiData, null, 2));
 
-        const response = await apiService.post(endpoint, apiData);
+        // Create FormData for the API request
+        const formData = new FormData();
+
+        // 1. Append simple fields
+        formData.append('work_type', workType);
+        if (monthlyRate) formData.append('monthly_rate', monthlyRate.toString());
+        formData.append('description', additionalData?.serviceOffer?.description || '');
+        formData.append('nic_number', nicNumber);
+
+        if ('bio' in profileData && profileData.bio) formData.append('bio', profileData.bio);
+        if ('experience' in profileData && profileData.experience) {
+          const exp = parseInt(profileData.experience) || 0;
+          formData.append('experience_years', exp.toString());
+        }
+        if ('age' in profileData && profileData.age) formData.append('age', profileData.age);
+        if ('gender' in profileData && profileData.gender) formData.append('gender', profileData.gender.toLowerCase());
+        if ('religion' in profileData && profileData.religion) formData.append('religion', profileData.religion);
+
+        // 2. Append arrays using [] syntax
+        services.forEach(service => formData.append('services[]', service));
+        locations.forEach(locationId => formData.append('locations[]', locationId.toString()));
+
+        if ('languages' in profileData && profileData.languages) {
+          profileData.languages.forEach(lang => formData.append('languages[]', lang.toString()));
+        }
+
+        // 3. Append location/address fields
+        const lat = (additionalData?.serviceOffer as any)?.latitude;
+        const lng = (additionalData?.serviceOffer as any)?.longitude;
+        const addr = (additionalData?.serviceOffer as any)?.address;
+
+        if (lat) formData.append('latitude', lat.toString());
+        if (lng) formData.append('longitude', lng.toString());
+        if (addr) {
+          formData.append('address', addr);
+          formData.append('pin_address', addr);
+        }
+
+        // 4. Append Photo File
+        if (additionalData?.verification?.photoFile) {
+          const photoUri = additionalData.verification.photoFile.uri;
+          const filename = photoUri.split('/').pop() || 'profile.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+          formData.append('photo', {
+            uri: photoUri,
+            name: filename,
+            type,
+          } as any);
+        }
+
+        console.log('[AuthContext] Helper onboarding FormData prepared');
+
+        const response = await apiService.post(endpoint, formData);
 
         if (response.success && response.data) {
           const responseData = response.data.user || response.data;

@@ -221,6 +221,8 @@ export const en = {
         actions: {
             save: 'Save',
             changePhoto: 'Tap to change photo',
+            pinLocation: 'Pin Location on Map',
+            changeLocation: 'Change Location',
             selectCity: 'Select City',
             selectGender: 'Select Gender',
             selectReligion: 'Select Religion',
@@ -234,6 +236,7 @@ export const en = {
             fullName: 'Full Name',
             businessName: 'Business Name',
             phoneNumber: 'Phone Number',
+            address: 'Address / Location',
             city: 'City',
             age: 'Age',
             gender: 'Gender',

@@ -38,7 +38,6 @@ class NotificationService {
 
             // Ensure it is an array
             if (!Array.isArray(rawNotifs)) {
-                console.warn('Notifications data is not an array:', response.data);
                 rawNotifs = [];
             }
 

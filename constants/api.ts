@@ -5,6 +5,25 @@
  */
 
 export const API_BASE_URL = 'https://www.kamwaalay.com/api';
+export const STORAGE_BASE_URL = 'https://www.kamwaalay.com/storage';
+
+/**
+ * Helper function to build full storage URL for images
+ * Converts relative paths like "photos/abc.jpg" to "https://www.kamwaalay.com/storage/photos/abc.jpg"
+ */
+export const buildStorageUrl = (path: string | null | undefined): string | null => {
+  if (!path) return null;
+
+  // If already a full URL, return as is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  // Remove leading slash if present
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+
+  return `${STORAGE_BASE_URL}/${cleanPath}`;
+};
 
 /**
  * API Endpoints
@@ -57,7 +76,7 @@ export const API_ENDPOINTS = {
     BROWSE: '/bookings/browse', // Browse available job posts
     MY_POSTS: '/my-job-posts', // User's own job posts
     CREATE_FORM: '/job-posts/create', // Get form data
-    CREATE: '/bookings', // Create new job post
+    CREATE: '/job-posts', // Create new job post
     GET: '/job-posts/:id', // Get specific job post
     UPDATE: '/job-posts/:id', // Update job post
     DELETE: '/job-posts/:id', // Delete job post
@@ -89,6 +108,15 @@ export const API_ENDPOINTS = {
     CREATE: '/businesses', // Create business profile
     GET: '/businesses/:id',
     EDIT: '/businesses/:id/edit',
+  },
+
+  // Workers (managed by businesses)
+  WORKERS: {
+    LIST: '/business/workers', // List business's workers
+    CREATE: '/business/workers', // Create a worker
+    GET: '/business/workers/:id', // Get specific worker
+    UPDATE: '/business/workers/:id', // Update worker
+    DELETE: '/business/workers/:id', // Delete worker
   },
 
   // Service Listings (services offered by helpers/businesses)

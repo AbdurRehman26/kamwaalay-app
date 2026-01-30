@@ -125,7 +125,6 @@ export default function PhoneLoginScreen() {
               }
             }
           } catch (error) {
-            console.error('[PhoneLogin] Error reading user from storage:', error);
           }
         }, 500);
       }

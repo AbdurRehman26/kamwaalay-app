@@ -2,12 +2,15 @@ import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { mapDarkStyle } from '@/constants/MapStyle';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { notificationService } from '@/services/notification.service';
+import { toast } from '@/utils/toast';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -69,7 +72,8 @@ export default function JobPostsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
-  const { applyToJob, serviceTypes } = useApp();
+  const { applyToJob, deleteJob, serviceTypes } = useApp();
+  const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'my' | 'all' | 'open' | 'applied'>(
@@ -83,10 +87,14 @@ export default function JobPostsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
       fetchUnreadCount();
+      fetchJobPosts();
     }, [user])
   );
 
@@ -98,7 +106,6 @@ export default function JobPostsScreen() {
         setUnreadCount(response.data.count || 0);
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
     }
   };
 
@@ -215,21 +222,32 @@ export default function JobPostsScreen() {
   const fetchJobPosts = async () => {
     try {
       setIsLoading(true);
+
+      // Use specific endpoint for users to see their own posts
+      const endpoint = user?.userType === 'user'
+        ? API_ENDPOINTS.JOB_POSTS.MY_POSTS
+        : API_ENDPOINTS.JOB_POSTS.LIST;
+
       const response = await apiService.get(
-        API_ENDPOINTS.JOB_POSTS.LIST,
+        endpoint,
         undefined,
         undefined,
         true // Requires authentication
       );
 
       if (response.success && response.data) {
-        let jobPostsData: JobPost[] = [];
+        let jobPostsData: any[] = [];
 
         // Handle different response formats
         if (response.data.job_posts) {
           jobPostsData = Array.isArray(response.data.job_posts.data)
             ? response.data.job_posts.data
             : (Array.isArray(response.data.job_posts) ? response.data.job_posts : []);
+        } else if (response.data.bookings) {
+          // Some endpoints return 'bookings'
+          jobPostsData = Array.isArray(response.data.bookings.data)
+            ? response.data.bookings.data
+            : (Array.isArray(response.data.bookings) ? response.data.bookings : []);
         } else if (response.data.data) {
           jobPostsData = Array.isArray(response.data.data) ? response.data.data : [];
         } else if (Array.isArray(response.data)) {
@@ -239,8 +257,8 @@ export default function JobPostsScreen() {
         // Map API response to JobPost format
         const mappedJobs: JobPost[] = jobPostsData.map((post: any) => ({
           id: post.id?.toString() || Date.now().toString(),
-          userId: post.user_id?.toString() || post.user?.id?.toString() || '',
-          userName: post.user?.name || post.name || 'Unknown',
+          userId: post.user_id?.toString() || post.user?.id?.toString() || post.customer_id?.toString() || '',
+          userName: post.user?.name || post.name || 'User',
           serviceName: post.service_type
             ? post.service_type.charAt(0).toUpperCase() + post.service_type.slice(1).replace('_', ' ')
             : post.service_name || 'Service',
@@ -264,7 +282,6 @@ export default function JobPostsScreen() {
         setJobs([]);
       }
     } catch (error) {
-      console.error('Error fetching job posts:', error);
       setJobs([]);
     } finally {
       setIsLoading(false);
@@ -472,6 +489,77 @@ export default function JobPostsScreen() {
     }
   };
 
+  const handleDelete = (requestId: string) => {
+    setJobToDelete(requestId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!jobToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteJob(jobToDelete);
+      await fetchJobPosts(); // Pull the updated job list
+      toast.success('Job deleted successfully');
+      setShowDeleteModal(false);
+      setJobToDelete(null);
+    } catch (error) {
+      toast.error('Failed to delete job');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const renderDeleteConfirmationModal = () => {
+    return (
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.deleteModalOverlay}>
+          <View style={[styles.deleteModalContent, { backgroundColor: cardBg }]}>
+            <View style={styles.deleteIconContainer}>
+              <IconSymbol name="trash.fill" size={32} color="#EF4444" />
+            </View>
+            <Text style={[styles.deleteModalTitle, { color: textColor }]}>
+              {t('common.confirm')}
+            </Text>
+            <Text style={[styles.deleteModalMessage, { color: textSecondary }]}>
+              Are you sure you want to delete this job post? This action cannot be undone.
+            </Text>
+            <View style={styles.deleteModalButtons}>
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.cancelBtn, { borderColor }]}
+                onPress={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                <Text style={[styles.deleteModalButtonText, { color: textSecondary }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.confirmBtn, { backgroundColor: '#EF4444' }]}
+                onPress={confirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={[styles.deleteModalButtonText, { color: '#FFF' }]}>
+                    Delete
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   const handleCardPress = (requestId: string) => {
     router.push(`/job-view/${requestId}`);
   };
@@ -643,23 +731,13 @@ export default function JobPostsScreen() {
               </Text>
 
               {user?.userType === 'user' && request.userId === user?.id ? (
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: 'rgba(56, 189, 248, 0.1)', borderColor: '#0EA5E9' }]}
-                    onPress={() => router.push(`/job/edit/${request.id}`)}
-                  >
-                    <IconSymbol name="pencil" size={14} color="#38BDF8" />
-                    <Text style={[styles.actionButtonText, { color: '#38BDF8' }]}>{t('jobPosts.card.edit')}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => handleContactApplicants(request)}
-                  >
-                    <Text style={styles.actionButtonText}>{t('jobPosts.card.viewApplicants')}</Text>
-                    <IconSymbol name="arrow.right" size={16} color="#818CF8" />
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => handleContactApplicants(request)}
+                >
+                  <Text style={styles.actionButtonText}>{t('jobPosts.card.viewApplicants')}</Text>
+                  <IconSymbol name="arrow.right" size={16} color="#818CF8" />
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   style={styles.actionButton}
@@ -673,6 +751,27 @@ export default function JobPostsScreen() {
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Edit & Delete Button Row (Owner Only) */}
+            {user?.userType === 'user' && request.userId === user?.id && (
+              <View style={styles.ownerActionRow}>
+                <TouchableOpacity
+                  style={[styles.ownerActionButton, styles.editButton, { backgroundColor: 'rgba(56, 189, 248, 0.1)', borderColor: '#0EA5E9' }]}
+                  onPress={() => router.push(`/job/edit/${request.id}`)}
+                >
+                  <IconSymbol name="pencil" size={14} color="#38BDF8" />
+                  <Text style={[styles.ownerActionButtonText, { color: '#38BDF8' }]}>{t('jobPosts.card.edit')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.ownerActionButton, styles.deleteButton, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: '#EF4444' }]}
+                  onPress={() => handleDelete(request.id.toString())}
+                >
+                  <IconSymbol name="trash.fill" size={14} color="#EF4444" />
+                  <Text style={[styles.ownerActionButtonText, { color: '#EF4444' }]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       </View>
@@ -955,6 +1054,7 @@ export default function JobPostsScreen() {
               provider={PROVIDER_GOOGLE}
               style={styles.map}
               region={mapRegion}
+              customMapStyle={colorScheme === 'dark' ? mapDarkStyle : []}
               onRegionChangeComplete={(region: Region) => {
                 setMapRegion(region);
                 setSelectedCoordinate({
@@ -975,8 +1075,11 @@ export default function JobPostsScreen() {
               )}
             </MapView>
 
-            <View style={[styles.mapOverlay, { bottom: Platform.OS === 'ios' ? 40 : 20 }]}>
-              <Text style={styles.mapInstruction}>{t('jobPosts.map.dragMarker')}</Text>
+            <View style={[styles.mapOverlay, {
+              bottom: Platform.OS === 'ios' ? 40 : 20,
+              backgroundColor: cardBg + 'F2', // Semi-opaque card background
+            }]}>
+              <Text style={[styles.mapInstruction, { color: textColor }]}>{t('jobPosts.map.dragMarker')}</Text>
               <View style={styles.mapButtons}>
                 <TouchableOpacity
                   style={[styles.mapButton, styles.cancelButton]}
@@ -1004,6 +1107,7 @@ export default function JobPostsScreen() {
             </View>
           </View>
         </Modal>
+        {renderDeleteConfirmationModal()}
       </View>
     </View>
   );
@@ -1089,7 +1193,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#E5E7EB',
+    borderWidth: 1,
   },
   confirmButton: {
     // Background color set inline
@@ -1388,6 +1492,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  ownerActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  ownerActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  ownerActionButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  editButton: {
+    // Styles handled in JSX color props
+  },
+  deleteButton: {
+    // Styles handled in JSX color props
+  },
   title: {
     fontSize: 28,
     fontWeight: '800',
@@ -1678,6 +1807,62 @@ const styles = StyleSheet.create({
   },
   applyFiltersText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Delete modal styles
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  deleteModalContent: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+  },
+  deleteIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  deleteModalMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  deleteModalButton: {
+    flex: 1,
+    height: 52,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtn: {
+    borderWidth: 1,
+  },
+  confirmBtn: {
+    // Background color handled in props
+  },
+  deleteModalButtonText: {
     fontSize: 16,
     fontWeight: '600',
   },

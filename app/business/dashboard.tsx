@@ -1,25 +1,39 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+interface Worker {
+    id: number;
+    full_name: string;
+    phone: string;
+    photo?: string;
+    service_types?: string[];
+    experience_years?: number;
+    status?: string;
+}
+
 export default function BusinessDashboardScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<'workers' | 'bookings'>('workers');
+    const [workers, setWorkers] = useState<Worker[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Theme colors
     const backgroundColor = useThemeColor({}, 'background');
@@ -31,16 +45,40 @@ export default function BusinessDashboardScreen() {
     const cardBg = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
 
-    // Mock data - replace with real data from API
+    // Stats based on workers data
     const stats = {
-        totalWorkers: 0,
-        activeWorkers: 0,
-        pending: 0,
-        verified: 0,
+        totalWorkers: workers.length,
         bookings: 0,
     };
 
-    const workers: any[] = []; // Replace with actual workers data
+    // Fetch workers from API
+    const fetchWorkers = async () => {
+        try {
+            setIsLoading(true);
+            const response = await apiService.get(API_ENDPOINTS.WORKERS.LIST);
+            console.log('Workers API Response:', response);
+
+            if (response.success && response.data) {
+                let workersData: Worker[] = [];
+                if (Array.isArray(response.data)) {
+                    workersData = response.data;
+                } else if (response.data.workers && Array.isArray(response.data.workers)) {
+                    workersData = response.data.workers;
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    workersData = response.data.data;
+                }
+                setWorkers(workersData);
+            }
+        } catch (error) {
+            console.log('Error fetching workers:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchWorkers();
+    }, []);
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
@@ -70,20 +108,6 @@ export default function BusinessDashboardScreen() {
                         </View>
                         <Text style={[styles.statValue, { color: textColor }]}>{stats.totalWorkers}</Text>
                         <Text style={[styles.statLabel, { color: textSecondary }]}>Total Workers</Text>
-                    </View>
-                    <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
-                        <View style={[styles.statIcon, { backgroundColor: '#F0FDF4' }]}>
-                            <IconSymbol name="checkmark.circle.fill" size={20} color="#16A34A" />
-                        </View>
-                        <Text style={[styles.statValue, { color: '#16A34A' }]}>{stats.activeWorkers}</Text>
-                        <Text style={[styles.statLabel, { color: textSecondary }]}>Active</Text>
-                    </View>
-                    <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
-                        <View style={[styles.statIcon, { backgroundColor: '#FFFBEB' }]}>
-                            <IconSymbol name="clock.fill" size={20} color="#D97706" />
-                        </View>
-                        <Text style={[styles.statValue, { color: '#D97706' }]}>{stats.pending}</Text>
-                        <Text style={[styles.statLabel, { color: textSecondary }]}>Pending</Text>
                     </View>
                     <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
                         <View style={[styles.statIcon, { backgroundColor: '#FAF5FF' }]}>

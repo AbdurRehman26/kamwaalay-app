@@ -88,7 +88,6 @@ export default function ProfileViewScreen() {
           { id: id as string }
         );
 
-        console.log(`📦 ${isHelper ? 'Helper' : isBusiness ? 'Business' : 'Service Listing'} API Response:`, JSON.stringify(response, null, 2));
 
         if (response.success && response.data) {
           // Handle business API response
@@ -100,7 +99,6 @@ export default function ProfileViewScreen() {
               business = response.data.business;
             }
 
-            console.log('🏢 Business Data:', JSON.stringify(business, null, 2));
 
             // Map business response to profile structure
             const mappedProfile = {
@@ -187,7 +185,6 @@ export default function ProfileViewScreen() {
               helper = response.data.helper;
             }
 
-            console.log('👤 Helper Data:', JSON.stringify(helper, null, 2));
 
             // Map helper response to profile structure
             const mappedProfile = {
@@ -277,11 +274,9 @@ export default function ProfileViewScreen() {
             listing = response.data.service_listing;
           }
 
-          console.log('📋 Extracted Listing:', JSON.stringify(listing, null, 2));
 
           const user = listing.user || {};
 
-          console.log('👤 User Data:', JSON.stringify(user, null, 2));
 
           // Map service listing response to profile structure
           const mappedProfile = {
@@ -337,7 +332,6 @@ export default function ProfileViewScreen() {
                 servicesList.push(t('helperProfile.service'));
               }
 
-              console.log('📋 Services from listing.service_types:', servicesList);
               return servicesList;
             })(),
             // Handle multiple locations - get from listing.location_details array
@@ -427,7 +421,6 @@ export default function ProfileViewScreen() {
             languages: listing.languages || user.languages || [],
           };
 
-          console.log('✅ Mapped Profile:', JSON.stringify(mappedProfile, null, 2));
 
           setProfile(mappedProfile);
 
@@ -436,10 +429,8 @@ export default function ProfileViewScreen() {
             fetchOtherServices(user.id || listing.user_id, listing.id);
           }
         } else {
-          console.log('❌ Failed to fetch service listing - No data in response');
         }
       } catch (error) {
-        console.error('❌ Error fetching service listing:', error);
       } finally {
         setIsLoading(false);
       }
@@ -488,11 +479,9 @@ export default function ProfileViewScreen() {
             return listingUserId?.toString() === userId?.toString() && listingId?.toString() !== currentListingId?.toString();
           });
 
-          console.log(`🔍 Found ${userListings.length} other services from this provider`);
           setOtherServices(userListings);
         }
       } catch (error) {
-        console.error('❌ Error fetching other services:', error);
       } finally {
         setIsLoadingOtherServices(false);
       }
@@ -547,7 +536,6 @@ export default function ProfileViewScreen() {
             );
           }
         } catch (error) {
-          console.error('Error checking conversations:', error);
         }
 
         // Check 2: Check if user has accepted a job request from this helper/business
@@ -585,13 +573,11 @@ export default function ProfileViewScreen() {
             });
           }
         } catch (error) {
-          console.error('Error checking job applications:', error);
         }
 
         // Allow contact if either condition is met
         setCanContact(hasConversation || hasAcceptedApplication);
       } catch (error) {
-        console.error('Error checking contact permission:', error);
         setCanContact(false);
       } finally {
         setIsCheckingContact(false);

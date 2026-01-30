@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@/constants/api';
+import { API_ENDPOINTS, buildStorageUrl } from '@/constants/api';
 import { apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -82,6 +82,9 @@ export interface User {
   profileData?: HelperProfile | BusinessProfile;
   isVerified?: boolean; // OTP verification status
   city_id?: number | null; // City ID for regular users
+  pin_address?: string | null;
+  pin_latitude?: number | null;
+  pin_longitude?: number | null;
 }
 
 export interface HelperProfile {
@@ -228,23 +231,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         const profileData = response.data.user || response.data;
 
+
         let parsedCityId = null;
         if (profileData.city_id) {
           parsedCityId = typeof profileData.city_id === 'string' ? parseInt(profileData.city_id, 10) : profileData.city_id;
+        } else if (profileData.city?.id) {
+          // Fallback: check if city is an object with id
+          parsedCityId = typeof profileData.city.id === 'string' ? parseInt(profileData.city.id, 10) : profileData.city.id;
         }
+
+
+        // Map profile image from various possible API field names and build full URL
+        const rawProfileImage = profileData.photo || profileData.profile_image || profileData.profileImage || profileData.photo_url;
+        const profileImage = buildStorageUrl(rawProfileImage) || activeUser.profileImage;
 
         const updatedUser: User = {
           ...activeUser,
           ...profileData,
           id: profileData.id?.toString() || activeUser.id,
+          name: profileData.name || activeUser.name,
+          profileImage: profileImage,
           onboardingStatus: extractOnboardingStatus(profileData, activeUser.onboardingStatus),
           city_id: parsedCityId,
+          pin_address: profileData.pin_address || profileData.address || activeUser.pin_address,
+          pin_latitude: profileData.pin_latitude ? parseFloat(profileData.pin_latitude.toString()) : activeUser.pin_latitude,
+          pin_longitude: profileData.pin_longitude ? parseFloat(profileData.pin_longitude.toString()) : activeUser.pin_longitude,
         };
         await saveUser(updatedUser);
-        console.log('[AuthContext] Profile refreshed:', updatedUser.onboardingStatus);
       }
     } catch (error) {
-      console.error('[AuthContext] Error refreshing profile:', error);
     }
   };
 
@@ -264,11 +279,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authMethod: 'otp' | 'password';
   }): Promise<{ requiresOTP?: boolean } | void> => {
     try {
-      console.log('[Login] Starting login process', {
-        phone: data.phone,
-        email: data.email ? `${data.email.substring(0, 3)}***` : undefined,
-        authMethod: data.authMethod,
-      });
 
       // Build request body based on login method and auth method
       const requestBody: any = {};
@@ -280,28 +290,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (data.email) {
         requestBody.email = data.email.trim();
       } else {
-        console.error('[Login] No phone or email provided');
         throw new Error('Please provide either phone number or email');
       }
 
       // Add password if using password authentication
       if (data.authMethod === 'password') {
         if (!data.password) {
-          console.error('[Login] Password required but not provided');
           throw new Error('Password is required for password authentication');
         }
         requestBody.password = data.password;
       }
 
-      console.log('[Login] Request body prepared', {
-        phone: requestBody.phone,
-        email: requestBody.email ? `${requestBody.email.substring(0, 3)}***` : undefined,
-        hasPassword: !!requestBody.password,
-        authMethod: data.authMethod,
-      });
 
       // Always call API to initiate login/OTP flow (even for demo number)
-      console.log('[Login] Calling API:', API_ENDPOINTS.AUTH.LOGIN);
       const response = await apiService.post(
         API_ENDPOINTS.AUTH.LOGIN,
         requestBody,
@@ -309,23 +310,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         false // No auth required for login
       );
 
-      console.log('[Login] API response received', {
-        success: response.success,
-        hasData: !!response.data,
-        hasError: !!response.error,
-        message: response.message,
-      });
 
       // API returns 202 for OTP required, 200 for successful login
       // Handle both success and non-success responses for OTP flow
       if (response.success && response.data) {
         const responseData = response.data;
 
-        console.log('[Login] Processing successful response', {
-          hasToken: !!(responseData.token || responseData.accessToken || responseData.access_token),
-          hasUser: !!(responseData.user || responseData),
-          userId: responseData.user_id || responseData.user?.id || responseData.id,
-        });
 
         const token = responseData.token || responseData.accessToken || responseData.access_token;
         const userDataFromApi = responseData.user || responseData;
@@ -335,10 +325,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // This takes priority over OTP verification unless verification_token is also present
         // (though usually they are mutually exclusive)
         if (token && !responseData.verification_token) {
-          console.log('[Login] Token found - proceeding with direct login', {
-            userId,
-            hasUserData: !!userDataFromApi,
-          });
 
           // Direct login successful (password auth or OTP already verified) - save user with token
           const userData: User = {
@@ -351,14 +337,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profileImage: userDataFromApi.profile_image || userDataFromApi.profileImage,
             onboardingStatus: extractOnboardingStatus(userDataFromApi, 'not_started'),
             city_id: userDataFromApi.city_id ? (typeof userDataFromApi.city_id === 'string' ? parseInt(userDataFromApi.city_id, 10) : userDataFromApi.city_id) : null,
+            pin_address: userDataFromApi.pin_address || userDataFromApi.address,
+            pin_latitude: userDataFromApi.pin_latitude ? parseFloat(userDataFromApi.pin_latitude.toString()) : null,
+            pin_longitude: userDataFromApi.pin_longitude ? parseFloat(userDataFromApi.pin_longitude.toString()) : null,
           };
 
           // Save token to AsyncStorage
           try {
             await AsyncStorage.setItem('authToken', token);
-            console.log('[Login] Token saved to AsyncStorage');
           } catch (tokenError) {
-            console.error('[Login] Error saving token to AsyncStorage:', tokenError);
           }
 
           // Also store token in user object
@@ -366,16 +353,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Save user data
           await saveUser(userData);
-          console.log('[Login] User saved successfully - login complete');
           return; // No OTP required - login successful
         }
 
         // Check if verification_token is present or OTP auth was requested
         if (responseData.verification_token || data.authMethod === 'otp') {
-          console.log('[Login] OTP verification required', {
-            hasVerificationToken: !!responseData.verification_token,
-            userId,
-          });
 
           // OTP required - store identifier and user_id temporarily
           const tempUser: User = {
@@ -389,24 +371,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
 
           await saveUser(tempUser);
-          console.log('[Login] Temporary user saved - OTP required');
           return { requiresOTP: true };
         } else {
           // Password auth but no token and no verification token - unexpected
-          console.error('[Login] Password auth but no token received');
           throw new Error('Unexpected response from server');
         }
       } else {
         // Response was not successful
-        console.log('[Login] Response not successful', {
-          error: response.error,
-          message: response.message,
-          hasData: !!response.data,
-        });
 
         // For OTP flow, even if response.success is false, check if OTP was sent
         if (data.authMethod === 'otp' && (response.message || response.data?.message)) {
-          console.log('[Login] OTP flow - proceeding despite unsuccessful response');
           // OTP was sent but response format indicates failure - still proceed with OTP flow
           const tempUser: User = {
             id: (response.data?.user_id || response.data?.id || Date.now()).toString(),
@@ -418,23 +392,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isVerified: false,
           };
           await saveUser(tempUser);
-          console.log('[Login] Temporary user saved - OTP required (from unsuccessful response)');
           return { requiresOTP: true };
         }
 
         // Extract backend error message - prioritize error field, then message, then data.message
         const errorMessage = response.error || response.message || response.data?.message || 'Login failed. Please try again.';
-        console.error('[Login] Login failed:', errorMessage);
         throw new Error(errorMessage);
       }
     } catch (error: any) {
       // If error already has a message, use it; otherwise create a generic one
       const errorMessage = error.message || error.error || 'Login failed. Please try again.';
-      console.error('[Login] Error caught:', {
-        message: errorMessage,
-        error: error,
-        stack: error.stack,
-      });
       throw new Error(errorMessage);
     }
   };
@@ -742,7 +709,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         true // Explicitly include auth token
       );
 
-
       if (response.success && response.data) {
         const responseData = response.data;
         const userDataFromApi = responseData.user || responseData;
@@ -754,6 +720,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? (userData.has('onboardingStatus') ? userData.get('onboardingStatus') as OnboardingStatus : undefined)
           : (userData as Partial<User>).onboardingStatus;
 
+        // Get name from request data
+        const nameFromRequest = userData instanceof FormData
+          ? (userData.has('name') ? userData.get('name') as string : undefined)
+          : (userData as any).name;
+
         const updatedUser = {
           ...user,
           ...userDataFromApi,
@@ -761,7 +732,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: userDataFromApi.id?.toString() || user.id,
           phoneNumber: userDataFromApi.phone || userDataFromApi.phoneNumber || user.phoneNumber,
           email: userDataFromApi.email || user.email || (userData instanceof FormData ? user.email : (userData as any).email),
-          name: userDataFromApi.name || user.name || (userData instanceof FormData ? user.name : (userData as any).name),
+          // Prioritize: API response name > request data name > existing user name
+          name: userDataFromApi.name || nameFromRequest || user.name,
           // Use onboardingStatus from userData if explicitly provided, otherwise use API response
           onboardingStatus: onboardingStatusFromRequest || onboardingStatusFromApi,
           city_id: userDataFromApi.city_id !== undefined ? userDataFromApi.city_id : (user.city_id || (userData as any).city_id),
@@ -793,18 +765,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const type = match ? `image/${match[1]}` : `image/jpeg`;
 
       // Append as binary file - React Native requires this specific format
-      formData.append('profile_image', {
+      // API expects 'photo' field name
+      formData.append('photo', {
         uri: photoUri,
         name: filename,
         type,
       } as any);
-
-      console.log('[AuthContext] Uploading profile photo:', {
-        uri: photoUri.substring(0, 50) + '...',
-        filename,
-        type,
-        endpoint: API_ENDPOINTS.PROFILE.PHOTO,
-      });
 
       const response = await apiService.post(
         API_ENDPOINTS.PROFILE.PHOTO,
@@ -817,10 +783,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const responseData = response.data;
         const userDataFromApi = responseData.user || responseData;
 
+        // Build full storage URL for the profile image
+        const rawProfileImage = userDataFromApi.photo || userDataFromApi.profile_image || userDataFromApi.profileImage || userDataFromApi.photo_url;
+        const profileImageUrl = buildStorageUrl(rawProfileImage) || user.profileImage;
+
         const updatedUser = {
           ...user,
           ...userDataFromApi,
-          profileImage: userDataFromApi.photo || userDataFromApi.profile_image || userDataFromApi.profileImage || user.profileImage,
+          profileImage: profileImageUrl,
         };
         await saveUser(updatedUser);
       } else {
@@ -978,7 +948,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } as any);
         }
 
-        console.log('[AuthContext] Helper onboarding FormData prepared');
 
         const response = await apiService.post(endpoint, formData);
 

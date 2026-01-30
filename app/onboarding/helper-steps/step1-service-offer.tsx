@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React from 'react';
 import {
+  Keyboard, // Added import
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Location {
   id: number | string;
@@ -81,6 +83,18 @@ export default function Step1ServiceOffer({
     });
   };
 
+  const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const handleNext = () => {
     if (data.serviceTypes.length === 0) {
       return;
@@ -93,7 +107,12 @@ export default function Step1ServiceOffer({
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardVisible ? 150 : 0 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Service Offer 1
@@ -198,24 +217,27 @@ export default function Step1ServiceOffer({
             />
           </View>
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.nextButton,
-            { backgroundColor: primaryColor },
-            (data.serviceTypes.length === 0 ||
-              !data.workType) &&
-            { backgroundColor: textMuted, opacity: 0.5 },
-          ]}
-          onPress={handleNext}
-          disabled={
-            data.serviceTypes.length === 0 ||
-            !data.workType
-          }
-        >
-          <Text style={styles.nextButtonText}>Next</Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      <TouchableOpacity
+        style={[
+          styles.nextButton,
+          {
+            backgroundColor: primaryColor,
+            marginBottom: keyboardVisible ? 40 : insets.bottom
+          },
+          (data.serviceTypes.length === 0 ||
+            !data.workType) &&
+          { backgroundColor: textMuted, opacity: 0.5 },
+        ]}
+        onPress={handleNext}
+        disabled={
+          data.serviceTypes.length === 0 ||
+          !data.workType
+        }
+      >
+        <Text style={styles.nextButtonText}>Next</Text>
+      </TouchableOpacity>
     </ThemedView>
   );
 }
@@ -373,7 +395,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    margin: 20,
+    marginHorizontal: 20,
     marginTop: 8,
   },
   nextButtonDisabled: {

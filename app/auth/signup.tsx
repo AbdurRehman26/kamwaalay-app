@@ -77,7 +77,6 @@ export default function SignupScreen() {
         setCities(response.data);
       }
     } catch (error) {
-      console.error('Failed to fetch cities:', error);
     } finally {
       setIsLoadingCities(false);
     }

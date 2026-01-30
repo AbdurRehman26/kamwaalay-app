@@ -3,14 +3,17 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { mapDarkStyle } from '@/constants/MapStyle';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import * as Location from 'expo-location'; // Added import
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Modal, // Added import
-  SafeAreaView, // Added import
+  Keyboard,
+  Modal,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +21,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface CompleteProfileData {
   experience: string;
@@ -58,7 +62,9 @@ export default function Step3CompleteProfile({
   onSubmit,
   isLoading = false,
 }: Step3CompleteProfileProps) {
+  const { colorScheme } = useTheme();
   // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
   const textMuted = useThemeColor({}, 'textMuted');
@@ -98,7 +104,6 @@ export default function Step3CompleteProfile({
         setAvailableLanguages(formattedLangs);
       }
     } catch (error) {
-      console.error('Failed to fetch languages:', error);
     } finally {
       setIsLoadingLanguages(false);
     }
@@ -150,7 +155,6 @@ export default function Step3CompleteProfile({
       });
       setPinLocation({ latitude, longitude });
     } catch (error) {
-      console.log('Error getting location:', error);
     }
   };
 
@@ -206,7 +210,6 @@ export default function Step3CompleteProfile({
         });
       }
     } catch (error) {
-      console.log('Error reverse geocoding:', error);
     } finally {
       setIsGeocoding(false);
     }
@@ -219,12 +222,13 @@ export default function Step3CompleteProfile({
         animationType="slide"
         onRequestClose={() => setIsMapVisible(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: backgroundColor }}>
           <View style={styles.mapContainer}>
             <MapView
               provider={PROVIDER_GOOGLE}
               style={styles.map}
               region={mapRegion}
+              customMapStyle={colorScheme === 'dark' ? mapDarkStyle : []}
               onRegionChangeComplete={(region) => {
                 setMapRegion(region);
                 setPinLocation({
@@ -267,10 +271,26 @@ export default function Step3CompleteProfile({
       </Modal>
     );
   };
+  const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  React.useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardVisible ? 150 : 0 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Your Profile
@@ -480,24 +500,24 @@ export default function Step3CompleteProfile({
             />
           </View>
         </View>
-
-        <View style={styles.actions}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
-            <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: primaryColor, opacity: isLoading ? 0.7 : 1 }]}
-            onPress={onSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.submitButtonText}>Complete Profile</Text>
-            )}
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      <View style={[styles.actions, { paddingBottom: keyboardVisible ? 40 : insets.bottom }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
+          <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.submitButton, { backgroundColor: primaryColor, opacity: isLoading ? 0.7 : 1 }]}
+          onPress={onSubmit}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.submitButtonText}>Complete Profile</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {renderMapModal()}
     </ThemedView>
@@ -633,13 +653,13 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: 'column-reverse',
     gap: 12,
-    padding: 20,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   backButton: {
-    flex: 1,
+    width: '100%',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -650,7 +670,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   submitButton: {
-    flex: 1,
+    width: '100%',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -719,7 +739,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cancelButton: {
-    backgroundColor: '#fff',
+    borderWidth: 1,
   },
   confirmButton: {
 

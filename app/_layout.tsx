@@ -110,37 +110,46 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === 'auth' || segments[0] === 'onboarding';
     const currentPath = segments.join('/');
+    const isAtRoot = (segments as any).length === 0 || (segments.length === 1 && (segments as any)[0] === 'index');
 
-    // If no user, always redirect to login (never to onboarding)
+    // Define public routes that don't require authentication
+    const PUBLIC_ROUTES = ['about', 'help', 'privacy', 'terms'];
+    const isPublicRoute = PUBLIC_ROUTES.includes(currentPath);
+    const isOnAuthScreen = currentPath === 'auth/phone-login' || currentPath === 'auth/signup' || currentPath === 'auth/user-type';
+
+    // If no user, redirect to login from protected routes
     if (!user) {
-      // Only navigate if we're not already on the login screen or signup screen
-      if (currentPath !== 'auth/phone-login' && currentPath !== 'auth/signup') {
+      // Allow access to public routes, auth screens, and the root (which will redirect to login)
+      if (!isPublicRoute && !isOnAuthScreen && !isAtRoot) {
         try {
           router.replace('/auth/phone-login');
-        } catch (error) {
-          // Navigation error
-        }
+        } catch (error) { }
       }
     }
     // If user exists but is not verified, redirect to OTP verify screen
-    // But ONLY if we're not on login/signup screens (allow users to login fresh)
     else if (user && user.isVerified === false) {
-      // Don't redirect if user is on login or signup screens - let them login fresh
-      if (currentPath === 'auth/phone-login' || currentPath === 'auth/signup') {
-        // User is on login/signup screen - don't redirect, let them login
-        return;
-      }
-      // Only navigate if we're not already on the OTP verify screen
       if (currentPath !== 'auth/otp-verify') {
         try {
           router.replace('/auth/otp-verify');
-        } catch (error) {
-          // Navigation error
-        }
+        } catch (error) { }
       }
     }
     // If user exists and is verified
-    else if (user && user.isVerified !== false) {
+    else if (user) {
+      // Verified users on auth screens or root should be redirected to their proper place
+      if (isOnAuthScreen || isAtRoot) {
+        try {
+          if (!user.userType) {
+            router.replace('/auth/user-type');
+          } else if (user.onboardingStatus !== 'completed') {
+            router.replace('/onboarding/start');
+          } else {
+            router.replace('/(tabs)');
+          }
+        } catch (error) { }
+        return;
+      }
+
       // 1. Check if user type is selected
       if (!user.userType) {
         if (currentPath !== 'auth/user-type') {
@@ -153,19 +162,26 @@ function RootLayoutNav() {
 
       // 2. Check onboarding status
       if (user.onboardingStatus !== 'completed') {
-        const isAllowedPath = segments[0] === 'onboarding' || currentPath === 'auth/user-type';
+        const isAllowedPath = segments[0] === 'onboarding' || currentPath === 'auth/user-type' || isPublicRoute;
 
         if (!isAllowedPath) {
-          try {
+          // Intelligent redirection based on missing basic data (consolidated into start step)
+          if (!user.name || !user.city_id || !user.pin_address) {
             router.replace('/onboarding/start');
-          } catch (error) { }
+          } else if (user.userType === 'helper') {
+            router.replace('/onboarding/helper-profile');
+          } else if (user.userType === 'business') {
+            router.replace('/onboarding/business-profile');
+          } else {
+            router.replace('/onboarding/location');
+          }
           return;
         }
         return;
       }
 
-      // 3. Onboarding is completed - redirect away from auth/onboarding pages
-      if (inAuthGroup) {
+      // 3. Onboarding is completed - redirect away from auth/onboarding pages (except public ones)
+      if (inAuthGroup && !isPublicRoute) {
         try {
           router.replace('/(tabs)');
         } catch (error) { }

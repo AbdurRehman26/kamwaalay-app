@@ -6,13 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Dimensions,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -26,21 +25,16 @@ export default function BookingsScreen() {
   const { user } = useAuth();
   const { getJobs } = useApp();
   const insets = useSafeAreaInsets();
-  const [selectedTab, setSelectedTab] = useState<'active' | 'completed' | 'cancelled' | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const jobs = getJobs();
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
-  const textMuted = useThemeColor({}, 'textMuted');
   const primaryColor = useThemeColor({}, 'primary');
   const primaryLight = useThemeColor({}, 'primaryLight');
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
-  const iconColor = useThemeColor({}, 'icon');
   const iconMuted = useThemeColor({}, 'iconMuted');
 
   // For users: show their own bookings (in_progress, completed, cancelled)
@@ -57,55 +51,7 @@ export default function BookingsScreen() {
   };
 
   const allBookings = getBookings();
-  const activeBookings = allBookings.filter((b) => b.status === 'in_progress');
-  const completedBookings = allBookings.filter((b) => b.status === 'completed');
-  const cancelledBookings = allBookings.filter((b) => b.status === 'cancelled');
-
-  const getFilteredBookings = () => {
-    let bookings = [];
-    switch (selectedTab) {
-      case 'active':
-        bookings = activeBookings;
-        break;
-      case 'completed':
-        bookings = completedBookings;
-        break;
-      case 'cancelled':
-        bookings = cancelledBookings;
-        break;
-      case 'all':
-      default:
-        bookings = allBookings;
-        break;
-    }
-
-    if (searchQuery.trim()) {
-      bookings = bookings.filter(
-        (b) =>
-          b.serviceName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          b.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          b.location?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    return bookings;
-  };
-
-  const getFilterLabel = () => {
-    switch (selectedTab) {
-      case 'active':
-        return t('bookings.filters.active');
-      case 'completed':
-        return t('bookings.filters.completed');
-      case 'cancelled':
-        return t('bookings.filters.cancelled');
-      case 'all':
-      default:
-        return t('bookings.filters.all');
-    }
-  };
-
-  const filteredBookings = getFilteredBookings();
+  const filteredBookings = allBookings;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -220,109 +166,17 @@ export default function BookingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
       <ScrollView
         style={[styles.scrollView, { backgroundColor }]}
         showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
-        horizontal={false}
-        bounces={false}
-        alwaysBounceHorizontal={false}
-        alwaysBounceVertical={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
         <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
-        {/* Header */}
         <ScreenHeader title={t('bookings.title')} />
 
-        {/* Content Container */}
         <View style={styles.contentContainer}>
-          {/* Search and Filter Bar */}
-          <View style={styles.searchFilterContainer}>
-            <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-              <IconSymbol name="magnifyingglass" size={20} color={iconMuted} />
-              <TextInput
-                style={[styles.searchInput, { color: textColor }]}
-                placeholder={t('bookings.searchPlaceholder')}
-                placeholderTextColor={textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <IconSymbol name="xmark.circle.fill" size={20} color={iconMuted} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.filterButton, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}
-              onPress={() => setShowFilterDropdown(!showFilterDropdown)}
-            >
-              <IconSymbol name="slider.horizontal.3" size={18} color={selectedTab !== 'all' ? primaryColor : iconMuted} />
-              <Text style={[styles.filterButtonText, { color: selectedTab !== 'all' ? primaryColor : textSecondary }]}>
-                {getFilterLabel()}
-              </Text>
-              <IconSymbol name="chevron.down" size={14} color={iconMuted} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Filter Dropdown */}
-          {showFilterDropdown && (
-            <View style={[styles.filterDropdown, { backgroundColor: cardBg, borderColor, shadowColor: textColor }]}>
-              <TouchableOpacity
-                style={[styles.filterOption, selectedTab === 'all' && { backgroundColor: primaryLight }]}
-                onPress={() => {
-                  setSelectedTab('all');
-                  setShowFilterDropdown(false);
-                }}
-              >
-                <Text style={[styles.filterOptionText, { color: selectedTab === 'all' ? primaryColor : textColor }]}>
-                  {t('bookings.filters.all')} ({allBookings.length})
-                </Text>
-                {selectedTab === 'all' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterOption, selectedTab === 'active' && { backgroundColor: primaryLight }]}
-                onPress={() => {
-                  setSelectedTab('active');
-                  setShowFilterDropdown(false);
-                }}
-              >
-                <Text style={[styles.filterOptionText, { color: selectedTab === 'active' ? primaryColor : textColor }]}>
-                  {t('bookings.filters.active')} ({activeBookings.length})
-                </Text>
-                {selectedTab === 'active' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterOption, selectedTab === 'completed' && { backgroundColor: primaryLight }]}
-                onPress={() => {
-                  setSelectedTab('completed');
-                  setShowFilterDropdown(false);
-                }}
-              >
-                <Text style={[styles.filterOptionText, { color: selectedTab === 'completed' ? primaryColor : textColor }]}>
-                  {t('bookings.filters.completed')} ({completedBookings.length})
-                </Text>
-                {selectedTab === 'completed' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterOption, selectedTab === 'cancelled' && { backgroundColor: primaryLight }]}
-                onPress={() => {
-                  setSelectedTab('cancelled');
-                  setShowFilterDropdown(false);
-                }}
-              >
-                <Text style={[styles.filterOptionText, { color: selectedTab === 'cancelled' ? primaryColor : textColor }]}>
-                  {t('bookings.filters.cancelled')} ({cancelledBookings.length})
-                </Text>
-                {selectedTab === 'cancelled' && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Content */}
           {filteredBookings.length > 0 ? (
             <View style={styles.content}>
               {filteredBookings.map((booking) => renderBookingCard(booking))}
@@ -334,15 +188,7 @@ export default function BookingsScreen() {
                 {t('bookings.empty.title')}
               </ThemedText>
               <ThemedText style={[styles.emptyText, { color: textSecondary }]}>
-                {searchQuery.trim()
-                  ? t('bookings.empty.adjustSearch')
-                  : selectedTab === 'active'
-                    ? t('bookings.empty.noActive')
-                    : selectedTab === 'completed'
-                      ? t('bookings.empty.noCompleted')
-                      : selectedTab === 'cancelled'
-                        ? t('bookings.empty.noCancelled')
-                        : t('bookings.empty.noApplications')}
+                {t('bookings.empty.noApplications')}
               </ThemedText>
             </View>
           )}
@@ -356,7 +202,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
-    alignSelf: 'stretch',
   },
   topCircle: {
     position: 'absolute',
@@ -376,106 +221,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    width: '100%',
-    alignSelf: 'stretch',
-  },
-  headerBackground: {
-    backgroundColor: '#6366F1',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  backButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
   },
   contentContainer: {
     paddingHorizontal: 20,
     marginTop: 16,
     width: '100%',
-    maxWidth: '100%',
-    alignSelf: 'stretch',
-  },
-  searchFilterContainer: {
-    marginTop: 16,
-    marginBottom: 16,
-    gap: 12,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    borderWidth: 0,
-    padding: 0,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    gap: 8,
-  },
-  filterButtonText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  filterDropdown: {
-    marginTop: -8,
-    marginBottom: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  filterOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  filterOptionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    flex: 1,
   },
   content: {
     paddingBottom: 20,
@@ -619,5 +369,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-
-

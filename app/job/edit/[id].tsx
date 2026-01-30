@@ -6,12 +6,14 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
+import { toast } from '@/utils/toast';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -21,21 +23,9 @@ import {
     View
 } from 'react-native';
 
-const SERVICE_TYPES = [
-    'Cleaning',
-    'Cooking',
-    'Babysitting',
-    'Elderly Care',
-    'All-Rounder',
-    '24/7 Live-in',
-    'Other',
-];
-
 const WORK_TYPES = [
-    'Full Time',
-    'Part Time',
-    'Contract',
-    'Temporary',
+    { id: 'full_time', label: 'Full Time' },
+    { id: 'part_time', label: 'Part Time' },
 ];
 
 interface Location {
@@ -59,12 +49,13 @@ export default function EditJobScreen() {
 
     // Form State
     const [isLoading, setIsLoading] = useState(true);
-    const [serviceType, setServiceType] = useState('');
+    const [serviceTypes, setServiceTypes] = useState<{ id: number, name: string }[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(false);
+    const [serviceType, setServiceType] = useState<number | null>(null);
     const [workType, setWorkType] = useState('');
     const [estimatedSalary, setEstimatedSalary] = useState('');
     const [userName, setUserName] = useState('');
     const [phone, setPhone] = useState('');
-    const [address, setAddress] = useState('');
     const [specialRequirements, setSpecialRequirements] = useState('');
 
     // Location State
@@ -80,8 +71,29 @@ export default function EditJobScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
+        fetchServiceTypes();
         fetchJobDetails();
     }, [id]);
+
+    const fetchServiceTypes = async () => {
+        try {
+            setIsLoadingServices(true);
+            const response = await apiService.get(API_ENDPOINTS.SERVICE_TYPES.LIST);
+            if (response.data) {
+                const data = Array.isArray(response.data) ? response.data : response.data.data;
+                if (Array.isArray(data)) {
+                    const types = data.map((item: any) => ({
+                        id: item.id,
+                        name: item.name || item.slug || item.label || ''
+                    })).filter((t) => t.id && t.name);
+                    setServiceTypes(types);
+                }
+            }
+        } catch (error) {
+        } finally {
+            setIsLoadingServices(false);
+        }
+    };
 
     const fetchJobDetails = async () => {
         try {
@@ -91,25 +103,32 @@ export default function EditJobScreen() {
             if (response.success && response.data) {
                 const job = response.data.job_post || response.data.booking || response.data;
 
-                setServiceType(job.service_type ? job.service_type.charAt(0).toUpperCase() + job.service_type.slice(1).replace('_', ' ') : '');
+                // Handle both ID and slug/name for service_type
+                if (typeof job.service_type === 'number') {
+                    setServiceType(job.service_type);
+                } else if (job.service_type_id) {
+                    setServiceType(job.service_type_id);
+                } else if (job.service?.id) {
+                    setServiceType(job.service.id);
+                }
+
                 setWorkType(job.work_type || '');
-                setEstimatedSalary(job.monthly_rate ? job.monthly_rate.toString() : '');
+                const salary = job.estimated_salary || job.monthly_rate || job.budget || job.price || 0;
+                setEstimatedSalary(Math.round(Number(salary)).toString());
                 setUserName(job.name || user?.name || '');
-                setPhone(job.phone_number || user?.phoneNumber || '');
-                setAddress(job.address || ''); // Assuming address is available
-                setSpecialRequirements(job.description || job.special_requirements || '');
+                setPhone(job.phone || job.phone_number || user?.phoneNumber || '');
+                setSpecialRequirements(job.special_requirements || job.description || '');
 
                 if (job.area) {
                     setLocationSearch(job.area);
                     setSelectedLocations([{ id: job.area, name: job.city || '', area: job.area }]);
                 }
             } else {
-                Alert.alert('Error', 'Failed to load job details');
+                toast.error('Failed to load job details');
                 router.back();
             }
         } catch (error) {
-            console.error('Error fetching job:', error);
-            Alert.alert('Error', 'Failed to load job details');
+            toast.error('Failed to load job details');
             router.back();
         } finally {
             setIsLoading(false);
@@ -176,41 +195,47 @@ export default function EditJobScreen() {
     };
 
     const handleUpdate = async () => {
-        if (!serviceType) { Alert.alert('Required', 'Please select a service type'); return; }
-        if (!workType) { Alert.alert('Required', 'Please select a work type'); return; }
-        if (selectedLocations.length === 0 && !locationSearch) { Alert.alert('Required', 'Please select an area'); return; }
+        let errorMsg = '';
+        if (!serviceType) errorMsg = 'Please select a service type';
+        else if (!workType) errorMsg = 'Please select a work type';
+        else if (!userName.trim()) errorMsg = 'Please enter your name';
+        else if (!phone.trim()) errorMsg = 'Please enter your phone number';
+
+        if (errorMsg) {
+            toast.error(errorMsg);
+            return;
+        }
 
         setIsSubmitting(true);
         try {
-            const locationName = selectedLocations.length > 0 ? (selectedLocations[0].area || selectedLocations[0].name) : locationSearch;
-
             const payload = {
                 name: userName,
-                service_type: serviceType.toLowerCase().replace(' ', '_'),
-                description: specialRequirements,
-                location: locationName,
-                area: locationName,
-                monthly_rate: estimatedSalary ? parseFloat(estimatedSalary) : undefined,
+                service_type: serviceType,
+                special_requirements: specialRequirements,
+                location: (user as any)?.pin_address || locationSearch,
+                area: (user as any)?.pin_address || locationSearch,
+                latitude: (user as any)?.pin_latitude,
+                longitude: (user as any)?.pin_longitude,
+                address: (user as any)?.pin_address || '',
+                estimated_salary: estimatedSalary ? parseFloat(estimatedSalary) : undefined,
                 work_type: workType,
-                phone_number: phone,
-                address: address
+                phone: phone,
             };
 
-            const response = await apiService.put(
+            const response = await apiService.patch(
                 API_ENDPOINTS.JOB_POSTS.UPDATE,
                 payload,
                 { id: id as string }
             );
 
             if (response.success) {
-                Alert.alert('Success', 'Job updated successfully', [
-                    { text: 'OK', onPress: () => router.back() },
-                ]);
+                toast.success('Job updated successfully');
+                router.replace('/(tabs)/job-posts');
             } else {
-                Alert.alert('Error', 'Failed to update job');
+                toast.error('Failed to update job');
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to update job');
+            toast.error('Failed to update job');
         } finally {
             setIsSubmitting(false);
         }
@@ -220,21 +245,21 @@ export default function EditJobScreen() {
         if (!activeSelection) return null;
 
         let title = '';
-        let options: string[] | Location[] = [];
+        let options: any[] = [];
         let onSelect: (item: any) => void = () => { };
 
         if (activeSelection === 'service') {
             title = 'Select Service Type';
-            options = SERVICE_TYPES;
+            options = serviceTypes;
             onSelect = (item) => {
-                setServiceType(item);
+                setServiceType(item.id);
                 setActiveSelection(null);
             };
         } else if (activeSelection === 'work') {
             title = 'Select Work Type';
             options = WORK_TYPES;
             onSelect = (item) => {
-                setWorkType(item);
+                setWorkType(item.id);
                 setActiveSelection(null);
             };
         } else if (activeSelection === 'location') {
@@ -279,21 +304,27 @@ export default function EditJobScreen() {
                         {activeSelection === 'location' && options.length === 0 && locationSearch.length > 0 && !isLoadingLocations ? (
                             <Text style={{ textAlign: 'center', color: textMuted, marginTop: 20 }}>No locations found</Text>
                         ) : (
-                            options.map((item: any, index: number) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={[styles.modalItem, { borderBottomColor: borderColor }]}
-                                    onPress={() => onSelect(item)}
-                                >
-                                    <Text style={[styles.modalItemText, { color: textColor }]}>
-                                        {activeSelection === 'location' ? (item.area ? item.area : item.name) : item}
-                                    </Text>
-                                    {((activeSelection === 'service' && serviceType === item) ||
-                                        (activeSelection === 'work' && workType === item)) && (
+                            options.map((item: any, index: number) => {
+                                const label = activeSelection === 'service' ? item.name : (activeSelection === 'work' ? item.label : (item.area ? item.area : item.name));
+                                const value = activeSelection === 'location' ? item.id : item.id;
+                                const isSelected = (activeSelection === 'service' && serviceType === value) ||
+                                    (activeSelection === 'work' && workType === value);
+
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={[styles.modalItem, { borderBottomColor: borderColor }]}
+                                        onPress={() => onSelect(item)}
+                                    >
+                                        <Text style={[styles.modalItemText, { color: textColor }]}>
+                                            {label}
+                                        </Text>
+                                        {isSelected && (
                                             <IconSymbol name="checkmark" size={20} color={primaryColor} />
                                         )}
-                                </TouchableOpacity>
-                            ))
+                                    </TouchableOpacity>
+                                );
+                            })
                         )}
                     </ScrollView>
                 </SafeAreaView>
@@ -311,147 +342,136 @@ export default function EditJobScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <ScreenHeader title="Edit Job Post" />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <ScrollView
+                    style={styles.scrollView}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Header */}
+                    <ScreenHeader title="Edit Job Post" />
 
-                <View style={styles.form}>
+                    <View style={styles.form}>
 
-                    {/* Row 1: Service Type & Work Type */}
-                    <View style={styles.row}>
-                        <View style={styles.col}>
-                            <ThemedText style={styles.label}>SERVICE TYPE *</ThemedText>
-                            <TouchableOpacity
-                                style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
-                                onPress={() => setActiveSelection('service')}
-                            >
-                                <Text style={[styles.dropdownButtonText, { color: serviceType ? textColor : textMuted }]}>
-                                    {serviceType || 'Select Service'}
-                                </Text>
-                                <IconSymbol name="chevron.down" size={16} color={textMuted} />
-                            </TouchableOpacity>
+                        {/* Row 1: Service Type & Work Type */}
+                        <View style={styles.row}>
+                            <View style={styles.col}>
+                                <ThemedText style={styles.label}>SERVICE TYPE *</ThemedText>
+                                <TouchableOpacity
+                                    style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
+                                    onPress={() => setActiveSelection('service')}
+                                >
+                                    <Text style={[styles.dropdownButtonText, { color: serviceType ? textColor : textMuted }]}>
+                                        {serviceType ? serviceTypes.find(s => s.id === serviceType)?.name : 'Select Service'}
+                                    </Text>
+                                    <IconSymbol name="chevron.down" size={16} color={textMuted} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.col}>
+                                <ThemedText style={styles.label}>WORK TYPE *</ThemedText>
+                                <TouchableOpacity
+                                    style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
+                                    onPress={() => setActiveSelection('work')}
+                                >
+                                    <Text style={[styles.dropdownButtonText, { color: workType ? textColor : textMuted }]}>
+                                        {workType ? WORK_TYPES.find(w => w.id === workType)?.label : 'Select Type'}
+                                    </Text>
+                                    <IconSymbol name="chevron.down" size={16} color={textMuted} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
-                        <View style={styles.col}>
-                            <ThemedText style={styles.label}>WORK TYPE *</ThemedText>
-                            <TouchableOpacity
-                                style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
-                                onPress={() => setActiveSelection('work')}
-                            >
-                                <Text style={[styles.dropdownButtonText, { color: workType ? textColor : textMuted }]}>
-                                    {workType || 'Select Type'}
-                                </Text>
-                                <IconSymbol name="chevron.down" size={16} color={textMuted} />
-                            </TouchableOpacity>
+                        {/* Row 2: Salary */}
+                        <View style={styles.row}>
+                            <View style={styles.col}>
+                                <ThemedText style={styles.label}>ESTIMATED SALARY</ThemedText>
+                                <TextInput
+                                    style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
+                                    placeholder="25000"
+                                    placeholderTextColor={textMuted}
+                                    keyboardType="numeric"
+                                    value={estimatedSalary}
+                                    onChangeText={setEstimatedSalary}
+                                />
+                            </View>
                         </View>
-                    </View>
 
-                    {/* Row 2: Salary & Area */}
-                    <View style={styles.row}>
-                        <View style={styles.col}>
-                            <ThemedText style={styles.label}>ESTIMATED SALARY</ThemedText>
+                        {/* Row 3: Name & Phone */}
+                        <View style={styles.row}>
+                            <View style={styles.col}>
+                                <ThemedText style={styles.label}>YOUR NAME *</ThemedText>
+                                <TextInput
+                                    style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textMuted, opacity: 0.8 }]}
+                                    placeholder="Full Name"
+                                    placeholderTextColor={textMuted}
+                                    value={userName}
+                                    editable={false}
+                                />
+                            </View>
+
+                            <View style={styles.col}>
+                                <ThemedText style={styles.label}>PHONE *</ThemedText>
+                                <TextInput
+                                    style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textMuted, opacity: 0.8 }]}
+                                    placeholder="03001234567"
+                                    placeholderTextColor={textMuted}
+                                    keyboardType="phone-pad"
+                                    value={phone}
+                                    editable={false}
+                                />
+                                <View style={styles.helperTextContainer}>
+                                    <IconSymbol name="info.circle" size={12} color={textMuted} />
+                                    <Text style={[styles.helperText, { color: textMuted }]}>
+                                        Not visible until you accept an application.
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+
+                        {/* Special Requirements */}
+                        <View style={styles.inputGroup}>
+                            <ThemedText style={styles.label}>SPECIAL REQUIREMENTS</ThemedText>
                             <TextInput
-                                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
-                                placeholder="25000 (PKR/MONTH)"
+                                style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
+                                placeholder="Any special requirements or preferences..."
                                 placeholderTextColor={textMuted}
-                                keyboardType="numeric"
-                                value={estimatedSalary}
-                                onChangeText={setEstimatedSalary}
+                                multiline
+                                numberOfLines={4}
+                                value={specialRequirements}
+                                onChangeText={setSpecialRequirements}
                             />
                         </View>
 
-                        <View style={styles.col}>
-                            <ThemedText style={styles.label}>AREA *</ThemedText>
+                        {/* Buttons */}
+                        <View style={styles.footer}>
                             <TouchableOpacity
-                                style={[styles.dropdownButton, { backgroundColor: cardBg, borderColor: borderColor }]}
-                                onPress={() => setActiveSelection('location')}
+                                style={[styles.submitButton, { backgroundColor: primaryColor }, isSubmitting && { opacity: 0.7 }]}
+                                onPress={handleUpdate}
+                                disabled={isSubmitting}
                             >
-                                <Text style={[styles.dropdownButtonText, { color: locationSearch ? textColor : textMuted }]} numberOfLines={1}>
-                                    {locationSearch || 'Select Area'}
-                                </Text>
-                                <IconSymbol name="chevron.down" size={16} color={textMuted} />
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="#FFF" />
+                                ) : (
+                                    <Text style={styles.submitButtonText}>Update Job Post</Text>
+                                )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.secondaryButton, { backgroundColor: cardBg, borderColor: borderColor }]}
+                                onPress={() => router.back()}
+                            >
+                                <Text style={[styles.secondaryButtonText, { color: textColor }]}>Cancel</Text>
                             </TouchableOpacity>
                         </View>
+
                     </View>
-
-                    {/* Row 3: Name & Phone */}
-                    <View style={styles.row}>
-                        <View style={styles.col}>
-                            <ThemedText style={styles.label}>YOUR NAME *</ThemedText>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textMuted, opacity: 0.8 }]}
-                                placeholder="Full Name"
-                                placeholderTextColor={textMuted}
-                                value={userName}
-                                editable={false}
-                            />
-                        </View>
-
-                        <View style={styles.col}>
-                            <ThemedText style={styles.label}>PHONE *</ThemedText>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: cardBg, borderColor: borderColor, color: textMuted, opacity: 0.8 }]}
-                                placeholder="03001234567"
-                                placeholderTextColor={textMuted}
-                                keyboardType="phone-pad"
-                                value={phone}
-                                editable={false}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Address */}
-                    <View style={styles.inputGroup}>
-                        <ThemedText style={styles.label}>ADDRESS</ThemedText>
-                        <TextInput
-                            style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
-                            placeholder="House 123, Street 4, Karachi"
-                            placeholderTextColor={textMuted}
-                            multiline
-                            numberOfLines={3}
-                            value={address}
-                            onChangeText={setAddress}
-                        />
-                    </View>
-
-                    {/* Special Requirements */}
-                    <View style={styles.inputGroup}>
-                        <ThemedText style={styles.label}>SPECIAL REQUIREMENTS</ThemedText>
-                        <TextInput
-                            style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor: borderColor, color: textColor }]}
-                            placeholder="Any special requirements or preferences..."
-                            placeholderTextColor={textMuted}
-                            multiline
-                            numberOfLines={4}
-                            value={specialRequirements}
-                            onChangeText={setSpecialRequirements}
-                        />
-                    </View>
-
-                    {/* Buttons */}
-                    <View style={styles.footer}>
-                        <TouchableOpacity
-                            style={[styles.submitButton, { backgroundColor: primaryColor }, isSubmitting && { opacity: 0.7 }]}
-                            onPress={handleUpdate}
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? (
-                                <ActivityIndicator color="#FFF" />
-                            ) : (
-                                <Text style={styles.submitButtonText}>Update Job Post</Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.secondaryButton, { backgroundColor: cardBg, borderColor: borderColor }]}
-                            onPress={() => router.back()}
-                        >
-                            <Text style={[styles.secondaryButtonText, { color: textColor }]}>Cancel</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                </View>
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             {renderSelectionModal()}
         </ThemedView>
@@ -482,7 +502,8 @@ const styles = StyleSheet.create({
     },
     form: {
         paddingHorizontal: 20,
-        paddingBottom: 40,
+        paddingBottom: 60,
+        marginTop: 20,
     },
     row: {
         flexDirection: 'row',
@@ -496,69 +517,77 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     label: {
-        fontSize: 11,
-        fontWeight: '700',
+        fontSize: 14,
+        fontWeight: '600',
         marginBottom: 8,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
     },
     input: {
         borderWidth: 1,
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 14,
-        height: 48,
+        borderRadius: 16,
+        padding: 16,
+        fontSize: 16,
+        height: 56,
     },
     textArea: {
         height: 'auto',
-        minHeight: 80,
+        minHeight: 100,
         textAlignVertical: 'top',
+        paddingTop: 16,
     },
     dropdownButton: {
         borderWidth: 1,
-        borderRadius: 8,
-        padding: 12,
-        height: 48,
+        borderRadius: 16,
+        padding: 16,
+        height: 56,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     dropdownButtonText: {
-        fontSize: 14,
+        fontSize: 16,
     },
     loader: {
         position: 'absolute',
-        right: 12,
-        top: 14,
+        right: 16,
+        top: 18,
+    },
+    helperTextContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 8,
+    },
+    helperText: {
+        fontSize: 12,
     },
     footer: {
-        flexDirection: 'row',
+        flexDirection: 'column',
         gap: 12,
-        marginTop: 20,
+        marginTop: 24,
     },
     submitButton: {
-        flex: 1,
-        height: 48,
-        borderRadius: 8,
+        height: 56,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
+        width: '100%',
     },
     submitButtonText: {
         color: '#FFFFFF',
-        fontWeight: '600',
-        fontSize: 14,
+        fontWeight: '700',
+        fontSize: 16,
     },
     secondaryButton: {
-        flex: 1,
-        height: 48,
-        borderRadius: 8,
+        height: 56,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
+        width: '100%',
     },
     secondaryButtonText: {
-        fontWeight: '600',
-        fontSize: 14,
+        fontWeight: '700',
+        fontSize: 16,
     },
     modalHeader: {
         flexDirection: 'row',

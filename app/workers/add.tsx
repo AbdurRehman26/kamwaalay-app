@@ -2,7 +2,9 @@ import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { mapDarkStyle } from '@/constants/MapStyle';
 import { useApp } from '@/contexts/AppContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
@@ -63,6 +65,7 @@ export default function AddWorkerScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { serviceTypes } = useApp();
+    const { colorScheme } = useTheme();
 
     // Theme colors
     const backgroundColor = useThemeColor({}, 'background');
@@ -114,8 +117,58 @@ export default function AddWorkerScreen() {
     });
     const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
     const [isGeocoding, setIsGeocoding] = useState(false);
-
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Location Search State
+    const [locationSearchQuery, setLocationSearchQuery] = useState('');
+    const [locationSearchResults, setLocationSearchResults] = useState<any[]>([]);
+    const [isSearchingLocations, setIsSearchingLocations] = useState(false);
+
+    const searchLocations = async (query: string) => {
+        if (query.trim().length < 2) {
+            setLocationSearchResults([]);
+            return;
+        }
+
+        try {
+            setIsSearchingLocations(true);
+            const response = await apiService.get(
+                API_ENDPOINTS.LOCATIONS.SEARCH,
+                undefined,
+                { q: query },
+                false
+            );
+
+            if (response.success && response.data) {
+                let locationsData: any[] = [];
+                if (response.data.locations) {
+                    locationsData = Array.isArray(response.data.locations.data)
+                        ? response.data.locations.data
+                        : (Array.isArray(response.data.locations) ? response.data.locations : []);
+                } else if (Array.isArray(response.data)) {
+                    locationsData = response.data;
+                } else if (response.data.data) {
+                    locationsData = Array.isArray(response.data.data) ? response.data.data : [];
+                }
+                setLocationSearchResults(locationsData);
+            }
+        } catch (error) {
+        } finally {
+            setIsSearchingLocations(false);
+        }
+    };
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (locationSearchQuery.trim()) {
+                searchLocations(locationSearchQuery);
+            } else {
+                setLocationSearchResults([]);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [locationSearchQuery]);
 
     useEffect(() => {
         fetchLanguages();
@@ -145,7 +198,6 @@ export default function AddWorkerScreen() {
                 setAvailableLanguages(formattedLangs);
             }
         } catch (error) {
-            console.error('Failed to fetch languages:', error);
         } finally {
             setIsLoadingLanguages(false);
         }
@@ -189,7 +241,6 @@ export default function AddWorkerScreen() {
                 longitude: location.coords.longitude
             });
         } catch (error) {
-            console.log('Error getting location', error);
         }
     };
 
@@ -297,46 +348,52 @@ export default function AddWorkerScreen() {
 
         try {
             const workerData = {
-                full_name: fullName.trim(),
-                phone: phone.trim(),
-                service_types: selectedServices,
+                name: fullName.trim(),
+                phone: `+92${phone.trim()}`,
+                service_types: selectedServices.map((s, index) => ({ [index]: s })).reduce((acc, obj) => ({ ...acc, ...obj }), {}),
                 experience_years: parseInt(experienceYears),
                 age: parseInt(age),
                 gender,
                 religion,
-                languages,
+                languages: languages,
                 availability,
-
                 bio: bio.trim() || null,
-                address: locationData.address,
+                pin_address: locationData.address,
                 city: locationData.city,
                 latitude: locationData.latitude,
                 longitude: locationData.longitude,
             };
 
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('Add Worker Request Data:', JSON.stringify(workerData, null, 2));
+            console.log('Add Worker Endpoint:', API_ENDPOINTS.WORKERS.CREATE);
 
-            console.log('Worker Data:', workerData);
+            const response = await apiService.post(API_ENDPOINTS.WORKERS.CREATE, workerData);
+            console.log('Add Worker Response:', response);
 
-            toast.success('Worker added successfully!');
+            if (response.success) {
+                toast.success('Worker added successfully!');
 
-            // Reset form
-            setFullName('');
-            setPhone('');
-            setSelectedServices([]);
-            setExperienceYears('');
-            setAge('');
-            setGender('');
-            setReligion('');
-            setLanguages([]);
-            setAvailability('full_time');
+                // Reset form
+                setFullName('');
+                setPhone('');
+                setSelectedServices([]);
+                setExperienceYears('');
+                setAge('');
+                setGender('');
+                setReligion('');
+                setLanguages([]);
+                setAvailability('full_time');
 
-            setBio('');
-            setLocationData(null);
+                setBio('');
+                setLocationData(null);
 
-            // Navigate back after a short delay
-            setTimeout(() => router.back(), 1000);
+                // Navigate back after a short delay
+                setTimeout(() => router.back(), 1000);
+            } else {
+                toast.error(response.message || 'Failed to add worker. Please try again.');
+            }
         } catch (error) {
+            console.log('Error adding worker:', error);
             toast.error('Failed to add worker. Please try again.');
         } finally {
             setIsSubmitting(false);
@@ -387,14 +444,18 @@ export default function AddWorkerScreen() {
                             <Text style={[styles.label, { color: textColor }]}>Phone Number <Text style={styles.required}>*</Text></Text>
                             <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                                 <IconSymbol name="phone" size={20} color={textMuted} style={styles.inputIcon} />
+                                <View style={styles.phonePrefixContainer}>
+                                    <Text style={[styles.phonePrefixText, { color: textSecondary }]}>+92</Text>
+                                    <View style={[styles.prefixDivider, { backgroundColor: borderColor }]} />
+                                </View>
                                 <TextInput
                                     style={[styles.input, { color: textColor }]}
-                                    placeholder="03XXXXXXXXX"
+                                    placeholder="3001234567"
                                     placeholderTextColor={textMuted}
                                     value={phone}
-                                    onChangeText={setPhone}
+                                    onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
                                     keyboardType="phone-pad"
-                                    maxLength={11}
+                                    maxLength={10}
                                 />
                             </View>
                         </View>
@@ -702,12 +763,70 @@ export default function AddWorkerScreen() {
                 presentationStyle="pageSheet"
                 onRequestClose={() => setIsMapVisible(false)}
             >
-                <View style={styles.modalContainer}>
+                <View style={[styles.modalContainer, { backgroundColor }]}>
                     <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Pin Location</Text>
-                        <TouchableOpacity onPress={() => setIsMapVisible(false)} style={styles.closeButton}>
-                            <IconSymbol name="xmark.circle.fill" size={30} color="#000" />
+                        <TouchableOpacity onPress={() => {
+                            setIsMapVisible(false);
+                            setLocationSearchQuery('');
+                            setLocationSearchResults([]);
+                        }} style={styles.closeButton}>
+                            <IconSymbol name="chevron.left" size={24} color={textColor} />
                         </TouchableOpacity>
+                        <Text style={[styles.modalTitle, { color: textColor }]}>Pin Location</Text>
+                        <View style={{ width: 40 }} />
+                    </View>
+
+                    <View style={styles.mapSearchContainer}>
+                        <View style={[styles.mapSearchInputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                            <IconSymbol name="magnifyingglass" size={20} color={textMuted} />
+                            <TextInput
+                                style={[styles.mapSearchInput, { color: textColor }]}
+                                placeholder="Search neighborhood or area..."
+                                placeholderTextColor={textMuted}
+                                value={locationSearchQuery}
+                                onChangeText={setLocationSearchQuery}
+                            />
+                            {locationSearchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setLocationSearchQuery('')}>
+                                    <IconSymbol name="xmark.circle.fill" size={20} color={textMuted} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {locationSearchResults.length > 0 && (
+                            <View style={[styles.mapSearchResults, { backgroundColor: cardBg, borderColor }]}>
+                                <ScrollView keyboardShouldPersistTaps="handled">
+                                    {locationSearchResults.map((loc, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={[styles.mapSearchResultItem, { borderBottomColor: borderColor }]}
+                                            onPress={() => {
+                                                const lat = parseFloat(loc.latitude);
+                                                const lng = parseFloat(loc.longitude);
+                                                if (!isNaN(lat) && !isNaN(lng)) {
+                                                    const newRegion = {
+                                                        latitude: lat,
+                                                        longitude: lng,
+                                                        latitudeDelta: 0.01,
+                                                        longitudeDelta: 0.01,
+                                                    };
+                                                    setMapRegion(newRegion);
+                                                    setSelectedCoordinate({ latitude: lat, longitude: lng });
+                                                    setLocationSearchQuery('');
+                                                    setLocationSearchResults([]);
+                                                }
+                                            }}
+                                        >
+                                            <IconSymbol name="mappin.circle.fill" size={18} color={primaryColor} />
+                                            <View>
+                                                <Text style={[styles.mapSearchResultName, { color: textColor }]}>{loc.name}</Text>
+                                                {loc.area && <Text style={[styles.mapSearchResultArea, { color: textSecondary }]}>{loc.area}</Text>}
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        )}
                     </View>
 
                     <MapView
@@ -718,6 +837,7 @@ export default function AddWorkerScreen() {
                         onPress={(e) => setSelectedCoordinate(e.nativeEvent.coordinate)}
                         showsUserLocation
                         showsMyLocationButton
+                        customMapStyle={colorScheme === 'dark' ? mapDarkStyle : []}
                     >
                         {selectedCoordinate && (
                             <Marker coordinate={selectedCoordinate} />
@@ -832,6 +952,20 @@ const styles = StyleSheet.create({
     },
     inputIcon: {
         marginRight: 12,
+    },
+    phonePrefixContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    phonePrefixText: {
+        fontSize: 16,
+        fontWeight: '600',
+        paddingLeft: 4,
+    },
+    prefixDivider: {
+        width: 1,
+        height: 20,
+        marginHorizontal: 12,
     },
     input: {
         flex: 1,
@@ -1041,7 +1175,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: 20,
-        backgroundColor: '#fff',
         zIndex: 1,
     },
     modalTitle: {
@@ -1057,9 +1190,7 @@ const styles = StyleSheet.create({
     mapFooter: {
         padding: 24,
         paddingBottom: 40,
-        backgroundColor: '#fff',
         borderTopWidth: 1,
-        borderTopColor: '#e5e5e5',
         alignItems: 'center',
     },
     mapHelpText: {
@@ -1076,6 +1207,58 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 16,
+    },
+    // Map Search Styles
+    mapSearchContainer: {
+        position: 'absolute',
+        top: 80,
+        left: 20,
+        right: 20,
+        zIndex: 10,
+    },
+    mapSearchInputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        height: 50,
+        borderRadius: 12,
+        borderWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        gap: 10,
+    },
+    mapSearchInput: {
+        flex: 1,
+        fontSize: 16,
+    },
+    mapSearchResults: {
+        maxHeight: 250,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginTop: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 6,
+        overflow: 'hidden',
+    },
+    mapSearchResultItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        borderBottomWidth: 1,
+        gap: 12,
+    },
+    mapSearchResultName: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    mapSearchResultArea: {
+        fontSize: 13,
     },
 
 

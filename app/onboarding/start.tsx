@@ -1,9 +1,14 @@
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { mapDarkStyle } from '@/constants/MapStyle';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -26,12 +31,27 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 const { width } = Dimensions.get('window');
 
 export default function OnboardingStartScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, updateUser, logout } = useAuth();
+  const { colorScheme } = useTheme();
+
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Map & Location State
+  const [address, setAddress] = useState('');
+  const [pinLocation, setPinLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: 24.8607,
+    longitude: 67.0011,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // City Selection State
   const [cityId, setCityId] = useState<number | null>(null);
@@ -50,19 +70,53 @@ export default function OnboardingStartScreen() {
   const borderColor = useThemeColor({}, 'border');
   const errorColor = useThemeColor({}, 'error');
 
-  // Prefill name if it exists in user context
+  // Pre-populate data if it exists in user context
   useEffect(() => {
     if (user?.name) {
       setName(user.name);
     }
+    if (user?.city_id) {
+      setCityId(user.city_id);
+    }
+    if (user?.pin_address) {
+      setAddress(user.pin_address);
+    }
+    if (user?.pin_latitude && user?.pin_longitude) {
+      setPinLocation({
+        latitude: user.pin_latitude,
+        longitude: user.pin_longitude
+      });
+    }
   }, [user]);
 
-  // Fetch cities on mount for normal users
+  // Fetch cities on mount
   useEffect(() => {
-    if (user?.userType === 'user') {
-      fetchCities();
-    }
-  }, [user?.userType]);
+    fetchCities();
+  }, []);
+
+  // Check token on mount and log out if not found
+  useEffect(() => {
+    const checkTokenAndLogout = async () => {
+      try {
+        let token = await AsyncStorage.getItem('authToken');
+        if (!token && user) {
+          const userToken = (user as any).token;
+          if (userToken) {
+            await AsyncStorage.setItem('authToken', userToken);
+            token = userToken;
+          }
+        }
+        if (!token) {
+          await logout();
+          router.replace('/auth/phone-login');
+        }
+      } catch (error) {
+        await logout();
+        router.replace('/auth/phone-login');
+      }
+    };
+    checkTokenAndLogout();
+  }, [user, logout, router]);
 
   const fetchCities = async () => {
     try {
@@ -82,43 +136,75 @@ export default function OnboardingStartScreen() {
         setCities(formattedCities);
       }
     } catch (error) {
-      console.error('Failed to fetch cities:', error);
     } finally {
       setIsLoadingCities(false);
     }
   };
 
-  // Check token on mount and log out if not found
-  useEffect(() => {
-    const checkTokenAndLogout = async () => {
-      try {
-        // Check if token exists in AsyncStorage
-        let token = await AsyncStorage.getItem('authToken');
-
-        // If no token in separate key, check user object
-        if (!token && user) {
-          const userToken = (user as any).token;
-          if (userToken) {
-            // Save token to AsyncStorage for API service to use
-            await AsyncStorage.setItem('authToken', userToken);
-            token = userToken;
-          }
-        }
-
-        // If no token found, log out and redirect to login
-        if (!token) {
-          await logout();
-          router.replace('/auth/phone-login');
-        }
-      } catch (error) {
-        // Error checking token - log out as a safety measure
-        await logout();
-        router.replace('/auth/phone-login');
+  const getCurrentLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        toast.error('Permission to access location was denied');
+        return;
       }
-    };
 
-    checkTokenAndLogout();
-  }, [user, logout, router]);
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      setMapRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setPinLocation({ latitude, longitude });
+    } catch (error) {
+    }
+  };
+
+  const openMap = () => {
+    setIsMapVisible(true);
+    if (!pinLocation) {
+      getCurrentLocation();
+    } else {
+      setMapRegion({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    }
+  };
+
+  const handleMapConfirm = async () => {
+    if (!pinLocation) return;
+
+    setIsMapVisible(false);
+    setIsGeocoding(true);
+
+    try {
+      const result = await Location.reverseGeocodeAsync({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude
+      });
+
+      if (result.length > 0) {
+        const addr = result[0];
+        const formattedAddress = [
+          addr.street,
+          addr.district,
+          addr.city,
+          addr.region
+        ].filter(Boolean).join(', ');
+
+        setAddress(formattedAddress);
+      }
+    } catch (error) {
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   const handleContinue = async () => {
     if (!name.trim()) {
@@ -126,80 +212,43 @@ export default function OnboardingStartScreen() {
       return;
     }
 
-    if (user?.userType === 'user' && !cityId) {
+    if (!cityId) {
       toast.error('Please select your city');
       return;
     }
 
-    // Clear any previous error
+    if (!address) {
+      toast.error('Please pin your location');
+      return;
+    }
+
     setErrorMessage(null);
     setIsLoading(true);
 
     try {
-      // Ensure token is available before making API call
-      let token = await AsyncStorage.getItem('authToken');
-
-      // If no token in AsyncStorage, check user object
-      if (!token && user) {
-        const userToken = (user as any).token;
-        if (userToken) {
-          // Save token to AsyncStorage for API service to use
-          await AsyncStorage.setItem('authToken', userToken);
-          token = userToken;
-        }
-      }
-
-      // Check if token exists
-      if (!token) {
-        throw new Error('Authentication token not found. Please login again.');
-      }
-
-      // Prepare profile update data
-      const profileUpdateData: { name: string; city_id?: number } = {
+      const profileUpdateData: any = {
         name: name.trim(),
+        city_id: cityId,
+        pin_address: address,
+        pin_latitude: pinLocation?.latitude,
+        pin_longitude: pinLocation?.longitude,
       };
 
-      // Include city_id for normal users
-      if (user?.userType === 'user' && cityId) {
-        profileUpdateData.city_id = cityId;
-      }
-
-      // Call profile update API (this will use the token from AsyncStorage)
-      // Update name and email, but don't mark onboarding as completed yet
-      await updateUser({
-        ...profileUpdateData,
-        // Don't set onboardingStatus to 'completed' here - let the stepper flow handle it
-      });
+      await updateUser(profileUpdateData);
 
       // Redirect based on user type
-      // Helpers and businesses go to their specific onboarding screens
-      // Regular users go directly to tabs
-      // Get the updated user to ensure we have the latest userType
-      const updatedUser = { ...user, ...profileUpdateData };
-
       setTimeout(() => {
-        const userType = updatedUser?.userType || user?.userType;
-
-        if (userType === 'helper') {
-          console.log('Navigating to helper-profile stepper');
+        if (user?.userType === 'helper') {
           router.replace('/onboarding/helper-profile');
-        } else if (userType === 'business') {
+        } else if (user?.userType === 'business') {
           router.replace('/onboarding/business-profile');
         } else {
-          // For regular users, complete onboarding and go to tabs
-          updateUser({
-            ...profileUpdateData,
-            onboardingStatus: 'completed',
-          });
+          updateUser({ onboardingStatus: 'completed' });
           router.replace('/(tabs)');
         }
       }, 100);
     } catch (error: any) {
-      // Profile update error
-
-      // Extract error message
       let extractedErrorMessage = 'Failed to update profile. Please try again.';
-
       if (error instanceof Error) {
         extractedErrorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -207,7 +256,6 @@ export default function OnboardingStartScreen() {
       } else if (error && typeof error === 'object') {
         extractedErrorMessage = error.message || error.error || error.toString();
       }
-
       setErrorMessage(extractedErrorMessage);
       toast.error(extractedErrorMessage);
     } finally {
@@ -230,7 +278,7 @@ export default function OnboardingStartScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
             <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.modalTitle, { color: textColor }]}>Select City</Text>
+              <Text style={[styles.modalTitle, { color: textColor }]}>{t('auth.city')}</Text>
               <TouchableOpacity onPress={() => setIsCityModalVisible(false)}>
                 <IconSymbol name="xmark" size={24} color={textColor} />
               </TouchableOpacity>
@@ -307,12 +355,66 @@ export default function OnboardingStartScreen() {
     );
   };
 
+  const renderMapModal = () => {
+    return (
+      <Modal
+        visible={isMapVisible}
+        animationType="slide"
+        onRequestClose={() => setIsMapVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor }}>
+          <View style={{ height: insets.top, backgroundColor: backgroundColor }} />
+          <View style={styles.mapContainer}>
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              region={mapRegion}
+              customMapStyle={colorScheme === 'dark' ? mapDarkStyle : []}
+              onRegionChangeComplete={(region: Region) => {
+                setMapRegion(region);
+                setPinLocation({
+                  latitude: region.latitude,
+                  longitude: region.longitude,
+                });
+              }}
+            >
+              <Marker
+                coordinate={{
+                  latitude: mapRegion.latitude,
+                  longitude: mapRegion.longitude,
+                }}
+              />
+            </MapView>
+
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapInstruction}>
+                {t('jobPosts.map.dragMarker')}
+              </Text>
+            </View>
+
+            <View style={styles.mapButtons}>
+              <TouchableOpacity
+                style={[styles.mapButton, styles.cancelButton]}
+                onPress={() => setIsMapVisible(false)}
+              >
+                <Text style={[styles.mapButtonText, { color: '#FF3B30' }]}>{t('jobPosts.map.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
+                onPress={handleMapConfirm}
+              >
+                <Text style={[styles.mapButtonText, { color: '#fff' }]}>{t('jobPosts.map.confirm')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
-      <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
-      <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -322,16 +424,19 @@ export default function OnboardingStartScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
+          <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
+
           <View style={styles.content}>
-            {/* Header Section */}
             <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
-              <Text style={[styles.title, { color: textColor }]}>Let's get started</Text>
+              <Text style={[styles.title, { color: textColor }]}>{t('onboarding.start.title') || "Your Profile"}</Text>
               <Text style={[styles.subtitle, { color: textSecondary }]}>
-                Tell us a bit about yourself to personalize your experience
+                {t('onboarding.start.subtitle') || "Complete your profile to find relevant opportunities nearby"}
               </Text>
             </View>
 
-            <View style={styles.form} nativeID="onboarding-form" data-form="onboarding">
+            <View style={styles.form}>
+              {/* Name Selection */}
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: textColor }]}>
                   {user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
@@ -347,35 +452,55 @@ export default function OnboardingStartScreen() {
                     autoComplete="name"
                     textContentType="name"
                     autoCorrect={false}
-                    spellCheck={false}
-                    importantForAutofill="yes"
-                    nativeID="name-input"
-                    accessibilityLabel={user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
-                    data-autocomplete="name"
-                    data-content-type="name"
                   />
                 </View>
               </View>
 
-              {/* City Selection for Normal Users */}
-              {user?.userType === 'user' && (
-                <View style={[styles.inputGroup, { zIndex: 100 }]}>
-                  <Text style={[styles.label, { color: textColor }]}>City</Text>
+              {/* City Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>City</Text>
+                <TouchableOpacity
+                  style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}
+                  onPress={() => setIsCityModalVisible(true)}
+                >
+                  <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
+                  <Text style={[styles.input, { color: cityId ? textColor : textSecondary, paddingVertical: 16 }]}>
+                    {cityId ? cities.find(c => c.id === cityId)?.name : 'Select City'}
+                  </Text>
+                  <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Pin Location UI */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.address')}</Text>
+                <View style={{ gap: 10 }}>
+                  <TextInput
+                    style={[styles.input, styles.locationPlaceholder, { backgroundColor: cardBg, borderColor, color: textMuted }]}
+                    placeholder={t('profileEdit.placeholders.pinLocation')}
+                    placeholderTextColor={textMuted}
+                    value={address}
+                    editable={false}
+                  />
                   <TouchableOpacity
-                    style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}
-                    onPress={() => setIsCityModalVisible(true)}
+                    style={[styles.pinButton, { backgroundColor: cardBg, borderColor: primaryColor }]}
+                    onPress={openMap}
                   >
-                    <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
-                    <Text style={[styles.input, { color: cityId ? textColor : textSecondary, paddingVertical: 16 }]}>
-                      {cityId ? cities.find(c => c.id === cityId)?.name : 'Select City'}
+                    <IconSymbol name="location.fill" size={20} color={primaryColor} />
+                    <Text style={[styles.pinButtonText, { color: primaryColor }]}>
+                      {address ? t('profileEdit.actions.changeLocation') : t('profileEdit.actions.pinLocation')}
                     </Text>
-                    <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
                   </TouchableOpacity>
                 </View>
-              )}
+                {isGeocoding && (
+                  <View style={styles.geocodingContainer}>
+                    <ActivityIndicator size="small" color={primaryColor} />
+                    <Text style={[styles.helperText, { color: textMuted }]}>{t('common.loading')}</Text>
+                  </View>
+                )}
+              </View>
             </View>
 
-            {/* Error Message Display */}
             {errorMessage && (
               <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
                 <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
@@ -387,16 +512,16 @@ export default function OnboardingStartScreen() {
               style={[
                 styles.button,
                 { backgroundColor: primaryColor, shadowColor: primaryColor },
-                (!name.trim() || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
+                (!name.trim() || !cityId || !address || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
               ]}
               onPress={handleContinue}
-              disabled={!name.trim() || isLoading}
+              disabled={!name.trim() || !cityId || !address || isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <>
-                  <Text style={styles.buttonText}>Continue</Text>
+                  <Text style={styles.buttonText}>{t('auth.next')}</Text>
                   <IconSymbol name="arrow.right" size={20} color="#FFF" />
                 </>
               )}
@@ -406,6 +531,7 @@ export default function OnboardingStartScreen() {
       </KeyboardAvoidingView>
 
       {renderCityModal()}
+      {renderMapModal()}
     </View>
   );
 }
@@ -482,28 +608,46 @@ const styles = StyleSheet.create({
     height: 56,
     overflow: 'hidden',
   },
-  inputWrapperDisabled: {
-    backgroundColor: '#F3F4F6',
-  },
   inputIcon: {
     marginLeft: 16,
     marginRight: 12,
   },
   input: {
     flex: 1,
-    height: '100%',
     fontSize: 16,
     color: '#1A1A1A',
     fontWeight: '500',
   },
-  inputDisabled: {
-    color: '#6B7280',
+  locationPlaceholder: {
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 50,
+    justifyContent: 'center',
+  },
+  pinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  pinButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  geocodingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
   },
   helperText: {
     fontSize: 12,
     color: '#6B7280',
-    marginTop: 6,
-    marginLeft: 4,
   },
   button: {
     backgroundColor: '#6366F1',
@@ -569,9 +713,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-  modalBody: {
-    padding: 16,
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -608,5 +749,51 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
+  },
+  mapContainer: {
+    flex: 1,
+  },
+  map: {
+    flex: 1,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 12,
+    borderRadius: 8,
+  },
+  mapInstruction: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  mapButtons: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+  },
+  mapButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  confirmButton: {
+    backgroundColor: '#6366F1',
+    borderWidth: 0,
+  },
+  mapButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

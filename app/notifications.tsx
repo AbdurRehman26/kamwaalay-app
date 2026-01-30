@@ -77,7 +77,6 @@ export default function NotificationsScreen() {
         }
       }
     } catch (err: any) {
-      console.error('Error fetching notifications:', err);
       // If the error itself suggests not found, treat as empty
       if (err.message?.includes('404') || err.message?.toLowerCase().includes('not found')) {
         setNotifications([]);
@@ -107,7 +106,6 @@ export default function NotificationsScreen() {
       );
       await notificationService.markAsRead(id);
     } catch (error) {
-      console.error('Error marking notification as read:', error);
     }
   };
 
@@ -116,7 +114,6 @@ export default function NotificationsScreen() {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       await notificationService.markAllAsRead();
     } catch (error) {
-      console.error('Error marking all as read:', error);
     }
   };
 

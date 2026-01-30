@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,7 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -119,7 +121,6 @@ export default function AddServiceOfferingScreen() {
         if (listing.description) setDescription(listing.description);
       }
     } catch (error) {
-      console.error('Error loading service listing:', error);
       Alert.alert('Error', 'Failed to load service listing');
     } finally {
       setIsLoading(false);
@@ -187,7 +188,6 @@ export default function AddServiceOfferingScreen() {
         toast.error(response.message || response.error || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
       }
     } catch (error: any) {
-      console.error('Error saving service offering:', error);
       Alert.alert('Error', error.message || (isEditMode ? 'Failed to update service offering' : 'Failed to add service offering'));
     } finally {
       setIsSubmitting(false);
@@ -198,18 +198,17 @@ export default function AddServiceOfferingScreen() {
     <View style={[styles.container, { backgroundColor }]}>
 
       <ScreenHeader title={isEditMode ? 'Edit Service' : 'Add New Service'} />
-      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
+      >
         <ScrollView
           style={[styles.scrollView, { backgroundColor }]}
           showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          horizontal={false}
-          bounces={false}
-          alwaysBounceHorizontal={false}
-          alwaysBounceVertical={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24, width: width, maxWidth: width }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20, width: width, maxWidth: width }}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Decorative Background Elements */}
           <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
           <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
@@ -296,7 +295,7 @@ export default function AddServiceOfferingScreen() {
 
               {/* Monthly Rate */}
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>Monthly Rate (PKR)</Text>
+                <Text style={[styles.label, { color: textColor }]}>Monthly Rate (PKR) <Text style={styles.required}>*</Text></Text>
                 <View style={[styles.inputContainer, { backgroundColor: cardBg, borderColor }]}>
                   <Text style={[styles.currencyPrefix, { color: textSecondary }]}>₨</Text>
                   <TextInput
@@ -327,20 +326,17 @@ export default function AddServiceOfferingScreen() {
               <TouchableOpacity
                 style={[
                   styles.addButton,
-                  (selectedServiceTypes.length === 0)
+                  (selectedServiceTypes.length === 0 || !monthlyRate)
                     ? {
                       backgroundColor: borderColor,
                       opacity: 0.5,
-                      shadowOpacity: 0,
                     }
                     : {
                       backgroundColor: primaryColor,
-                      shadowColor: primaryColor,
-                      shadowOpacity: 0.3,
                     },
                 ]}
                 onPress={handleAddService}
-                disabled={selectedServiceTypes.length === 0 || isSubmitting}
+                disabled={selectedServiceTypes.length === 0 || !monthlyRate || isSubmitting}
               >
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
@@ -348,12 +344,12 @@ export default function AddServiceOfferingScreen() {
                   <>
                     <Text style={[
                       styles.addButtonText,
-                      (selectedServiceTypes.length === 0) && { opacity: 0.7 }
+                      (selectedServiceTypes.length === 0 || !monthlyRate) && { opacity: 0.7 }
                     ]}>{isEditMode ? 'Update Service' : 'Add Service'}</Text>
                     <IconSymbol
                       name="plus"
                       size={20}
-                      color={(selectedServiceTypes.length === 0) ? textMuted : "#FFFFFF"}
+                      color={(selectedServiceTypes.length === 0 || !monthlyRate) ? textMuted : "#FFFFFF"}
                     />
                   </>
                 )}
@@ -361,7 +357,7 @@ export default function AddServiceOfferingScreen() {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -507,6 +503,10 @@ const styles = StyleSheet.create({
   textArea: {
     height: 120,
     textAlignVertical: 'top',
+  },
+  actionWrapper: {
+    paddingHorizontal: 24,
+    paddingVertical: 8,
   },
   addButton: {
     flexDirection: 'row',

@@ -214,6 +214,7 @@ export const roman = {
         delete: 'Delete',
         deletedSuccess: 'Guftagu delete kar di gayi',
         deleteError: 'Guftagu delete karne mein nakami',
+        you: 'Aap',
         conversationType: 'conversation',
     },
     profileEdit: {
@@ -251,6 +252,7 @@ export const roman = {
             enterName: 'Apna pura naam darj karen',
             enterBusinessName: 'Karobar ka naam darj karen',
             enterAge: 'Apni umar darj karen',
+            pinLocation: 'Naqshe par muqam muntakhib karen',
             bio: 'Apne bare mein batayen...',
         },
         helpers: {
@@ -611,6 +613,12 @@ export const roman = {
         chat: 'Baat Cheet',
         profile: 'Profile',
     },
+    onboarding: {
+        start: {
+            title: 'Aaiye shuru karein',
+            subtitle: 'Apne tajurba ko zaati banane ke liye hamein apne baray mein batayein',
+        }
+    },
     helperProfile: {
         title: 'Profile',
         about: 'Ke Baray Mein',
@@ -667,5 +675,37 @@ export const roman = {
         provider: 'Provider',
         more: 'mazeed',
         service: 'Service',
+    },
+    jobDetails: {
+        title: 'Naukri Ki Tafseelat',
+        description: 'Tafseel',
+        noDescription: 'Koi tafseel faraham nahi ki gayi.',
+        workType: 'Kaam Ki Qisam',
+        location: 'Maqam',
+        budget: 'Budget',
+        created: 'Banaya Gaya',
+        applicants: 'Darkhwast Dehindagan',
+        applicant: 'darkhwast dehinda',
+        addedBy: 'Shamil Kiya Gaya',
+        applyNow: 'Abhi Apply Karen',
+        alreadyApplied: 'Pehle Se Apply Kar Diya',
+        jobClosed: 'Yeh naukri band hai',
+        edit: 'Edit',
+        delete: 'Delete Karen',
+        deleteTitle: 'Naukri Ki Post Delete Karen',
+        deleteConfirm: 'Kya aap waqai is naukri ko delete karna chahte hain? Yeh amal wapis nahi liya ja sakta.',
+        cancel: 'Mansookh Karen',
+        contactApplicant: 'Darkhwast Dehinda Se Raabta Karen',
+        contactApplicants: 'Darkhwast Dehindagan Se Raabta Karen',
+        noApplicantsYet: 'Abhi tak koi darkhwast dehinda nahi',
+        viewProfile: 'Profile Dekhen',
+        notFound: 'Naukri Nahi Mili',
+        notFoundDescription: 'Jis naukri ki aap talash kar rahe hain woh mojood nahi hai ya hata di gayi hai.',
+        backToJobs: 'Naukriyon Par Wapis Jayen',
+        loading: 'Naukri ki tafseelat load ho rahi hain...',
+        experience: 'Tajurba',
+        age: 'Umar',
+        gender: 'Jins',
+        religion: 'Mazhab',
     }
 };

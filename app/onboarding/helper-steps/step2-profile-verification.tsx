@@ -6,13 +6,15 @@ import { toast } from '@/utils/toast';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
+  Keyboard,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ProfileVerificationData {
   nicFile: any | null;
@@ -103,6 +105,18 @@ export default function Step2ProfileVerification({
     }
   };
 
+  const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  React.useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const handleNext = () => {
     // NIC number is still required, but file upload is optional
     if (!data.nicNumber.trim()) {
@@ -114,7 +128,12 @@ export default function Step2ProfileVerification({
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardVisible ? 150 : 0 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Profile Verification
@@ -205,24 +224,24 @@ export default function Step2ProfileVerification({
             </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.actions}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
-            <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              { backgroundColor: primaryColor },
-              !data.nicNumber.trim() && { backgroundColor: textMuted, opacity: 0.5 },
-            ]}
-            onPress={handleNext}
-            disabled={!data.nicNumber.trim()}
-          >
-            <Text style={styles.nextButtonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      <View style={[styles.actions, { paddingBottom: keyboardVisible ? 40 : insets.bottom }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
+          <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.nextButton,
+            { backgroundColor: primaryColor },
+            !data.nicNumber.trim() && { backgroundColor: textMuted, opacity: 0.5 },
+          ]}
+          onPress={handleNext}
+          disabled={!data.nicNumber.trim()}
+        >
+          <Text style={styles.nextButtonText}>Next</Text>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }
@@ -236,69 +255,30 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 60,
+    paddingBottom: 0,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    marginTop: 8,
   },
   form: {
     padding: 20,
+    gap: 20,
   },
   inputGroup: {
-    marginBottom: 24,
+    gap: 8,
   },
   label: {
     fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  required: {
+    fontWeight: '600',
   },
   instruction: {
     fontSize: 14,
-    marginBottom: 12,
-  },
-  uploadArea: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 180,
-  },
-  uploadPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  uploadHint: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  uploadedFile: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadedFileText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  uploadedFileName: {
-    fontSize: 12,
-    marginTop: 4,
+    marginBottom: 8,
   },
   input: {
     borderWidth: 1,
@@ -306,11 +286,47 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
   },
+  required: {
+    fontWeight: 'bold',
+  },
+  uploadArea: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 180,
+  },
+  uploadPlaceholder: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  uploadText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  uploadHint: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  uploadedFile: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  uploadedFileText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  uploadedFileName: {
+    fontSize: 14,
+  },
   actions: {
     flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 20,
     gap: 12,
-    padding: 20,
-    paddingTop: 8,
   },
   backButton: {
     flex: 1,
@@ -320,20 +336,17 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   nextButton: {
-    flex: 1,
+    flex: 2,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  nextButtonDisabled: {
-  },
   nextButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });
-

@@ -214,6 +214,7 @@ export const en = {
         delete: 'Delete',
         deletedSuccess: 'Conversation deleted',
         deleteError: 'Failed to delete conversation',
+        you: 'You',
         conversationType: 'conversation', // For navigation params if needed, likely internal but good to have
     },
     profileEdit: {
@@ -251,6 +252,7 @@ export const en = {
             enterName: 'Enter your full name',
             enterBusinessName: 'Enter business name',
             enterAge: 'Enter your age',
+            pinLocation: 'Select location on map',
             bio: 'Tell us about yourself...',
         },
         helpers: {
@@ -611,6 +613,12 @@ export const en = {
         chat: 'Chat',
         profile: 'Profile',
     },
+    onboarding: {
+        start: {
+            title: "Let's get started",
+            subtitle: 'Tell us a bit about yourself to personalize your experience',
+        }
+    },
     helperProfile: {
         title: 'Profile',
         about: 'About',
@@ -667,5 +675,37 @@ export const en = {
         provider: 'Provider',
         more: 'more',
         service: 'Service',
+    },
+    jobDetails: {
+        title: 'Job Details',
+        description: 'Description',
+        noDescription: 'No description provided.',
+        workType: 'Work Type',
+        location: 'Location',
+        budget: 'Budget',
+        created: 'Created',
+        applicants: 'Applicants',
+        applicant: 'applicant',
+        addedBy: 'Added by',
+        applyNow: 'Apply Now',
+        alreadyApplied: 'Already Applied',
+        jobClosed: 'This job post is closed',
+        edit: 'Edit',
+        delete: 'Delete',
+        deleteTitle: 'Delete Job Post',
+        deleteConfirm: 'Are you sure you want to delete this job post? This action cannot be undone.',
+        cancel: 'Cancel',
+        contactApplicant: 'Contact Applicant',
+        contactApplicants: 'Contact Applicants',
+        noApplicantsYet: 'No applicants yet',
+        viewProfile: 'View Profile',
+        notFound: 'Job Not Found',
+        notFoundDescription: "The job you're looking for doesn't exist or has been removed.",
+        backToJobs: 'Back to Job Posts',
+        loading: 'Loading job details...',
+        experience: 'Experience',
+        age: 'Age',
+        gender: 'Gender',
+        religion: 'Religion',
     }
 };

@@ -2,7 +2,9 @@ import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { mapDarkStyle } from '@/constants/MapStyle';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
@@ -41,12 +43,13 @@ const GENDER_OPTIONS = ['male', 'female'];
 export default function EditProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { user, updateUser, uploadProfilePhoto, refreshProfile } = useAuth();
+  const { user, updateUser, uploadProfilePhoto, refreshProfile, logout } = useAuth();
+  const { colorScheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
 
-  const insets = useSafeAreaInsets();
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
@@ -101,9 +104,9 @@ export default function EditProfileScreen() {
       : []
   );
 
-  // City Field (for Regular Users and Business)
+  // City Field (for all user types)
   const [cityId, setCityId] = useState<number | null>(
-    (user?.userType === 'user' || user?.userType === 'business') ? (user as any)?.city_id || null : null
+    (user as any)?.city_id || null
   );
   const [cities, setCities] = useState<any[]>([]);
   const [isLoadingCities, setIsLoadingCities] = useState(false);
@@ -169,7 +172,6 @@ export default function EditProfileScreen() {
       });
       setPinLocation({ latitude, longitude });
     } catch (error) {
-      console.log('Error getting location:', error);
     }
   };
 
@@ -211,7 +213,6 @@ export default function EditProfileScreen() {
         setAddress(formattedAddress);
       }
     } catch (error) {
-      console.log('Error reverse geocoding:', error);
     } finally {
       setIsGeocoding(false);
     }
@@ -224,13 +225,14 @@ export default function EditProfileScreen() {
         animationType="slide"
         onRequestClose={() => setIsMapVisible(false)}
       >
-        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+        <View style={{ flex: 1, backgroundColor: backgroundColor }}>
           <View style={{ height: insets.top, backgroundColor: backgroundColor }} />
           <View style={styles.mapContainer}>
             <MapView
               provider={PROVIDER_GOOGLE}
               style={styles.map}
               region={mapRegion}
+              customMapStyle={colorScheme === 'dark' ? mapDarkStyle : []}
               onRegionChangeComplete={(region) => {
                 setMapRegion(region);
                 setPinLocation({
@@ -249,7 +251,7 @@ export default function EditProfileScreen() {
 
             <View style={styles.mapOverlay}>
               <Text style={styles.mapInstruction}>
-                Drag map to pin exact location
+                {t('jobPosts.map.dragMarker')}
               </Text>
             </View>
 
@@ -258,14 +260,14 @@ export default function EditProfileScreen() {
                 style={[styles.mapButton, styles.cancelButton]}
                 onPress={() => setIsMapVisible(false)}
               >
-                <Text style={[styles.mapButtonText, { color: '#FF3B30' }]}>Cancel</Text>
+                <Text style={[styles.mapButtonText, { color: '#FF3B30' }]}>{t('jobPosts.map.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
                 onPress={handleMapConfirm}
               >
-                <Text style={[styles.mapButtonText, { color: '#fff' }]}>Confirm Location</Text>
+                <Text style={[styles.mapButtonText, { color: '#fff' }]}>{t('jobPosts.map.confirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -273,72 +275,6 @@ export default function EditProfileScreen() {
       </Modal>
     );
   };
-
-  React.useEffect(() => {
-    if (user?.userType === 'helper') {
-      fetchLanguages();
-    }
-
-    // Fetch cities for regular users and business
-    if (user?.userType === 'user' || user?.userType === 'business') {
-      fetchCities().then(() => refreshProfile());
-    } else {
-      refreshProfile();
-    }
-  }, []);
-
-  // Sync internal state when user object changes (e.g., after refreshProfile)
-  React.useEffect(() => {
-    if (user) {
-      if (user.userType === 'helper') {
-        const pd = user.profileData as any;
-        setName(pd?.name || user.name || '');
-        setBio(pd?.bio || (user as any).bio || '');
-
-        setAge(pd?.age?.toString() || (user as any).age?.toString() || '');
-
-        const rawGender = pd?.gender || (user as any).gender;
-        if (rawGender && typeof rawGender === 'object') {
-          setGender(rawGender.id || rawGender.value || rawGender.name || '');
-        } else {
-          setGender(rawGender || '');
-        }
-
-        const rawReligion = pd?.religion || (user as any).religion;
-        if (rawReligion && typeof rawReligion === 'object') {
-          setReligion(rawReligion.id || rawReligion.value || rawReligion.key || '');
-        } else {
-          setReligion(rawReligion || '');
-        }
-
-        const rawLangs = pd?.languages || (user as any).languages;
-        if (Array.isArray(rawLangs)) {
-          const parsedLangs = rawLangs.map((l: any) => {
-            if (l && typeof l === 'object') {
-              return l.id || l.value;
-            }
-            const id = typeof l === 'string' ? parseInt(l) : l;
-            return typeof id === 'number' && !isNaN(id) ? id : null;
-          }).filter((l: any) => l !== null);
-          setLanguages(parsedLangs);
-        }
-      } else if (user.userType === 'business') {
-        setName(user.name || '');
-        const cId = (user as any)?.city_id;
-        setCityId(cId ? (typeof cId === 'string' ? parseInt(cId, 10) : cId) : null);
-        if (cities.length === 0) {
-          fetchCities();
-        }
-      } else {
-        setName(user.name || '');
-        const cId = (user as any)?.city_id;
-        setCityId(cId ? (typeof cId === 'string' ? parseInt(cId, 10) : cId) : null);
-        if (cities.length === 0) {
-          fetchCities();
-        }
-      }
-    }
-  }, [user]);
 
   const fetchLanguages = async () => {
     try {
@@ -364,7 +300,6 @@ export default function EditProfileScreen() {
         setAvailableLanguages(formattedLangs);
       }
     } catch (error) {
-      console.error('Failed to fetch languages:', error);
     } finally {
       setIsLoadingLanguages(false);
     }
@@ -392,7 +327,6 @@ export default function EditProfileScreen() {
         setCities(formattedCities);
       }
     } catch (error) {
-      console.error('Failed to fetch cities:', error);
     } finally {
       setIsLoadingCities(false);
     }
@@ -424,10 +358,11 @@ export default function EditProfileScreen() {
         const uri = result.assets[0].uri;
         setSelectedImageUri(uri);
 
-        // Immediate upload
+        // Immediately upload the photo
         setIsUploadingPhoto(true);
         try {
           await uploadProfilePhoto(uri);
+          await refreshProfile();
           toast.success(t('profileEdit.toasts.photoUpdated'));
         } catch (error: any) {
           toast.error(error.message || t('profileEdit.toasts.photoFailed'));
@@ -437,7 +372,6 @@ export default function EditProfileScreen() {
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       toast.error(t('profileEdit.toasts.pickFailed'));
     }
   };
@@ -455,33 +389,58 @@ export default function EditProfileScreen() {
 
     setIsLoading(true);
     try {
-      // Sending flat payload as per requirement
+      // Upload photo first if a new one was selected (uses /profile/photo API)
+      if (selectedImageUri) {
+        try {
+          await uploadProfilePhoto(selectedImageUri);
+        } catch (photoError: any) {
+          toast.error(photoError.message || t('profileEdit.toasts.photoFailed'));
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Update profile data (uses /profile API)
       const profileUpdateData: any = {
         name: name.trim(),
       };
 
-      if (user?.userType === 'user' || user?.userType === 'business') {
+      // Add city_id for non-business users
+      if (user?.userType !== 'business') {
         profileUpdateData.city_id = cityId;
       }
 
       if (user?.userType === 'helper') {
         profileUpdateData.bio = bio.trim() || undefined;
-
         profileUpdateData.age = age.trim() ? parseInt(age) : undefined;
         profileUpdateData.gender = gender ? gender.toLowerCase() : undefined;
         profileUpdateData.religion = religion || undefined;
         profileUpdateData.languages = languages;
       }
 
-      // Add location data for all users
-      if (address) profileUpdateData.address = address;
-      if (pinLocation) {
-        profileUpdateData.latitude = pinLocation.latitude;
-        profileUpdateData.longitude = pinLocation.longitude;
+      // Add location data for non-business users
+      if (user?.userType !== 'business') {
+        if (address) {
+          profileUpdateData.pin_address = address;
+          profileUpdateData.address = address;
+          profileUpdateData.area = address;
+          profileUpdateData.location = address;
+        }
+        if (pinLocation) {
+          profileUpdateData.pin_latitude = pinLocation.latitude;
+          profileUpdateData.pin_longitude = pinLocation.longitude;
+          profileUpdateData.latitude = pinLocation.latitude;
+          profileUpdateData.longitude = pinLocation.longitude;
+        }
       }
 
       await updateUser(profileUpdateData);
+
+      // Refresh profile to sync local state with API
+      await refreshProfile();
+
       toast.success(t('profileEdit.toasts.updateSuccess'));
+      setSelectedImageUri(null); // Clear preview after successful save
       // router.back(); // Keep user on the same screen as requested
     } catch (error: any) {
       toast.error(error.message || t('profileEdit.toasts.updateFailed'));
@@ -489,6 +448,74 @@ export default function EditProfileScreen() {
       setIsLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    if (user?.userType === 'helper') {
+      fetchLanguages();
+    }
+
+    // Fetch cities for all user types
+    fetchCities().then(() => refreshProfile());
+  }, []);
+
+  // Sync internal state when user object changes (e.g., after refreshProfile)
+  React.useEffect(() => {
+    if (user) {
+      if (user.userType === 'helper') {
+        const pd = user.profileData as any;
+        // Prioritize user-level fields (from API refresh) over profileData
+        setName((user as any).name || pd?.name || '');
+        setBio((user as any).bio || pd?.bio || '');
+
+        const ageVal = (user as any).age ?? pd?.age;
+        setAge(ageVal != null ? ageVal.toString() : '');
+
+        const rawGender = (user as any).gender || pd?.gender;
+        if (rawGender && typeof rawGender === 'object') {
+          setGender(rawGender.id || rawGender.value || rawGender.name || '');
+        } else {
+          setGender(rawGender || '');
+        }
+
+        const rawReligion = (user as any).religion || pd?.religion;
+        if (rawReligion && typeof rawReligion === 'object') {
+          setReligion(rawReligion.id || rawReligion.value || rawReligion.key || '');
+        } else {
+          setReligion(rawReligion || '');
+        }
+
+        // Sync city for helpers
+        const cId = (user as any)?.city_id;
+        setCityId(cId ? (typeof cId === 'string' ? parseInt(cId, 10) : cId) : null);
+
+        const rawLangs = (user as any).languages || pd?.languages;
+        if (Array.isArray(rawLangs)) {
+          const parsedLangs = rawLangs.map((l: any) => {
+            if (l && typeof l === 'object') {
+              return l.id || l.value;
+            }
+            const id = typeof l === 'string' ? parseInt(l) : l;
+            return typeof id === 'number' && !isNaN(id) ? id : null;
+          }).filter((l: any) => l !== null);
+          setLanguages(parsedLangs);
+        }
+      } else if (user.userType === 'business') {
+        setName(user.name || '');
+        const cId = (user as any)?.city_id;
+        setCityId(cId ? (typeof cId === 'string' ? parseInt(cId, 10) : cId) : null);
+        if (cities.length === 0) {
+          fetchCities();
+        }
+      } else {
+        setName(user.name || '');
+        const cId = (user as any)?.city_id;
+        setCityId(cId ? (typeof cId === 'string' ? parseInt(cId, 10) : cId) : null);
+        if (cities.length === 0) {
+          fetchCities();
+        }
+      }
+    }
+  }, [user]);
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -623,8 +650,8 @@ export default function EditProfileScreen() {
                 </Text>
               </View>
 
-              {/* City Selection for Regular Users and Business */}
-              {(user?.userType === 'user' || user?.userType === 'business') && (
+              {/* City Selection for all user types EXCEPT business */}
+              {(user?.userType === 'user' || user?.userType === 'helper') && (
                 <View style={[styles.inputGroup, { zIndex: 100 }]}>
                   <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.city')}</Text>
                   <TouchableOpacity
@@ -664,34 +691,44 @@ export default function EditProfileScreen() {
                 </View>
               )}
 
-              {/* Address with Map Pin */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.address') || 'Address / Location'}</Text>
-                <View style={{ gap: 10 }}>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: cardBg, borderColor, color: textMuted }]}
-                    placeholder={t('profileEdit.placeholders.pinLocation') || "Select location on map"}
-                    placeholderTextColor={textMuted}
-                    value={address}
-                    editable={false}
-                  />
-                  <TouchableOpacity
-                    style={[styles.pinButton, { backgroundColor: cardBg, borderColor: primaryColor }]}
-                    onPress={openMap}
-                  >
-                    <IconSymbol name="location.fill" size={20} color={primaryColor} />
-                    <Text style={[styles.pinButtonText, { color: primaryColor }]}>
-                      {address ? (t('profileEdit.actions.changeLocation') || 'Change Location') : (t('profileEdit.actions.pinLocation') || 'Pin Location on Map')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {isGeocoding && (
-                  <View style={styles.helperTextContainer}>
-                    <ActivityIndicator size="small" color={primaryColor} />
-                    <Text style={[styles.helperText, { color: textMuted }]}>Getting address...</Text>
+              {/* Address with Map Pin Redesign - Hidden for business */}
+              {user?.userType !== 'business' && (
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.address')}</Text>
+
+                  <View style={[styles.addressCard, { backgroundColor: cardBg, borderColor }]}>
+                    <View style={styles.addressInfo}>
+                      <View style={[styles.locationIconWrapper, { backgroundColor: primaryLight + '20' }]}>
+                        <IconSymbol name="location.fill" size={20} color={primaryColor} />
+                      </View>
+                      <View style={styles.addressTextContainer}>
+                        <Text
+                          style={[styles.addressValue, { color: address ? textColor : textMuted }]}
+                          numberOfLines={2}
+                        >
+                          {address || t('profileEdit.placeholders.pinLocation')}
+                        </Text>
+                        {isGeocoding && (
+                          <View style={styles.geocodingStatus}>
+                            <ActivityIndicator size="small" color={primaryColor} />
+                            <Text style={[styles.geocodingText, { color: primaryColor }]}>{t('common.loading')}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.addressActionButton, { backgroundColor: primaryColor }]}
+                      onPress={openMap}
+                    >
+                      <Text style={styles.addressActionText}>
+                        {address ? t('profileEdit.actions.changeLocation') : t('profileEdit.actions.pinLocation')}
+                      </Text>
+                      <IconSymbol name="chevron.right" size={14} color="#FFF" />
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
+                </View>
+              )}
 
               {/* Profile Details for Helpers ONLY */}
               {user?.userType === 'helper' && (
@@ -742,7 +779,7 @@ export default function EditProfileScreen() {
                                   setShowGenderDropdown(false);
                                 }}
                               >
-                                <Text style={[styles.dropdownText, { color: textColor }]}>{g}</Text>
+                                <Text style={[styles.dropdownText, { color: textColor }]}>{t(`profileEdit.options.${g.toLowerCase()}`)}</Text>
                                 {gender === g && <IconSymbol name="checkmark" size={16} color={primaryColor} />}
                               </TouchableOpacity>
                             ))}
@@ -1012,6 +1049,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  addressCard: {
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  addressInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  locationIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 40,
+  },
+  addressValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  addressActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  addressActionText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  geocodingStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  geocodingText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   helperTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1061,7 +1155,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cancelButton: {
-    backgroundColor: '#fff',
+    borderWidth: 1,
   },
   confirmButton: {
 

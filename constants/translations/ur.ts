@@ -214,6 +214,7 @@ export const ur = {
         delete: 'حذف کریں',
         deletedSuccess: 'گفتگو حذف کر دی گئی',
         deleteError: 'گفتگو حذف کرنے میں ناکامی',
+        you: 'آپ',
         conversationType: 'conversation',
     },
     profileEdit: {
@@ -251,6 +252,7 @@ export const ur = {
             enterName: 'اپنا پورا نام درج کریں',
             enterBusinessName: 'کاروبار کا نام درج کریں',
             enterAge: 'اپنی عمر درج کریں',
+            pinLocation: 'نقشے پر مقام منتخب کریں',
             bio: 'اپنے بارے میں بتائیں...',
         },
         helpers: {
@@ -611,6 +613,12 @@ export const ur = {
         chat: 'بات چیت',
         profile: 'پروفائل',
     },
+    onboarding: {
+        start: {
+            title: 'آئیے شروع کریں',
+            subtitle: 'اپنے تجربے کو ذاتی بنانے کے لیے ہمیں اپنے بارے میں تھوڑا بتائیں',
+        }
+    },
     helperProfile: {
         title: 'پروفائل',
         about: 'کے بارے میں',
@@ -667,5 +675,37 @@ export const ur = {
         provider: 'فراہم کنندہ',
         more: 'مزید',
         service: 'سروس',
+    },
+    jobDetails: {
+        title: 'نوکری کی تفصیلات',
+        description: 'تفصیل',
+        noDescription: 'کوئی تفصیل فراہم نہیں کی گئی۔',
+        workType: 'کام کی قسم',
+        location: 'مقام',
+        budget: 'بجٹ',
+        created: 'بنایا گیا',
+        applicants: 'درخواست دہندگان',
+        applicant: 'درخواست دہندہ',
+        addedBy: 'شامل کیا گیا',
+        applyNow: 'ابھی اپلائی کریں',
+        alreadyApplied: 'پہلے سے اپلائی کر دیا',
+        jobClosed: 'یہ نوکری بند ہے',
+        edit: 'ترمیم',
+        delete: 'حذف کریں',
+        deleteTitle: 'نوکری کی پوسٹ حذف کریں',
+        deleteConfirm: 'کیا آپ واقعی اس نوکری کو حذف کرنا چاہتے ہیں؟ یہ عمل واپس نہیں لیا جا سکتا۔',
+        cancel: 'منسوخ کریں',
+        contactApplicant: 'درخواست دہندہ سے رابطہ کریں',
+        contactApplicants: 'درخواست دہندگان سے رابطہ کریں',
+        noApplicantsYet: 'ابھی تک کوئی درخواست دہندہ نہیں',
+        viewProfile: 'پروفائل دیکھیں',
+        notFound: 'نوکری نہیں ملی',
+        notFoundDescription: 'جس نوکری کی آپ تلاش کر رہے ہیں وہ موجود نہیں ہے یا ہٹا دی گئی ہے۔',
+        backToJobs: 'نوکریوں پر واپس جائیں',
+        loading: 'نوکری کی تفصیلات لوڈ ہو رہی ہیں...',
+        experience: 'تجربہ',
+        age: 'عمر',
+        gender: 'صنف',
+        religion: 'مذہب',
     }
 };

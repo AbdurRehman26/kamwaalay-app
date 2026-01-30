@@ -199,7 +199,6 @@ export default function ExploreScreen() {
         setCities(response.data);
       }
     } catch (error) {
-      console.error('Error fetching cities:', error);
     } finally {
       setIsLoadingCities(false);
     }
@@ -263,7 +262,6 @@ export default function ExploreScreen() {
         setHelpersFromAPI([]);
       }
     } catch (error) {
-      console.error('Error fetching helpers:', error);
       setHelpersFromAPI([]);
     } finally {
       setIsLoadingHelpers(false);
@@ -443,7 +441,6 @@ export default function ExploreScreen() {
         setServiceListingsFromAPI([]);
       }
     } catch (error) {
-      console.error('Error fetching service listings:', error);
       setServiceListingsFromAPI([]);
     } finally {
       setIsLoadingServiceListings(false);

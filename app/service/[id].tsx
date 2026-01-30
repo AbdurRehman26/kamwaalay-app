@@ -89,7 +89,6 @@ export default function ServiceDetailScreen() {
                 router.back();
             }
         } catch (error) {
-            console.error('❌ Error fetching service details:', error);
             Alert.alert(t('common.error'), t('serviceDetail.loadErrorMessage'));
             router.back();
         } finally {
@@ -124,7 +123,6 @@ export default function ServiceDetailScreen() {
                 setOtherServices(others);
             }
         } catch (error) {
-            console.log('Error fetching other services:', error);
         }
     };
 

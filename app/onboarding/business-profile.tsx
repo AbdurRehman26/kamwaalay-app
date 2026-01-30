@@ -1,10 +1,14 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
 import { BusinessProfile, useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Dimensions,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,7 +16,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,10 +27,11 @@ const { width } = Dimensions.get('window');
 export default function BusinessProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, completeOnboarding } = useAuth();
+  const { user, completeOnboarding, refreshProfile } = useAuth();
   const [businessName, setBusinessName] = useState('');
-  const [businessAddress, setBusinessAddress] = useState('');
-  const [businessDescription, setBusinessDescription] = useState('');
+  const [nicNumber, setNicNumber] = useState('');
+  const [nicImage, setNicImage] = useState<string | null>(null);
+  const [nicImageName, setNicImageName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
@@ -36,8 +41,25 @@ export default function BusinessProfileScreen() {
   const primaryLight = useThemeColor({}, 'primaryLight');
   const cardBg = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
-  const errorColor = useThemeColor({}, 'error');
-  const iconColor = useThemeColor({}, 'icon');
+  const inputBg = cardBg;
+
+  const pickNicImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setNicImage(result.assets[0].uri);
+        const uriParts = result.assets[0].uri.split('/');
+        setNicImageName(uriParts[uriParts.length - 1]);
+      }
+    } catch (error) {
+      toast.error('Failed to select image');
+    }
+  };
 
   const handleContinue = async () => {
     if (!businessName.trim()) {
@@ -45,27 +67,69 @@ export default function BusinessProfileScreen() {
       return;
     }
 
-    if (!user?.name) {
-      toast.error('Owner name is required');
+    if (!nicImage) {
+      toast.error('Please upload your NIC image');
+      return;
+    }
+
+    if (!nicNumber.trim() || nicNumber.length < 13) {
+      toast.error('Please enter a valid 13-digit NIC number');
       return;
     }
 
     setIsLoading(true);
     try {
+      // 1. Submit basic profile info
       const profileData: BusinessProfile = {
         businessName,
-        ownerName: user.name,
-        bio: businessDescription,
-        businessAddress,
+        ownerName: user?.name || '',
         serviceOfferings: [],
         locations: [],
       };
 
       await completeOnboarding(profileData);
-      // Navigate to add workers step
-      router.push('/onboarding/business');
+
+      // 2. Submit verification data
+      const formData = new FormData();
+      formData.append('nic_number', nicNumber.trim());
+
+      if (Platform.OS === 'web') {
+        const response = await fetch(nicImage);
+        const blob = await response.blob();
+        const fileName = nicImageName || 'nic.jpg';
+        const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+        formData.append('nic', file);
+      } else {
+        const uriParts = nicImage.split('.');
+        const fileExt = uriParts[uriParts.length - 1].toLowerCase();
+        const mimeType = fileExt === 'pdf' ? 'application/pdf' :
+          fileExt === 'png' ? 'image/png' :
+            fileExt === 'gif' ? 'image/gif' :
+              'image/jpeg';
+
+        formData.append('nic', {
+          uri: nicImage,
+          name: nicImageName || `nic.${fileExt}`,
+          type: mimeType,
+        } as any);
+      }
+
+      const response = await apiService.post(
+        API_ENDPOINTS.ONBOARDING.BUSINESS,
+        formData,
+        undefined,
+        true
+      );
+
+      if (response.success) {
+        toast.success('Onboarding completed successfully!');
+        await refreshProfile();
+        router.replace('/(tabs)');
+      } else {
+        toast.error(response.message || 'Failed to submit verification');
+      }
     } catch (error) {
-      toast.error('Failed to save business profile');
+      toast.error('Failed to complete onboarding');
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +137,6 @@ export default function BusinessProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Decorative Background Elements */}
       <View style={[styles.topCircle, { backgroundColor: primaryLight, opacity: 0.3 }]} />
       <View style={[styles.bottomCircle, { backgroundColor: primaryLight, opacity: 0.2 }]} />
 
@@ -84,15 +147,17 @@ export default function BusinessProfileScreen() {
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
             <Text style={[styles.title, { color: textColor }]}>Business Profile</Text>
             <Text style={[styles.subtitle, { color: textSecondary }]}>
-              Tell us about your business to get started
+              Enter your business details to get started
             </Text>
           </View>
 
           <View style={styles.form}>
+            {/* Business Name */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: textColor }]}>Business Name</Text>
               <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
@@ -108,33 +173,47 @@ export default function BusinessProfileScreen() {
               </View>
             </View>
 
+            {/* NIC Image Upload */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Business Address (Optional)</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-                <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: textColor }]}
-                  placeholder="Enter your business address"
-                  placeholderTextColor={textSecondary}
-                  value={businessAddress}
-                  onChangeText={setBusinessAddress}
-                  autoComplete="street-address"
-                />
-              </View>
+              <Text style={[styles.label, { color: textColor }]}>NIC Image</Text>
+              <TouchableOpacity
+                style={[styles.uploadArea, { borderColor: primaryColor, backgroundColor: inputBg }]}
+                onPress={pickNicImage}
+              >
+                {nicImage ? (
+                  <View style={styles.uploadedContent}>
+                    <Image source={{ uri: nicImage }} style={styles.previewImage} />
+                    <Text style={[styles.fileName, { color: textSecondary }]} numberOfLines={1}>
+                      {nicImageName}
+                    </Text>
+                    <Text style={[styles.changeText, { color: primaryColor }]}>
+                      Tap to change
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.uploadPlaceholder}>
+                    <IconSymbol name="plus.circle.fill" size={32} color={primaryColor} />
+                    <Text style={[styles.uploadText, { color: textSecondary }]}>
+                      Upload NIC Image
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
 
+            {/* NIC Number */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Description (Optional)</Text>
-              <View style={[styles.inputWrapper, styles.textAreaWrapper, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.label, { color: textColor }]}>NIC Number</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                <IconSymbol name="number" size={20} color={textSecondary} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, styles.textArea, { color: textColor }]}
-                  placeholder="Describe your business and services..."
+                  style={[styles.input, { color: textColor }]}
+                  placeholder="e.g. 4210112345678"
                   placeholderTextColor={textSecondary}
-                  multiline
-                  numberOfLines={4}
-                  value={businessDescription}
-                  onChangeText={setBusinessDescription}
-                  textAlignVertical="top"
+                  value={nicNumber}
+                  onChangeText={(text) => setNicNumber(text.replace(/[^0-9]/g, ''))}
+                  maxLength={13}
+                  keyboardType="number-pad"
                 />
               </View>
             </View>
@@ -144,31 +223,13 @@ export default function BusinessProfileScreen() {
             style={[
               styles.button,
               { backgroundColor: primaryColor, shadowColor: primaryColor },
-              (!businessName.trim() || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
+              (!businessName.trim() || !nicImage || nicNumber.length < 13 || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
             ]}
             onPress={handleContinue}
-            disabled={!businessName.trim() || isLoading}
+            disabled={!businessName.trim() || !nicImage || nicNumber.length < 13 || isLoading}
           >
-            <Text style={styles.buttonText}>{isLoading ? 'Saving...' : 'Continue'}</Text>
+            <Text style={styles.buttonText}>{isLoading ? 'Saving...' : 'Complete Onboarding'}</Text>
             {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={async () => {
-              const profileData: BusinessProfile = {
-                businessName: businessName.trim() || 'My Business',
-                ownerName: user?.name || '',
-                businessAddress,
-                bio: businessDescription,
-                serviceOfferings: [],
-                locations: [],
-              };
-              await completeOnboarding(profileData);
-              router.replace('/(tabs)');
-            }}
-          >
-            <Text style={[styles.skipButtonText, { color: textSecondary }]}>Skip for now</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -255,6 +316,41 @@ const styles = StyleSheet.create({
   inputIcon: {
     marginLeft: 16,
     marginRight: 12,
+  },
+  uploadArea: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 160,
+  },
+  uploadPlaceholder: {
+    alignItems: 'center',
+  },
+  uploadText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  uploadedContent: {
+    alignItems: 'center',
+  },
+  previewImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+  },
+  fileName: {
+    marginTop: 12,
+    fontSize: 14,
+    maxWidth: 200,
+  },
+  changeText: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '600',
   },
   input: {
     flex: 1,

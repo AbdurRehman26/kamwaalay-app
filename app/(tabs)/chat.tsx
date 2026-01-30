@@ -9,8 +9,8 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -54,9 +54,11 @@ export default function ChatScreen() {
 
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    fetchConversations();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchConversations();
+    }, [])
+  );
 
   const fetchConversations = async () => {
     try {
@@ -65,21 +67,31 @@ export default function ChatScreen() {
 
       if (response.success && response.data) {
         const apiConversations = response.data.conversations || [];
-        const mappedConversations: ChatItem[] = apiConversations.map((conv: any) => ({
-          id: conv.id.toString(),
-          name: conv.other_user?.name || t('chat.unknownUser'),
-          lastMessage: conv.last_message?.message || t('chat.noMessages'),
-          time: conv.last_message?.created_at
-            ? new Date(conv.last_message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : '',
-          unread: conv.unread_count || 0,
-          avatar: (conv.other_user?.name || 'U').charAt(0).toUpperCase(),
-          otherUserId: conv.other_user?.id?.toString(),
-        }));
+        const mappedConversations: ChatItem[] = apiConversations.map((conv: any) => {
+          const lastMsg = conv.last_message;
+          let lastMessageText = t('chat.noMessages');
+
+          if (lastMsg) {
+            const isMe = lastMsg.sender_id?.toString() === user?.id?.toString();
+            const messageContent = typeof lastMsg === 'string' ? lastMsg : (lastMsg.message || '');
+            lastMessageText = isMe ? `${t('chat.you')}: ${messageContent}` : messageContent;
+          }
+
+          return {
+            id: conv.id.toString(),
+            name: conv.other_user?.name || t('chat.unknownUser'),
+            lastMessage: lastMessageText,
+            time: conv.last_message?.created_at
+              ? new Date(conv.last_message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+              : '',
+            unread: conv.unread_count || 0,
+            avatar: (conv.other_user?.name || 'U').charAt(0).toUpperCase(),
+            otherUserId: conv.other_user?.id?.toString(),
+          };
+        });
         setConversations(mappedConversations);
       }
     } catch (error) {
-      console.error('Error fetching conversations:', error);
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +123,6 @@ export default function ChatScreen() {
       );
       toast.success(t('chat.deletedSuccess'));
     } catch (error) {
-      console.error("Error deleting conversation:", error);
       toast.error(t('chat.deleteError'));
       // Revert state on error
       fetchConversations();

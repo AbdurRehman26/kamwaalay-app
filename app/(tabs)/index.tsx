@@ -83,7 +83,6 @@ export default function HomeScreen() {
         setUnreadCount(response.data.count || 0);
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
     }
   };
 
@@ -140,7 +139,6 @@ export default function HomeScreen() {
         setOpportunities(jobs.filter((r) => r.status === 'open'));
       }
     } catch (error) {
-      console.error('Error loading opportunities:', error);
       // Fallback to jobs from context
       setOpportunities(jobs.filter((r) => r.status === 'open'));
     } finally {
@@ -166,7 +164,6 @@ export default function HomeScreen() {
         setServiceTypes(types);
       }
     } catch (error) {
-      console.error('Error loading service types:', error);
     } finally {
       setIsLoadingServiceTypes(false);
     }
@@ -187,7 +184,6 @@ export default function HomeScreen() {
         setFeaturedHelpers(response.data.featured_helpers);
       }
     } catch (error) {
-      console.error('Error loading featured helpers:', error);
     } finally {
       setIsLoadingFeaturedHelpers(false);
     }

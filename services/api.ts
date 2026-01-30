@@ -204,14 +204,6 @@ class ApiService {
       const isFormData = body instanceof FormData;
       const headers = await this.buildHeaders(includeAuth, isFormData);
 
-      console.log('[API] POST request', {
-        url,
-        endpoint,
-        isFormData,
-        hasBody: !!body,
-        bodyKeys: body && !isFormData ? Object.keys(body) : (isFormData ? 'FormData' : []),
-        includeAuth,
-      });
 
       const response = await fetch(url, {
         method: 'POST',
@@ -219,21 +211,8 @@ class ApiService {
         body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
       });
 
-      console.log('[API] POST response received', {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-      });
 
       const result = await this.handleResponse<T>(response);
-      console.log('[API] POST response processed', {
-        url,
-        success: result.success,
-        hasData: !!result.data,
-        hasError: !!result.error,
-        message: result.message,
-      });
 
       return result;
     } catch (error: any) {
@@ -248,12 +227,6 @@ class ApiService {
           errorMessage = error.message;
         }
       }
-      console.error('[API] POST request error', {
-        endpoint,
-        url: buildApiUrl(endpoint, params),
-        error: errorMessage,
-        originalError: error,
-      });
       return {
         success: false,
         error: errorMessage,

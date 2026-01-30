@@ -38,6 +38,7 @@ export default function JobApplyScreen() {
     const [job, setJob] = useState<JobSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [hasAlreadyApplied, setHasAlreadyApplied] = useState(false);
 
     const [message, setMessage] = useState('');
     const [proposedRate, setProposedRate] = useState('');
@@ -79,9 +80,17 @@ export default function JobApplyScreen() {
                         specialRequirements: jobData.special_requirements,
                         workType: jobData.work_type ? jobData.work_type.split(/[_\s]/).map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : 'Part Time',
                     });
+
+                    // Check if user already applied
+                    const applicants = jobData.job_applications?.map((app: any) =>
+                        app.user_id?.toString() || app.applicant_id?.toString()
+                    ) || jobData.applicants || [];
+
+                    if (user?.id && applicants.includes(user.id.toString())) {
+                        setHasAlreadyApplied(true);
+                    }
                 }
             } catch (error) {
-                console.error('Error fetching job details:', error);
                 toast.error('Failed to load job details'); // Using toast here too for consistency
                 router.back();
             } finally {
@@ -125,7 +134,6 @@ export default function JobApplyScreen() {
                 throw new Error(response.message || 'Failed to submit application');
             }
         } catch (error: any) {
-            console.error('Application error:', error);
             toast.error(error.message || 'Failed to submit application. Please try again.');
         } finally {
             setIsSubmitting(false);
@@ -145,7 +153,8 @@ export default function JobApplyScreen() {
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior="padding"
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
         >
             <Stack.Screen options={{ headerShown: false }} />
             <View style={[styles.container, { backgroundColor }]}>
@@ -228,37 +237,42 @@ export default function JobApplyScreen() {
                         </View>
                     </View>
 
+                    {/* Action Buttons */}
+                    {hasAlreadyApplied ? (
+                        <View style={[styles.appliedBadge, { backgroundColor: '#F0FDF4', borderColor: '#22C55E' }]}>
+                            <IconSymbol name="checkmark.circle.fill" size={24} color="#22C55E" />
+                            <Text style={[styles.appliedText, { color: '#22C55E' }]}>Application Sent</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.actionButtons}>
+                            <TouchableOpacity
+                                style={[styles.cancelButton, { backgroundColor: '#F3F4F6' }]}
+                                onPress={() => router.back()}
+                                disabled={isSubmitting}
+                            >
+                                <Text style={[styles.cancelButtonText, { color: textSecondary }]}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.submitButton,
+                                    { backgroundColor: primaryColor, opacity: isSubmitting ? 0.7 : 1 }
+                                ]}
+                                onPress={handleSubmit}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <Text style={styles.submitButtonText}>Submit Application</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
                 </ScrollView>
-
-                {/* Footer Actions */}
-                <View style={[styles.footer, { backgroundColor: cardBg, borderTopColor: borderColor, paddingBottom: insets.bottom + 20 }]}>
-                    <View style={styles.footerButtons}>
-                        <TouchableOpacity
-                            style={[styles.cancelButton, { backgroundColor: '#F3F4F6' }]}
-                            onPress={() => router.back()}
-                            disabled={isSubmitting}
-                        >
-                            <Text style={[styles.cancelButtonText, { color: textSecondary }]}>Cancel</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.submitButton,
-                                { backgroundColor: primaryColor, opacity: isSubmitting ? 0.7 : 1 }
-                            ]}
-                            onPress={handleSubmit}
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <Text style={styles.submitButtonText}>Submit Application</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View >
-        </KeyboardAvoidingView >
+            </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -286,7 +300,7 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 20,
-        paddingBottom: 100,
+        paddingBottom: 40,
     },
     card: {
         borderRadius: 16,
@@ -358,9 +372,10 @@ const styles = StyleSheet.create({
         padding: 20,
         borderTopWidth: 1,
     },
-    footerButtons: {
+    actionButtons: {
         flexDirection: 'row',
         gap: 16,
+        marginTop: 24,
     },
     cancelButton: {
         flex: 1,
@@ -384,5 +399,19 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '700',
+    },
+    appliedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 8,
+        marginTop: 24,
+    },
+    appliedText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

@@ -7,7 +7,9 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -185,7 +187,6 @@ export default function HelperProfileScreen() {
       // Navigate to tabs
       router.replace('/(tabs)');
     } catch (error: any) {
-      console.error('Onboarding error:', error);
       // Stay on the same screen so user can retry
       // Stay on the same screen so user can retry
       let msg = error.message || 'Failed to complete onboarding. Please try again.';
@@ -265,15 +266,21 @@ export default function HelperProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
 
-      <View style={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <View style={[styles.content, { paddingTop: insets.top }]}>
         <Stepper
           currentStep={currentStep}
           totalSteps={3}
           stepLabels={STEP_LABELS}
         />
-        <View style={styles.stepContainer}>
-          {renderStep()}
-        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
+        >
+          <View style={[styles.stepContainer, { paddingBottom: 0 }]}>
+            {renderStep()}
+          </View>
+        </KeyboardAvoidingView>
       </View>
 
       <Modal
@@ -307,6 +314,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
     flex: 1,
   },
   stepContainer: {

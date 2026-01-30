@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -61,6 +62,7 @@ export default function JobViewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { getJobs, applyToJob, serviceTypes } = useApp();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const jobs = getJobs();
 
@@ -117,15 +119,7 @@ export default function JobViewScreen() {
 
   useEffect(() => {
     const loadJob = async () => {
-      // First, check local jobs
-      const localJob = jobs.find((r) => r.id === id);
-      if (localJob) {
-        setRequest(localJob);
-        setIsLoading(false);
-        return;
-      }
-
-      // If not found locally, fetch from API
+      // Always fetch from API to get latest applicants data
       try {
         setIsLoading(true);
 
@@ -185,7 +179,6 @@ export default function JobViewScreen() {
           setNotFound(true);
         }
       } catch (error) {
-        console.error('Error fetching job:', error);
         setNotFound(true);
       } finally {
         setIsLoading(false);
@@ -202,7 +195,7 @@ export default function JobViewScreen() {
       <View style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={primaryColor} />
         <Text style={[styles.emptyText, { color: textSecondary, marginTop: 16 }]}>
-          Loading job details...
+          {t('jobDetails.loading')}
         </Text>
       </View>
     );
@@ -214,21 +207,21 @@ export default function JobViewScreen() {
         <View style={[styles.emptyIconContainer, { backgroundColor: cardBg }]}>
           <IconSymbol name="exclamationmark.triangle.fill" size={48} color={textMuted} />
         </View>
-        <Text style={[styles.emptyTitle, { color: textColor }]}>Job Not Found</Text>
+        <Text style={[styles.emptyTitle, { color: textColor }]}>{t('jobDetails.notFound')}</Text>
         <Text style={[styles.emptyText, { color: textSecondary }]}>
-          The job you're looking for doesn't exist or has been removed.
+          {t('jobDetails.notFoundDescription')}
         </Text>
         <TouchableOpacity
           style={[styles.errorBackButton, { backgroundColor: primaryColor, marginTop: 24 }]}
           onPress={() => router.push('/(tabs)/job-posts')}
         >
-          <Text style={styles.backButtonText}>Back to Job Posts</Text>
+          <Text style={styles.backButtonText}>{t('jobDetails.backToJobs')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const hasApplied = request.applicants?.includes(user?.id || '');
+  const hasApplied = request.applicants?.includes(user?.id?.toString() || '');
   const isOpen = request.status === 'open';
   const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
   const isOwner = request.userId === user?.id;
@@ -240,7 +233,7 @@ export default function JobViewScreen() {
     }
 
     if (hasApplied) {
-      Alert.alert('Already Applied', 'You have already applied to this job');
+      Alert.alert(t('jobDetails.alreadyApplied'), 'You have already applied to this job');
       return;
     }
 
@@ -258,21 +251,20 @@ export default function JobViewScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Job Post',
-      'Are you sure you want to delete this job post? This action cannot be undone.',
+      t('jobDetails.deleteTitle'),
+      t('jobDetails.deleteConfirm'),
       [
         {
-          text: 'Cancel',
+          text: t('jobDetails.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Delete',
+          text: t('jobDetails.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               setIsLoading(true);
             } catch (error) {
-              console.error('Delete error:', error);
               Alert.alert('Error', 'Failed to delete job post. Please try again.');
             } finally {
               setIsLoading(false);
@@ -287,7 +279,7 @@ export default function JobViewScreen() {
     if (request.applicants && request.applicants.length > 0) {
       router.push(`/chat/${request.applicants[0]}`);
     } else {
-      Alert.alert('No Applicants', 'There are no applicants to contact yet.');
+      Alert.alert('No Applicants', t('jobDetails.noApplicantsYet'));
     }
   };
 
@@ -337,13 +329,6 @@ export default function JobViewScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         >
           <View style={styles.content}>
-            {/* Status Badge */}
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-              <Text style={[styles.statusText, { color: getStatusTextColor(request.status) }]}>
-                {request.status.toUpperCase()}
-              </Text>
-            </View>
-
             {/* Service Name */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
               {(() => {
@@ -397,23 +382,17 @@ export default function JobViewScreen() {
                   </Text>
                 </View>
                 <View style={styles.userInfoText}>
-                  <Text style={[styles.userLabel, { color: textMuted }]}>Added by</Text>
+                  <Text style={[styles.userLabel, { color: textMuted }]}>{t('jobDetails.addedBy')}</Text>
                   <Text style={[styles.userName, { color: textColor }]}>{request.userName || 'Unknown'}</Text>
                 </View>
-                <TouchableOpacity
-                  style={[styles.messageButton, { backgroundColor: primaryLight }]}
-                  onPress={handleContact}
-                >
-                  <IconSymbol name="bubble.left.fill" size={20} color={primaryColor} />
-                </TouchableOpacity>
               </View>
             )}
 
             {/* Description */}
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Description</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('jobDetails.description')}</Text>
               <Text style={[styles.description, { color: textSecondary }]}>
-                {request.description || 'No description provided.'}
+                {request.description || t('jobDetails.noDescription')}
               </Text>
             </View>
 
@@ -425,7 +404,7 @@ export default function JobViewScreen() {
                     <IconSymbol name="briefcase.fill" size={20} color={primaryColor} />
                   </View>
                   <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: textMuted }]}>Work Type</Text>
+                    <Text style={[styles.detailLabel, { color: textMuted }]}>{t('jobDetails.workType')}</Text>
                     <Text style={[styles.detailValue, { color: textColor }]}>
                       {request.workType
                         .split(/[_\s]/)
@@ -441,7 +420,7 @@ export default function JobViewScreen() {
                   <IconSymbol name="location.fill" size={20} color={primaryColor} />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: textMuted }]}>Location</Text>
+                  <Text style={[styles.detailLabel, { color: textMuted }]}>{t('jobDetails.location')}</Text>
                   <Text style={[styles.detailValue, { color: textColor }]}>
                     {request.city || 'Karachi'}{request.location ? ` (${request.location})` : ''}
                   </Text>
@@ -454,7 +433,7 @@ export default function JobViewScreen() {
                     <IconSymbol name="dollarsign.circle.fill" size={20} color={primaryColor} />
                   </View>
                   <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: textMuted }]}>Budget</Text>
+                    <Text style={[styles.detailLabel, { color: textMuted }]}>{t('jobDetails.budget')}</Text>
                     <Text style={[styles.detailValue, { color: textColor }]}>₨{request.budget.toLocaleString()}</Text>
                   </View>
                 </View>
@@ -465,7 +444,7 @@ export default function JobViewScreen() {
                   <IconSymbol name="calendar" size={20} color={primaryColor} />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: textMuted }]}>Created</Text>
+                  <Text style={[styles.detailLabel, { color: textMuted }]}>{t('jobDetails.created')}</Text>
                   <Text style={[styles.detailValue, { color: textColor }]}>{formatDate(request.createdAt)}</Text>
                 </View>
               </View>
@@ -476,12 +455,12 @@ export default function JobViewScreen() {
                     <IconSymbol name="person.2.fill" size={20} color={primaryColor} />
                   </View>
                   <View style={styles.detailContent}>
-                    <Text style={[styles.detailLabel, { color: textMuted }]}>Applicants</Text>
+                    <Text style={[styles.detailLabel, { color: textMuted }]}>{t('jobDetails.applicants')}</Text>
                     <View style={styles.applicantsTagContainer}>
                       <View style={[styles.applicantsTag, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
                         <IconSymbol name="person.2.fill" size={12} color={primaryColor} />
                         <Text style={[styles.applicantsTagText, { color: primaryColor }]}>
-                          {request.applicants.length} applicant{request.applicants.length > 1 ? 's' : ''}
+                          {request.applicants.length} {request.applicants.length > 1 ? t('jobDetails.applicants') : t('jobDetails.applicant')}
                         </Text>
                       </View>
                     </View>
@@ -500,21 +479,21 @@ export default function JobViewScreen() {
                     onPress={handleEdit}
                   >
                     <IconSymbol name="pencil" size={18} color={primaryColor} />
-                    <Text style={[styles.editButtonText, { color: primaryColor }]}>Edit</Text>
+                    <Text style={[styles.editButtonText, { color: primaryColor }]}>{t('jobDetails.edit')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.deleteButton, { backgroundColor: '#FEF2F2', borderColor: errorColor }]}
                     onPress={handleDelete}
                   >
                     <IconSymbol name="trash" size={18} color={errorColor} />
-                    <Text style={[styles.deleteButtonText, { color: errorColor }]}>Delete</Text>
+                    <Text style={[styles.deleteButtonText, { color: errorColor }]}>{t('jobDetails.delete')}</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Applicants List */}
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: textColor, fontSize: 16, marginTop: 16 }]}>
-                    Applicants ({request.applicantsDetails?.length || request.applicants?.length || 0})
+                    {t('jobDetails.applicants')} ({request.applicantsDetails?.length || request.applicants?.length || 0})
                   </Text>
                   {request.applicantsDetails && request.applicantsDetails.length > 0 ? (
                     <View style={styles.applicantsList}>
@@ -632,7 +611,7 @@ export default function JobViewScreen() {
                               style={[styles.viewProfileBtn, { borderColor: primaryColor }]}
                               onPress={() => router.push(`/profile/helper/${applicant.id}`)}
                             >
-                              <Text style={[styles.viewProfileText, { color: primaryColor }]}>View Profile</Text>
+                              <Text style={[styles.viewProfileText, { color: primaryColor }]}>{t('jobDetails.viewProfile')}</Text>
                             </TouchableOpacity>
 
                             <View style={styles.contactActions}>
@@ -672,13 +651,13 @@ export default function JobViewScreen() {
                     >
                       <IconSymbol name="message.fill" size={20} color="#FFFFFF" />
                       <Text style={styles.contactButtonText}>
-                        Contact Applicant{request.applicants.length > 1 ? 's' : ''}
+                        {request.applicants.length > 1 ? t('jobDetails.contactApplicants') : t('jobDetails.contactApplicant')}
                       </Text>
                     </TouchableOpacity>
                   ) : (
                     <View style={[styles.noApplicantsBadge, { backgroundColor: cardBg, borderColor }]}>
                       <IconSymbol name="person.fill" size={20} color={textMuted} />
-                      <Text style={[styles.noApplicantsText, { color: textMuted }]}>No applicants yet</Text>
+                      <Text style={[styles.noApplicantsText, { color: textMuted }]}>{t('jobDetails.noApplicantsYet')}</Text>
                     </View>
                   )}
                 </View>
@@ -693,19 +672,19 @@ export default function JobViewScreen() {
                     style={[styles.applyButton, { backgroundColor: primaryColor }]}
                     onPress={handleApply}
                   >
-                    <Text style={styles.applyButtonText}>Apply Now</Text>
+                    <Text style={styles.applyButtonText}>{t('jobDetails.applyNow')}</Text>
                     <IconSymbol name="arrow.right" size={20} color="#FFFFFF" />
                   </TouchableOpacity>
                 )}
                 {hasApplied && (
                   <View style={[styles.appliedBadge, { backgroundColor: '#F0FDF4', borderColor: successColor }]}>
                     <IconSymbol name="checkmark.circle.fill" size={24} color={successColor} />
-                    <Text style={[styles.appliedText, { color: successColor }]}>Application Sent</Text>
+                    <Text style={[styles.appliedText, { color: successColor }]}>{t('jobDetails.alreadyApplied')}</Text>
                   </View>
                 )}
                 {!isOpen && !hasApplied && (
                   <View style={[styles.closedBadge, { backgroundColor: cardBg, borderColor }]}>
-                    <Text style={[styles.closedText, { color: textMuted }]}>This job post is closed</Text>
+                    <Text style={[styles.closedText, { color: textMuted }]}>{t('jobDetails.jobClosed')}</Text>
                   </View>
                 )}
               </View>

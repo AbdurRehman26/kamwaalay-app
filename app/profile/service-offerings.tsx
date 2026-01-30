@@ -113,7 +113,6 @@ export default function ServiceOfferingsScreen() {
   const loadServiceListings = async () => {
     try {
       setIsLoading(true);
-      console.log('📋 Fetching service listings from:', API_ENDPOINTS.SERVICE_LISTINGS.MY_LISTINGS);
       const response = await apiService.get(
         API_ENDPOINTS.SERVICE_LISTINGS.MY_LISTINGS,
         undefined,
@@ -145,7 +144,6 @@ export default function ServiceOfferingsScreen() {
         setServiceListings([]);
       }
     } catch (error) {
-      console.error('❌ Error loading service listings:', error);
       setServiceListings([]);
     } finally {
       setIsLoading(false);

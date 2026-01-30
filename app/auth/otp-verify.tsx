@@ -28,7 +28,7 @@ export default function OTPVerifyScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const router = useRouter();
-  const { verifyOTP, resendOTP, user } = useAuth();
+  const { verifyOTP, resendOTP, user, logout } = useAuth();
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -133,6 +133,10 @@ export default function OTPVerifyScreen() {
     } finally {
       setIsVerifying(false);
     }
+  };
+  const handleChangeNumber = async () => {
+    await logout();
+    router.replace('/auth/phone-login');
   };
 
   const handleResend = async () => {
@@ -245,6 +249,14 @@ export default function OTPVerifyScreen() {
               </TouchableOpacity>
             )}
           </View>
+
+          <TouchableOpacity
+            style={styles.changeNumberButton}
+            onPress={handleChangeNumber}
+          >
+            <Text style={[styles.changeNumberText, { color: textSecondary }]}>Joined wrong? </Text>
+            <Text style={[styles.changeNumberLink, { color: primaryColor }]}>Change details</Text>
+          </TouchableOpacity>
 
           <View style={[styles.demoHint, { backgroundColor: primaryLight, borderColor: primaryColor }]}>
             <IconSymbol name="lightbulb.fill" size={16} color={primaryColor} />
@@ -427,10 +439,24 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: '#E0E7FF',
+    marginTop: 20,
   },
   demoHintText: {
     fontSize: 13,
     color: '#4338CA',
     fontWeight: '600',
+  },
+  changeNumberButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  changeNumberText: {
+    fontSize: 14,
+  },
+  changeNumberLink: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

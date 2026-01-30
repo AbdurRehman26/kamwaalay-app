@@ -15,6 +15,7 @@ interface AppContextType {
   getJobs: () => Job[];
   getHelpers: () => any[];
   refreshJobs: () => Promise<void>;
+  deleteJob: (requestId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -64,13 +65,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (storedTypes) setServiceTypes(JSON.parse(storedTypes));
         }
       } catch (error) {
-        console.error('Error fetching service types:', error);
         // Fallback to local storage
         const storedTypes = await AsyncStorage.getItem('serviceTypes');
         if (storedTypes) setServiceTypes(JSON.parse(storedTypes));
       }
 
-      // Only load jobs from API if user is not a business or helper
+      // Load jobs (bookings) from API
+      try {
+        const jobsEndpoint = user?.userType === 'user'
+          ? API_ENDPOINTS.JOB_POSTS.MY_POSTS
+          : API_ENDPOINTS.JOB_POSTS.LIST;
+
+        const jobsResponse = await apiService.get(
+          jobsEndpoint,
+          undefined,
+          undefined,
+          true // Requires authentication
+        );
+
+        if (jobsResponse.success && jobsResponse.data) {
+          let jobData: any[] = [];
+
+          if (jobsResponse.data.job_posts) {
+            jobData = Array.isArray(jobsResponse.data.job_posts.data)
+              ? jobsResponse.data.job_posts.data
+              : (Array.isArray(jobsResponse.data.job_posts) ? jobsResponse.data.job_posts : []);
+          } else if (jobsResponse.data.bookings) {
+            jobData = Array.isArray(jobsResponse.data.bookings.data)
+              ? jobsResponse.data.bookings.data
+              : (Array.isArray(jobsResponse.data.bookings) ? jobsResponse.data.bookings : []);
+          } else if (jobsResponse.data.data) {
+            jobData = Array.isArray(jobsResponse.data.data) ? jobsResponse.data.data : [];
+          } else if (Array.isArray(jobsResponse.data)) {
+            jobData = jobsResponse.data;
+          }
+
+          const mappedJobs: Job[] = jobData.map((post: any) => ({
+            id: post.id?.toString() || Date.now().toString(),
+            userId: post.user_id?.toString() || post.user?.id?.toString() || post.customer_id?.toString() || '',
+            userName: post.user?.name || post.name || 'User',
+            serviceName: post.service_type
+              ? post.service_type.charAt(0).toUpperCase() + post.service_type.slice(1).replace('_', ' ')
+              : post.service_name || 'Service',
+            description: post.description || post.special_requirements || '',
+            location: post.area || post.location || post.location_name || '',
+            latitude: post.latitude,
+            longitude: post.longitude,
+            address: post.address || '',
+            workType: post.work_type || 'Part Time',
+            budget: post.monthly_rate || post.budget || post.price || 0,
+            status: post.status === 'pending' ? 'open' : (post.status || 'open'),
+            createdAt: post.created_at || post.createdAt || new Date().toISOString(),
+            applicants: post.job_applications?.map((app: any) => app.user_id?.toString() || app.applicant_id?.toString()) ||
+              post.applicants ||
+              [],
+            phone: post.phone_number || post.phone
+          }));
+
+          setJobs(mappedJobs);
+          await AsyncStorage.setItem('jobs', JSON.stringify(mappedJobs));
+        } else {
+          // Fallback to local storage
+          const storedJobs = await AsyncStorage.getItem('jobs');
+          if (storedJobs) setJobs(JSON.parse(storedJobs));
+        }
+      } catch (error) {
+        // Fallback to local storage handled in outer catch
+      }
+
+      // Only load helpers/listings from API if user is not a business or helper
       // Service requests are only for regular users (customers)
       const isHelperOrBusiness = user?.userType === 'helper' || user?.userType === 'business';
 
@@ -290,21 +353,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addJob = async (requestData: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => {
     try {
-      // Fallback to local creation
-      const newRequest: Job = {
-        ...requestData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        status: 'open',
-        applicants: [],
+      // Prepare payload for API
+      const payload = {
+        name: requestData.userName,
+        service_type: requestData.serviceName,
+        special_requirements: requestData.description,
+        area: requestData.location,
+        location: requestData.location,
+        latitude: requestData.latitude,
+        longitude: requestData.longitude,
+        address: requestData.address,
+        estimated_salary: requestData.budget,
+        work_type: requestData.workType,
+        phone: requestData.phone,
       };
-      const updated = [...jobs, newRequest];
-      setJobs(updated);
-      await AsyncStorage.setItem('jobs', JSON.stringify(updated));
 
-    } catch (error) {
-      // Add job error
-      // Fallback to local creation
+      // Call API to create job
+      const response = await apiService.post(
+        API_ENDPOINTS.JOB_POSTS.CREATE,
+        payload,
+        undefined,
+        true // Requires authentication
+      );
+
+      if (response.success) {
+        // Refresh jobs list to include the new one
+        await loadData();
+      } else {
+        throw new Error(response.error || 'Failed to create job');
+      }
+    } catch (error: any) {
+      // Fallback to local creation if API fails (for demo/offline mode)
       const newRequest: Job = {
         ...requestData,
         id: Date.now().toString(),
@@ -340,6 +419,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteJob = async (requestId: string) => {
+    try {
+      const response = await apiService.delete(
+        API_ENDPOINTS.JOB_POSTS.DELETE,
+        { id: requestId },
+        true // Requires authentication
+      );
+
+      if (response.success) {
+        // Refresh jobs list after deletion
+        await loadData();
+      } else {
+        throw new Error(response.error || 'Failed to delete job');
+      }
+    } catch (error: any) {
+      // Fallback: remove locally if API fails or for demo
+      const updated = jobs.filter((req) => req.id !== requestId);
+      setJobs(updated);
+      await AsyncStorage.setItem('jobs', JSON.stringify(updated));
+    }
+  };
+
   const setLanguage = async (lang: 'en' | 'ur' | 'roman') => {
     setLanguageState(lang);
     await AsyncStorage.setItem('language', lang);
@@ -355,6 +456,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLanguage,
         addJob,
         applyToJob,
+        deleteJob,
         getJobs: () => Array.isArray(jobs) ? jobs : [],
         getHelpers: () => Array.isArray(helpers) ? helpers : [],
         refreshJobs: loadData,
@@ -377,6 +479,7 @@ export function useApp() {
       setLanguage: async () => { },
       addJob: async () => { },
       applyToJob: async () => { },
+      deleteJob: async () => { },
       getJobs: () => [],
       getHelpers: () => [],
       refreshJobs: async () => { },

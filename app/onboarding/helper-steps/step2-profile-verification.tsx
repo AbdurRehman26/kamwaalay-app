@@ -106,16 +106,6 @@ export default function Step2ProfileVerification({
   };
 
   const insets = useSafeAreaInsets();
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-
-  React.useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   const handleNext = () => {
     // NIC number is still required, but file upload is optional
@@ -130,7 +120,7 @@ export default function Step2ProfileVerification({
     <ThemedView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardVisible ? 150 : 0 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -226,7 +216,7 @@ export default function Step2ProfileVerification({
         </View>
       </ScrollView>
 
-      <View style={[styles.actions, { paddingBottom: keyboardVisible ? 40 : insets.bottom }]}>
+      <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
           <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
         </TouchableOpacity>

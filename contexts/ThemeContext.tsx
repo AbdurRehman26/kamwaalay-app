@@ -55,28 +55,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const setThemeMode = async (mode: ThemeMode) => {
+    const setThemeMode = React.useCallback(async (mode: ThemeMode) => {
         try {
             await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
             setThemeModeState(mode);
         } catch (error) {
         }
-    };
+    }, []);
 
-    const toggleTheme = () => {
+    const toggleTheme = React.useCallback(() => {
         const newMode = colorScheme === 'light' ? 'dark' : 'light';
         setThemeMode(newMode);
-    };
+    }, [colorScheme, setThemeMode]);
+
+    const contextValue = React.useMemo(() => ({
+        themeMode,
+        colorScheme,
+        setThemeMode,
+        toggleTheme,
+    }), [themeMode, colorScheme, setThemeMode]);
 
     return (
-        <ThemeContext.Provider
-            value={{
-                themeMode,
-                colorScheme,
-                setThemeMode,
-                toggleTheme,
-            }}
-        >
+        <ThemeContext.Provider value={contextValue}>
             {children}
         </ThemeContext.Provider>
     );

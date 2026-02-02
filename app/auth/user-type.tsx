@@ -4,11 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,14 +18,10 @@ export default function UserTypeScreen() {
 
   const handleSelectType = async (type: 'user' | 'helper' | 'business') => {
     await selectUserType(type);
-    
-    if (type === 'user') {
-      // Users go directly to the app
-      router.replace('/(tabs)');
-    } else {
-      // Helpers and businesses need onboarding
-      router.push('/onboarding/start');
-    }
+
+    // Always redirect to root (/) to let RootLayout handle the redirection logic
+    // based on user type, onboarding status, and guide seen status.
+    router.replace('/');
   };
 
   return (

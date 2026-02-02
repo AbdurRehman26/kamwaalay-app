@@ -7,6 +7,7 @@ import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     ScrollView,
     StyleSheet,
@@ -20,12 +21,18 @@ const { width } = Dimensions.get('window');
 
 interface Worker {
     id: number;
-    full_name: string;
+    name?: string;
+    full_name?: string;
     phone: string;
     photo?: string;
-    service_types?: string[];
+    service_types?: any[];
     experience_years?: number;
     status?: string;
+    verification_status?: string;
+    city?: { name: string };
+    service_listings?: any[];
+    languages?: any[];
+    religion?: { value: string; label: string };
 }
 
 export default function BusinessDashboardScreen() {
@@ -56,21 +63,27 @@ export default function BusinessDashboardScreen() {
         try {
             setIsLoading(true);
             const response = await apiService.get(API_ENDPOINTS.WORKERS.LIST);
-            console.log('Workers API Response:', response);
 
             if (response.success && response.data) {
                 let workersData: Worker[] = [];
-                if (Array.isArray(response.data)) {
-                    workersData = response.data;
-                } else if (response.data.workers && Array.isArray(response.data.workers)) {
-                    workersData = response.data.workers;
-                } else if (response.data.data && Array.isArray(response.data.data)) {
-                    workersData = response.data.data;
+                const data = response.data;
+
+                // Handle different response structures
+                if (Array.isArray(data)) {
+                    workersData = data;
+                } else if (data.workers && data.workers.data && Array.isArray(data.workers.data)) {
+                    // Paginated response: { workers: { data: [...] } }
+                    workersData = data.workers.data;
+                } else if (data.workers && Array.isArray(data.workers)) {
+                    workersData = data.workers;
+                } else if (data.data && Array.isArray(data.data)) {
+                    workersData = data.data;
                 }
+
                 setWorkers(workersData);
             }
         } catch (error) {
-            console.log('Error fetching workers:', error);
+            // Handle error silently
         } finally {
             setIsLoading(false);
         }
@@ -79,6 +92,7 @@ export default function BusinessDashboardScreen() {
     useEffect(() => {
         fetchWorkers();
     }, []);
+
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
@@ -104,17 +118,21 @@ export default function BusinessDashboardScreen() {
                 <View style={styles.statsContainer}>
                     <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
                         <View style={[styles.statIcon, { backgroundColor: primaryLight }]}>
-                            <IconSymbol name="person.2.fill" size={20} color={primaryColor} />
+                            <IconSymbol name="person.2.fill" size={16} color={primaryColor} />
                         </View>
-                        <Text style={[styles.statValue, { color: textColor }]}>{stats.totalWorkers}</Text>
-                        <Text style={[styles.statLabel, { color: textSecondary }]}>Total Workers</Text>
+                        <View style={styles.statTextContainer}>
+                            <Text style={[styles.statValue, { color: textColor }]}>{stats.totalWorkers}</Text>
+                            <Text style={[styles.statLabel, { color: textSecondary }]}>Workers</Text>
+                        </View>
                     </View>
                     <View style={[styles.statCard, { backgroundColor: cardBg, borderColor }]}>
                         <View style={[styles.statIcon, { backgroundColor: '#FAF5FF' }]}>
-                            <IconSymbol name="calendar" size={20} color="#9333EA" />
+                            <IconSymbol name="calendar" size={16} color="#9333EA" />
                         </View>
-                        <Text style={[styles.statValue, { color: '#9333EA' }]}>{stats.bookings}</Text>
-                        <Text style={[styles.statLabel, { color: textSecondary }]}>Bookings</Text>
+                        <View style={styles.statTextContainer}>
+                            <Text style={[styles.statValue, { color: '#9333EA' }]}>{stats.bookings}</Text>
+                            <Text style={[styles.statLabel, { color: textSecondary }]}>Bookings</Text>
+                        </View>
                     </View>
                 </View>
 
@@ -167,7 +185,15 @@ export default function BusinessDashboardScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {workers.length === 0 ? (
+
+                    {isLoading ? (
+                        <View style={[styles.emptyState, { backgroundColor: cardBg, borderColor }]}>
+                            <ActivityIndicator size="large" color={primaryColor} />
+                            <ThemedText style={[styles.emptyText, { color: textSecondary, marginTop: 16 }]}>
+                                Loading workers...
+                            </ThemedText>
+                        </View>
+                    ) : workers.length === 0 ? (
                         <View style={[styles.emptyState, { backgroundColor: cardBg, borderColor }]}>
                             <View style={[styles.emptyIconContainer, { backgroundColor: cardBg }]}>
                                 <IconSymbol
@@ -189,8 +215,31 @@ export default function BusinessDashboardScreen() {
                             )}
                         </View>
                     ) : (
-                        // Render workers list here
-                        <View />
+                        <View style={styles.workersList}>
+                            {workers.slice(0, 5).map((worker) => (
+                                <TouchableOpacity
+                                    key={worker.id}
+                                    style={[styles.workerCard, { backgroundColor: cardBg, borderColor }]}
+                                    onPress={() => router.push(`/workers/${worker.id}` as any)}
+                                >
+                                    <View style={[styles.workerAvatar, { backgroundColor: primaryLight }]}>
+                                        <IconSymbol name="person.fill" size={24} color={primaryColor} />
+                                    </View>
+                                    <View style={styles.workerInfo}>
+                                        <Text style={[styles.workerName, { color: textColor }]}>{worker.full_name || worker.name}</Text>
+                                        <Text style={[styles.workerPhone, { color: textSecondary }]}>{worker.phone}</Text>
+                                        <Text style={[styles.workerServices, { color: textMuted }]} numberOfLines={1}>
+                                            {[
+                                                worker.service_listings?.[0]?.service_types?.slice(0, 2).map((s: any) => s.name).join(', '),
+                                                worker.experience_years ? `${worker.experience_years}y exp` : null,
+                                                worker.religion?.label?.split(' ')[0]
+                                            ].filter(Boolean).join(' • ') || 'No details'}
+                                        </Text>
+                                    </View>
+                                    <IconSymbol name="chevron.right" size={20} color={textMuted} />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     )}
                 </View>
             </ScrollView>
@@ -242,32 +291,36 @@ const styles = StyleSheet.create({
         maxWidth: width,
     },
     statCard: {
-        width: (width - 48 - 12) / 2, // (screen width - padding*2 - gap) / 2
+        width: (width - 48 - 12) / 2,
         maxWidth: (width - 48 - 12) / 2,
-        borderRadius: 20,
-        padding: 16,
+        borderRadius: 14,
+        padding: 12,
         borderWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 2,
     },
     statIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 12,
+        marginRight: 10,
+    },
+    statTextContainer: {
+        flex: 1,
     },
     statValue: {
-        fontSize: 24,
-        fontWeight: '800',
-        marginBottom: 4,
+        fontSize: 18,
+        fontWeight: '700',
     },
     statLabel: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '500',
     },
     tabsContainer: {
@@ -347,5 +400,53 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '600',
+    },
+    workersList: {
+        gap: 12,
+    },
+    workerCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 12,
+    },
+    workerAvatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    workerInfo: {
+        flex: 1,
+    },
+    workerHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 2,
+    },
+    workerName: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    statusBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
+    workerPhone: {
+        fontSize: 13,
+        marginBottom: 2,
+    },
+    workerServices: {
+        fontSize: 12,
     },
 });

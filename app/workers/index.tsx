@@ -1,10 +1,13 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_ENDPOINTS } from '@/constants/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { apiService } from '@/services/api';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     ScrollView,
     StyleSheet,
@@ -16,9 +19,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+interface Worker {
+    id: number;
+    name?: string;
+    full_name?: string;
+    phone: string;
+    photo?: string;
+    service_types?: any[];
+    experience_years?: number;
+    status?: string;
+    verification_status?: string;
+    service_listings?: any[];
+    languages?: any[];
+    religion?: { value: string; label: string };
+}
+
 export default function WorkersListScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const [workers, setWorkers] = useState<Worker[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Theme colors
     const backgroundColor = useThemeColor({}, 'background');
@@ -30,13 +50,73 @@ export default function WorkersListScreen() {
     const cardBg = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
 
-    // TODO: Fetch workers from API
-    const workers: any[] = [];
+    // Fetch workers from API
+    const fetchWorkers = async () => {
+        try {
+            setIsLoading(true);
+            const response = await apiService.get(API_ENDPOINTS.WORKERS.LIST);
+
+            if (response.success && response.data) {
+                let workersData: Worker[] = [];
+                const data = response.data;
+
+                // Handle different response structures
+                if (Array.isArray(data)) {
+                    workersData = data;
+                } else if (data.workers && data.workers.data && Array.isArray(data.workers.data)) {
+                    // Paginated response: { workers: { data: [...] } }
+                    workersData = data.workers.data;
+                } else if (data.workers && Array.isArray(data.workers)) {
+                    workersData = data.workers;
+                } else if (data.data && Array.isArray(data.data)) {
+                    workersData = data.data;
+                }
+
+                setWorkers(workersData);
+            }
+        } catch (error) {
+            // Handle error silently
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchWorkers();
+    }, []);
+
+    // Get service types display string
+    const getServiceTypes = (worker: Worker) => {
+        if (worker.service_listings && worker.service_listings.length > 0) {
+            const services = worker.service_listings[0]?.service_types || [];
+            return services.slice(0, 2).map((s: any) => s.name).join(', ');
+        }
+        return '';
+    };
+
+    // Get worker details string
+    const getWorkerDetails = (worker: Worker) => {
+        const parts: string[] = [];
+
+        const services = getServiceTypes(worker);
+        if (services) parts.push(services);
+
+        if (worker.experience_years) parts.push(`${worker.experience_years}y exp`);
+        if (worker.religion?.label) parts.push(worker.religion.label.split(' ')[0]);
+
+        return parts.join(' • ') || 'No details';
+    };
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
             {/* Header */}
-            <ScreenHeader title="My Workers" />
+            <ScreenHeader
+                title="My Workers"
+                rightAction={{
+                    icon: 'plus',
+                    onPress: () => router.push('/workers/add')
+                }}
+            />
 
             <ScrollView
                 style={[styles.scrollView, { backgroundColor }]}
@@ -49,13 +129,16 @@ export default function WorkersListScreen() {
                 contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
             >
                 <View style={{ marginTop: 16 }}>
-
-                    {/* Decorative Background Elements */}
-
-
                     {/* Content */}
                     <View style={styles.contentContainer}>
-                        {workers.length === 0 ? (
+                        {isLoading ? (
+                            <View style={[styles.emptyStateCard, { backgroundColor: cardBg, borderColor }]}>
+                                <ActivityIndicator size="large" color={primaryColor} />
+                                <ThemedText style={[styles.loadingText, { color: textSecondary }]}>
+                                    Loading workers...
+                                </ThemedText>
+                            </View>
+                        ) : workers.length === 0 ? (
                             <View style={[styles.emptyStateCard, { backgroundColor: cardBg, borderColor }]}>
                                 <View style={[styles.emptyIconContainer, { backgroundColor: primaryLight }]}>
                                     <IconSymbol name="person.2.fill" size={48} color={primaryColor} />
@@ -75,7 +158,29 @@ export default function WorkersListScreen() {
                             </View>
                         ) : (
                             <View style={styles.workersList}>
-                                {/* TODO: Render workers list */}
+                                {workers.map((worker) => (
+                                    <TouchableOpacity
+                                        key={worker.id}
+                                        style={[styles.workerCard, { backgroundColor: cardBg, borderColor }]}
+                                        onPress={() => router.push(`/workers/${worker.id}` as any)}
+                                    >
+                                        <View style={[styles.workerAvatar, { backgroundColor: primaryLight }]}>
+                                            <IconSymbol name="person.fill" size={28} color={primaryColor} />
+                                        </View>
+                                        <View style={styles.workerInfo}>
+                                            <Text style={[styles.workerName, { color: textColor }]}>
+                                                {worker.name || worker.full_name}
+                                            </Text>
+                                            <Text style={[styles.workerPhone, { color: textSecondary }]}>
+                                                {worker.phone}
+                                            </Text>
+                                            <Text style={[styles.workerServices, { color: textMuted }]} numberOfLines={1}>
+                                                {getWorkerDetails(worker)}
+                                            </Text>
+                                        </View>
+                                        <IconSymbol name="chevron.right" size={20} color={textMuted} />
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         )}
                     </View>
@@ -90,57 +195,12 @@ const styles = StyleSheet.create({
         flex: 1,
         width: '100%',
     },
-    topCircle: {
-        position: 'absolute',
-        top: -width * 0.4,
-        right: -width * 0.2,
-        width: width * 0.8,
-        height: width * 0.8,
-        borderRadius: width * 0.4,
-    },
-    bottomCircle: {
-        position: 'absolute',
-        bottom: -width * 0.3,
-        left: -width * 0.2,
-        width: width * 0.7,
-        height: width * 0.7,
-        borderRadius: width * 0.35,
-    },
     scrollView: {
         flex: 1,
         width: '100%',
     },
-    headerBackground: {
-        backgroundColor: '#6366F1',
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        zIndex: 10,
-    },
-    headerContent: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-    },
-    headerTitle: {
-        color: '#FFFFFF',
-        fontSize: 22,
-        fontWeight: '700',
-        flex: 1,
-        textAlign: 'center',
-    },
-    backButton: {
-        padding: 8,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 12,
-    },
-    addButton: {
-        padding: 4,
-    },
     contentContainer: {
         paddingHorizontal: 20,
-        paddingTop: 20,
     },
     emptyStateCard: {
         backgroundColor: '#FFFFFF',
@@ -153,6 +213,10 @@ const styles = StyleSheet.create({
         shadowRadius: 20,
         elevation: 10,
         borderWidth: 1,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
     },
     emptyIconContainer: {
         width: 80,
@@ -190,6 +254,50 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     workersList: {
-        padding: 20,
+        gap: 12,
+    },
+    workerCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 12,
+    },
+    workerAvatar: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    workerInfo: {
+        flex: 1,
+    },
+    workerName: {
+        fontSize: 17,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    workerPhone: {
+        fontSize: 14,
+        marginBottom: 2,
+    },
+    workerServices: {
+        fontSize: 13,
+    },
+    workerStatus: {
+        alignItems: 'flex-end',
+        gap: 8,
+    },
+    statusBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
 });

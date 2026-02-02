@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@/constants/api';
 import { apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Job, useAuth } from './AuthContext';
 
 interface AppContextType {
@@ -33,7 +33,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [user, user?.userType]); // Re-load when user is available or user type changes
 
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       try {
         const storedLang = await AsyncStorage.getItem('language');
@@ -349,9 +349,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Error loading from local storage
       }
     }
-  };
+  }, [user]);
 
-  const addJob = async (requestData: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => {
+  const addJob = useCallback(async (requestData: Omit<Job, 'id' | 'createdAt' | 'status' | 'applicants'>) => {
     try {
       // Prepare payload for API
       const payload = {
@@ -395,9 +395,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setJobs(updated);
       await AsyncStorage.setItem('jobs', JSON.stringify(updated));
     }
-  };
+  }, [jobs, loadData]);
 
-  const applyToJob = async (requestId: string, applicantId: string) => {
+  const applyToJob = useCallback(async (requestId: string, applicantId: string) => {
     try {
       const updated = jobs.map((req) =>
         req.id === requestId
@@ -417,9 +417,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setJobs(updated);
       await AsyncStorage.setItem('jobs', JSON.stringify(updated));
     }
-  };
+  }, [jobs]);
 
-  const deleteJob = async (requestId: string) => {
+  const deleteJob = useCallback(async (requestId: string) => {
     try {
       const response = await apiService.delete(
         API_ENDPOINTS.JOB_POSTS.DELETE,
@@ -439,29 +439,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setJobs(updated);
       await AsyncStorage.setItem('jobs', JSON.stringify(updated));
     }
-  };
+  }, [jobs, loadData]);
 
-  const setLanguage = async (lang: 'en' | 'ur' | 'roman') => {
+  const setLanguage = useCallback(async (lang: 'en' | 'ur' | 'roman') => {
     setLanguageState(lang);
     await AsyncStorage.setItem('language', lang);
-  };
+  }, []);
+
+  const getJobs = useCallback(() => Array.isArray(jobs) ? jobs : [], [jobs]);
+  const getHelpers = useCallback(() => Array.isArray(helpers) ? helpers : [], [helpers]);
+  const refreshJobs = useCallback(async () => {
+    await loadData();
+  }, [loadData]);
+
+  const contextValue = useMemo(() => ({
+    jobs,
+    helpers,
+    serviceTypes,
+    language,
+    setLanguage,
+    addJob,
+    applyToJob,
+    deleteJob,
+    getJobs,
+    getHelpers,
+    refreshJobs,
+  }), [
+    jobs,
+    helpers,
+    serviceTypes,
+    language,
+    setLanguage,
+    addJob,
+    applyToJob,
+    deleteJob,
+    loadData,
+  ]);
 
   return (
-    <AppContext.Provider
-      value={{
-        jobs,
-        helpers,
-        serviceTypes,
-        language,
-        setLanguage,
-        addJob,
-        applyToJob,
-        deleteJob,
-        getJobs: () => Array.isArray(jobs) ? jobs : [],
-        getHelpers: () => Array.isArray(helpers) ? helpers : [],
-        refreshJobs: loadData,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

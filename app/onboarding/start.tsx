@@ -1,14 +1,10 @@
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
-import { mapDarkStyle } from '@/constants/MapStyle';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -35,23 +31,10 @@ export default function OnboardingStartScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, updateUser, logout } = useAuth();
-  const { colorScheme } = useTheme();
 
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Map & Location State
-  const [address, setAddress] = useState('');
-  const [pinLocation, setPinLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [isMapVisible, setIsMapVisible] = useState(false);
-  const [mapRegion, setMapRegion] = useState<Region>({
-    latitude: 24.8607,
-    longitude: 67.0011,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
-  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // City Selection State
   const [cityId, setCityId] = useState<number | null>(null);
@@ -63,7 +46,6 @@ export default function OnboardingStartScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
-  const textMuted = useThemeColor({}, 'textMuted');
   const primaryColor = useThemeColor({}, 'primary');
   const primaryLight = useThemeColor({}, 'primaryLight');
   const cardBg = useThemeColor({}, 'card');
@@ -77,15 +59,6 @@ export default function OnboardingStartScreen() {
     }
     if (user?.city_id) {
       setCityId(user.city_id);
-    }
-    if (user?.pin_address) {
-      setAddress(user.pin_address);
-    }
-    if (user?.pin_latitude && user?.pin_longitude) {
-      setPinLocation({
-        latitude: user.pin_latitude,
-        longitude: user.pin_longitude
-      });
     }
   }, [user]);
 
@@ -136,73 +109,9 @@ export default function OnboardingStartScreen() {
         setCities(formattedCities);
       }
     } catch (error) {
+      // Error fetching cities
     } finally {
       setIsLoadingCities(false);
-    }
-  };
-
-  const getCurrentLocation = async () => {
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        toast.error('Permission to access location was denied');
-        return;
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-
-      setMapRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
-      setPinLocation({ latitude, longitude });
-    } catch (error) {
-    }
-  };
-
-  const openMap = () => {
-    setIsMapVisible(true);
-    if (!pinLocation) {
-      getCurrentLocation();
-    } else {
-      setMapRegion({
-        latitude: pinLocation.latitude,
-        longitude: pinLocation.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
-    }
-  };
-
-  const handleMapConfirm = async () => {
-    if (!pinLocation) return;
-
-    setIsMapVisible(false);
-    setIsGeocoding(true);
-
-    try {
-      const result = await Location.reverseGeocodeAsync({
-        latitude: pinLocation.latitude,
-        longitude: pinLocation.longitude
-      });
-
-      if (result.length > 0) {
-        const addr = result[0];
-        const formattedAddress = [
-          addr.street,
-          addr.district,
-          addr.city,
-          addr.region
-        ].filter(Boolean).join(', ');
-
-        setAddress(formattedAddress);
-      }
-    } catch (error) {
-    } finally {
-      setIsGeocoding(false);
     }
   };
 
@@ -217,34 +126,28 @@ export default function OnboardingStartScreen() {
       return;
     }
 
-    if (!address) {
-      toast.error('Please pin your location');
-      return;
-    }
-
     setErrorMessage(null);
     setIsLoading(true);
 
     try {
+      // Basic profile update - no pin location here anymore
       const profileUpdateData: any = {
         name: name.trim(),
         city_id: cityId,
-        pin_address: address,
-        pin_latitude: pinLocation?.latitude,
-        pin_longitude: pinLocation?.longitude,
       };
 
       await updateUser(profileUpdateData);
 
       // Redirect based on user type
       setTimeout(() => {
-        if (user?.userType === 'helper') {
+        const type = user?.userType?.toLowerCase();
+        if (type === 'helper') {
           router.replace('/onboarding/helper-profile');
-        } else if (user?.userType === 'business') {
+        } else if (type === 'business') {
           router.replace('/onboarding/business-profile');
         } else {
           updateUser({ onboardingStatus: 'completed' });
-          router.replace('/(tabs)');
+          router.replace('/');
         }
       }, 100);
     } catch (error: any) {
@@ -355,64 +258,6 @@ export default function OnboardingStartScreen() {
     );
   };
 
-  const renderMapModal = () => {
-    return (
-      <Modal
-        visible={isMapVisible}
-        animationType="slide"
-        onRequestClose={() => setIsMapVisible(false)}
-      >
-        <View style={{ flex: 1, backgroundColor }}>
-          <View style={{ height: insets.top, backgroundColor: backgroundColor }} />
-          <View style={styles.mapContainer}>
-            <MapView
-              provider={PROVIDER_GOOGLE}
-              style={styles.map}
-              region={mapRegion}
-              customMapStyle={colorScheme === 'dark' ? mapDarkStyle : []}
-              onRegionChangeComplete={(region: Region) => {
-                setMapRegion(region);
-                setPinLocation({
-                  latitude: region.latitude,
-                  longitude: region.longitude,
-                });
-              }}
-            >
-              <Marker
-                coordinate={{
-                  latitude: mapRegion.latitude,
-                  longitude: mapRegion.longitude,
-                }}
-              />
-            </MapView>
-
-            <View style={styles.mapOverlay}>
-              <Text style={styles.mapInstruction}>
-                {t('jobPosts.map.dragMarker')}
-              </Text>
-            </View>
-
-            <View style={styles.mapButtons}>
-              <TouchableOpacity
-                style={[styles.mapButton, styles.cancelButton]}
-                onPress={() => setIsMapVisible(false)}
-              >
-                <Text style={[styles.mapButtonText, { color: '#FF3B30' }]}>{t('jobPosts.map.cancel')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
-                onPress={handleMapConfirm}
-              >
-                <Text style={[styles.mapButtonText, { color: '#fff' }]}>{t('jobPosts.map.confirm')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <KeyboardAvoidingView
@@ -470,68 +315,38 @@ export default function OnboardingStartScreen() {
                   <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
                 </TouchableOpacity>
               </View>
-
-              {/* Pin Location UI */}
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.address')}</Text>
-                <View style={{ gap: 10 }}>
-                  <TextInput
-                    style={[styles.input, styles.locationPlaceholder, { backgroundColor: cardBg, borderColor, color: textMuted }]}
-                    placeholder={t('profileEdit.placeholders.pinLocation')}
-                    placeholderTextColor={textMuted}
-                    value={address}
-                    editable={false}
-                  />
-                  <TouchableOpacity
-                    style={[styles.pinButton, { backgroundColor: cardBg, borderColor: primaryColor }]}
-                    onPress={openMap}
-                  >
-                    <IconSymbol name="location.fill" size={20} color={primaryColor} />
-                    <Text style={[styles.pinButtonText, { color: primaryColor }]}>
-                      {address ? t('profileEdit.actions.changeLocation') : t('profileEdit.actions.pinLocation')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {isGeocoding && (
-                  <View style={styles.geocodingContainer}>
-                    <ActivityIndicator size="small" color={primaryColor} />
-                    <Text style={[styles.helperText, { color: textMuted }]}>{t('common.loading')}</Text>
-                  </View>
-                )}
-              </View>
             </View>
-
-            {errorMessage && (
-              <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
-                <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
-                <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                { backgroundColor: primaryColor, shadowColor: primaryColor },
-                (!name.trim() || !cityId || !address || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
-              ]}
-              onPress={handleContinue}
-              disabled={!name.trim() || !cityId || !address || isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Text style={styles.buttonText}>{t('auth.next')}</Text>
-                  <IconSymbol name="arrow.right" size={20} color="#FFF" />
-                </>
-              )}
-            </TouchableOpacity>
           </View>
+
+          {errorMessage && (
+            <View style={[styles.errorCard, { backgroundColor: '#FEF2F2' }]}>
+              <IconSymbol name="exclamationmark.circle.fill" size={16} color={errorColor} />
+              <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              { backgroundColor: primaryColor, shadowColor: primaryColor },
+              (!name.trim() || !cityId || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
+            ]}
+            onPress={handleContinue}
+            disabled={!name.trim() || !cityId || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.buttonText}>{t('auth.next')}</Text>
+                <IconSymbol name="arrow.right" size={20} color="#FFF" />
+              </>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
       {renderCityModal()}
-      {renderMapModal()}
     </View>
   );
 }
@@ -618,37 +433,6 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontWeight: '500',
   },
-  locationPlaceholder: {
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    height: 50,
-    justifyContent: 'center',
-  },
-  pinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    gap: 8,
-  },
-  pinButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  geocodingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
   button: {
     backgroundColor: '#6366F1',
     borderRadius: 16,
@@ -662,6 +446,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
+    marginHorizontal: 24,
     marginBottom: 24,
   },
   buttonDisabled: {
@@ -680,6 +465,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     padding: 12,
     borderRadius: 12,
+    marginHorizontal: 24,
     marginBottom: 20,
     gap: 8,
   },
@@ -717,6 +503,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
     paddingHorizontal: 12,
     height: 48,
     marginBottom: 12,
@@ -737,8 +525,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingHorizontal: 16,
   },
   cityItemText: {
     fontSize: 14,
@@ -749,51 +536,5 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-  },
-  mapContainer: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  mapOverlay: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 12,
-    borderRadius: 8,
-  },
-  mapInstruction: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  mapButtons: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-  },
-  mapButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  cancelButton: {
-    borderWidth: 1,
-  },
-  confirmButton: {
-    backgroundColor: '#6366F1',
-    borderWidth: 0,
-  },
-  mapButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

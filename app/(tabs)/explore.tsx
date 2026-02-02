@@ -484,6 +484,19 @@ export default function ExploreScreen() {
 
 
 
+  // Count active filters for current tab
+  const activeFiltersCount = useMemo(() => {
+    const currentFilters = mainTab === 'helpers' ? filtersHelpers : filtersServices;
+    const currentRoleFilter = mainTab === 'helpers' ? selectedFilterHelpers : selectedFilterServices;
+    let count = 0;
+    if (currentRoleFilter !== 'all') count++;
+    if (currentFilters.services.length > 0) count++;
+    if (currentFilters.city !== null) count++;
+    if (currentFilters.nearMe) count++;
+    if (currentFilters.minExperience !== null) count++;
+    return count;
+  }, [mainTab, filtersHelpers, filtersServices, selectedFilterHelpers, selectedFilterServices]);
+
   // For helpers/businesses, redirect to requests tab (which shows jobs)
   useEffect(() => {
     if (user?.userType === 'helper' || user?.userType === 'business') {
@@ -1193,19 +1206,6 @@ export default function ExploreScreen() {
     return matchesRole && matchesSearch && matchesServices &&
       matchesCity && matchesNearMe;
   });
-
-  // Count active filters for current tab
-  const activeFiltersCount = useMemo(() => {
-    const currentFilters = mainTab === 'helpers' ? filtersHelpers : filtersServices;
-    const currentRoleFilter = mainTab === 'helpers' ? selectedFilterHelpers : selectedFilterServices;
-    let count = 0;
-    if (currentRoleFilter !== 'all') count++;
-    if (currentFilters.services.length > 0) count++;
-    if (currentFilters.city !== null) count++;
-    if (currentFilters.nearMe) count++;
-    if (currentFilters.minExperience !== null) count++;
-    return count;
-  }, [mainTab, filtersHelpers, filtersServices, selectedFilterHelpers, selectedFilterServices]);
 
   const clearFilters = () => {
     setFilters({

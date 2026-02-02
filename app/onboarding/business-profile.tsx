@@ -1,15 +1,21 @@
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from '@/components/MapLib';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { API_ENDPOINTS } from '@/constants/api';
+import { mapDarkStyle } from '@/constants/MapStyle';
 import { BusinessProfile, useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -21,12 +27,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 export default function BusinessProfileScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colorScheme } = useTheme();
   const { user, completeOnboarding, refreshProfile } = useAuth();
   const [businessName, setBusinessName] = useState('');
   const [nicNumber, setNicNumber] = useState('');
@@ -34,9 +43,22 @@ export default function BusinessProfileScreen() {
   const [nicImageName, setNicImageName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Map & Location State
+  const [address, setAddress] = useState('');
+  const [pinLocation, setPinLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: 24.8607,
+    longitude: 67.0011,
+    latitudeDelta: 0.005,
+    longitudeDelta: 0.005,
+  });
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
+  const textMuted = useThemeColor({}, 'textMuted');
   const primaryColor = useThemeColor({}, 'primary');
   const primaryLight = useThemeColor({}, 'primaryLight');
   const cardBg = useThemeColor({}, 'card');
@@ -61,9 +83,79 @@ export default function BusinessProfileScreen() {
     }
   };
 
+  const getCurrentLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        toast.error('Permission to access location was denied');
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      setMapRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setPinLocation({ latitude, longitude });
+    } catch (error) {
+    }
+  };
+
+  const openMap = () => {
+    setIsMapVisible(true);
+    if (!pinLocation) {
+      getCurrentLocation();
+    } else {
+      setMapRegion({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    }
+  };
+
+  const handleMapConfirm = async () => {
+    if (!pinLocation) return;
+
+    setIsMapVisible(false);
+    setIsGeocoding(true);
+
+    try {
+      const result = await Location.reverseGeocodeAsync({
+        latitude: pinLocation.latitude,
+        longitude: pinLocation.longitude
+      });
+
+      if (result.length > 0) {
+        const addr = result[0];
+        const formattedAddress = [
+          addr.street,
+          addr.district,
+          addr.city,
+          addr.region
+        ].filter(Boolean).join(', ');
+
+        setAddress(formattedAddress);
+      }
+    } catch (error) {
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
   const handleContinue = async () => {
     if (!businessName.trim()) {
       toast.error('Please enter your business name');
+      return;
+    }
+
+    if (!address) {
+      toast.error('Please pin your business location');
       return;
     }
 
@@ -84,7 +176,10 @@ export default function BusinessProfileScreen() {
         businessName,
         ownerName: user?.name || '',
         serviceOfferings: [],
-        locations: [],
+        locations: [address],
+        businessAddress: address,
+        latitude: pinLocation?.latitude,
+        longitude: pinLocation?.longitude,
       };
 
       await completeOnboarding(profileData);
@@ -124,7 +219,7 @@ export default function BusinessProfileScreen() {
       if (response.success) {
         toast.success('Onboarding completed successfully!');
         await refreshProfile();
-        router.replace('/(tabs)');
+        router.replace('/');
       } else {
         toast.error(response.message || 'Failed to submit verification');
       }
@@ -133,6 +228,64 @@ export default function BusinessProfileScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const renderMapModal = () => {
+    return (
+      <Modal
+        visible={isMapVisible}
+        animationType="slide"
+        onRequestClose={() => setIsMapVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor }}>
+          <View style={{ height: insets.top, backgroundColor: backgroundColor }} />
+          <View style={styles.mapContainer}>
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              region={mapRegion}
+              customMapStyle={colorScheme === 'dark' ? mapDarkStyle : []}
+              onRegionChangeComplete={(region: Region) => {
+                setMapRegion(region);
+                setPinLocation({
+                  latitude: region.latitude,
+                  longitude: region.longitude,
+                });
+              }}
+            >
+              <Marker
+                coordinate={{
+                  latitude: mapRegion.latitude,
+                  longitude: mapRegion.longitude,
+                }}
+              />
+            </MapView>
+
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapInstruction}>
+                {t('jobPosts.map.dragMarker')}
+              </Text>
+            </View>
+
+            <View style={styles.mapButtons}>
+              <TouchableOpacity
+                style={[styles.mapButton, styles.cancelButton]}
+                onPress={() => setIsMapVisible(false)}
+              >
+                <Text style={[styles.mapButtonText, { color: '#FF3B30' }]}>{t('jobPosts.map.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.mapButton, styles.confirmButton, { backgroundColor: primaryColor }]}
+                onPress={handleMapConfirm}
+              >
+                <Text style={[styles.mapButtonText, { color: '#fff' }]}>{t('jobPosts.map.confirm')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   return (
@@ -173,11 +326,40 @@ export default function BusinessProfileScreen() {
               </View>
             </View>
 
+            {/* Pin Location UI */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textColor }]}>Business Address / Location</Text>
+              <View style={{ gap: 10 }}>
+                <TextInput
+                  style={[styles.input, styles.locationPlaceholder, { backgroundColor: cardBg, borderColor, color: textMuted }]}
+                  placeholder="Pinned location"
+                  placeholderTextColor={textMuted}
+                  value={address}
+                  editable={false}
+                />
+                <TouchableOpacity
+                  style={[styles.pinButton, { backgroundColor: cardBg, borderColor: primaryColor }]}
+                  onPress={openMap}
+                >
+                  <IconSymbol name="location.fill" size={20} color={primaryColor} />
+                  <Text style={[styles.pinButtonText, { color: primaryColor }]}>
+                    {address ? "Change Location" : "Pin Location"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {isGeocoding && (
+                <View style={styles.geocodingContainer}>
+                  <ActivityIndicator size="small" color={primaryColor} />
+                  <Text style={[styles.helperText, { color: textMuted }]}>Updating address...</Text>
+                </View>
+              )}
+            </View>
+
             {/* NIC Image Upload */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: textColor }]}>NIC Image</Text>
               <TouchableOpacity
-                style={[styles.uploadArea, { borderColor: primaryColor, backgroundColor: inputBg }]}
+                style={[styles.uploadArea, { borderColor: borderColor, backgroundColor: inputBg, borderStyle: 'dashed', borderWidth: 2 }]}
                 onPress={pickNicImage}
               >
                 {nicImage ? (
@@ -223,16 +405,18 @@ export default function BusinessProfileScreen() {
             style={[
               styles.button,
               { backgroundColor: primaryColor, shadowColor: primaryColor },
-              (!businessName.trim() || !nicImage || nicNumber.length < 13 || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
+              (!businessName.trim() || !address || !nicImage || nicNumber.length < 13 || isLoading) && [styles.buttonDisabled, { backgroundColor: borderColor }]
             ]}
             onPress={handleContinue}
-            disabled={!businessName.trim() || !nicImage || nicNumber.length < 13 || isLoading}
+            disabled={!businessName.trim() || !address || !nicImage || nicNumber.length < 13 || isLoading}
           >
             <Text style={styles.buttonText}>{isLoading ? 'Saving...' : 'Complete Onboarding'}</Text>
             {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {renderMapModal()}
     </View>
   );
 }
@@ -307,19 +491,42 @@ const styles = StyleSheet.create({
     height: 56,
     overflow: 'hidden',
   },
-  textAreaWrapper: {
-    height: 'auto',
-    minHeight: 120,
-    alignItems: 'flex-start',
-    paddingTop: 12,
+  locationPlaceholder: {
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 50,
+    justifyContent: 'center',
+  },
+  pinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  pinButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  geocodingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
   },
   inputIcon: {
     marginLeft: 16,
     marginRight: 12,
   },
   uploadArea: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -359,11 +566,6 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontWeight: '500',
   },
-  textArea: {
-    height: '100%',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
   button: {
     backgroundColor: '#6366F1',
     borderRadius: 16,
@@ -389,13 +591,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  skipButton: {
-    alignItems: 'center',
-    padding: 16,
-    marginBottom: 24,
+  mapContainer: {
+    flex: 1,
   },
-  skipButtonText: {
-    color: '#6B7280',
+  map: {
+    flex: 1,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 12,
+    borderRadius: 8,
+  },
+  mapInstruction: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  mapButtons: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+  },
+  mapButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  confirmButton: {
+    backgroundColor: '#6366F1',
+    borderWidth: 0,
+  },
+  mapButtonText: {
     fontSize: 16,
     fontWeight: '600',
   },

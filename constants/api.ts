@@ -115,6 +115,7 @@ export const API_ENDPOINTS = {
     LIST: '/business/workers', // List business's workers
     CREATE: '/business/workers', // Create a worker
     GET: '/business/workers/:id', // Get specific worker
+    EDIT: '/business/workers/:id/edit', // Get worker for editing
     UPDATE: '/business/workers/:id', // Update worker
     DELETE: '/business/workers/:id', // Delete worker
   },

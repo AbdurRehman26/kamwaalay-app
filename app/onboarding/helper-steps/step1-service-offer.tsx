@@ -84,16 +84,6 @@ export default function Step1ServiceOffer({
   };
 
   const insets = useSafeAreaInsets();
-  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   const handleNext = () => {
     if (data.serviceTypes.length === 0) {
@@ -109,7 +99,7 @@ export default function Step1ServiceOffer({
     <ThemedView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardVisible ? 150 : 0 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -224,7 +214,7 @@ export default function Step1ServiceOffer({
           styles.nextButton,
           {
             backgroundColor: primaryColor,
-            marginBottom: keyboardVisible ? 40 : insets.bottom
+            marginBottom: Math.max(insets.bottom, 20)
           },
           (data.serviceTypes.length === 0 ||
             !data.workType) &&

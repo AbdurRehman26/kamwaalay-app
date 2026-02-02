@@ -9,7 +9,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { apiService } from '@/services/api';
 import { toast } from '@/utils/toast';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -55,14 +55,15 @@ const AVAILABILITY_OPTIONS = [
     { value: 'live_in', label: '24/7 Live-in' },
 ];
 
-interface Location {
+interface LocationType {
     id: number;
     name: string;
     area?: string;
 }
 
-export default function AddWorkerScreen() {
+export default function EditWorkerScreen() {
     const router = useRouter();
+    const { id } = useLocalSearchParams<{ id: string }>();
     const insets = useSafeAreaInsets();
     const { serviceTypes } = useApp();
     const { colorScheme } = useTheme();
@@ -76,6 +77,9 @@ export default function AddWorkerScreen() {
     const primaryLight = useThemeColor({}, 'primaryLight');
     const cardBg = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
+
+    // Loading state
+    const [isLoadingWorker, setIsLoadingWorker] = useState(true);
 
     // Basic Info
     const [fullName, setFullName] = useState('');
@@ -124,6 +128,99 @@ export default function AddWorkerScreen() {
     const [locationSearchResults, setLocationSearchResults] = useState<any[]>([]);
     const [isSearchingLocations, setIsSearchingLocations] = useState(false);
 
+    // Fetch worker data on mount
+    useEffect(() => {
+        if (id) {
+            fetchWorkerData();
+            fetchLanguages();
+        }
+    }, [id]);
+
+    const fetchWorkerData = async () => {
+        try {
+            setIsLoadingWorker(true);
+            const endpoint = API_ENDPOINTS.WORKERS.EDIT.replace(':id', id as string);
+            const response = await apiService.get(endpoint);
+
+            if (response.success && response.data) {
+                // Try multiple possible response structures
+                let worker = response.data;
+                if (response.data.helper) {
+                    worker = response.data.helper;
+                } else if (response.data.worker) {
+                    worker = response.data.worker;
+                }
+
+                // Pre-fill form with worker data
+                setFullName(worker.name || worker.full_name || worker.user?.name || '');
+
+                // Handle phone - remove +92 prefix if present
+                let phoneNumber = worker.phone || worker.user?.phone || '';
+                if (phoneNumber.startsWith('+92')) {
+                    phoneNumber = phoneNumber.substring(3);
+                }
+                setPhone(phoneNumber);
+
+                // Set experience and age
+                setExperienceYears(worker.experience_years?.toString() || '');
+                setAge(worker.age?.toString() || '');
+                setGender(worker.gender || '');
+
+                // Handle religion - could be object with value or direct string
+                const religionValue = typeof worker.religion === 'object'
+                    ? worker.religion?.value || worker.religion?.id
+                    : worker.religion;
+                setReligion(religionValue || '');
+
+                // Handle availability - could be object with value or direct string
+                const availabilityValue = typeof worker.availability === 'object'
+                    ? worker.availability?.value || worker.availability?.id
+                    : worker.availability;
+                setAvailability(availabilityValue || 'full_time');
+
+                setBio(worker.bio || worker.description || '');
+
+                // Set services - try multiple structures
+                let serviceSlugs: string[] = [];
+                if (worker.service_listings?.[0]?.service_types) {
+                    serviceSlugs = worker.service_listings[0].service_types.map((s: any) => s.slug);
+                } else if (worker.service_types && Array.isArray(worker.service_types)) {
+                    serviceSlugs = worker.service_types.map((s: any) => s.slug || s.id?.toString());
+                } else if (worker.services && Array.isArray(worker.services)) {
+                    serviceSlugs = worker.services.map((s: any) => s.slug || s.id?.toString());
+                }
+                if (serviceSlugs.length > 0) {
+                    setSelectedServices(serviceSlugs);
+                }
+
+                // Set languages
+                if (worker.languages && Array.isArray(worker.languages)) {
+                    const langNames = worker.languages.map((l: any) => l.name || l);
+                    setLanguages(langNames);
+                }
+
+                // Set location data - try multiple structures
+                const pinAddress = worker.profile?.pin_address || worker.pin_address || worker.address;
+                const pinLat = worker.profile?.pin_latitude || worker.pin_latitude || worker.latitude;
+                const pinLng = worker.profile?.pin_longitude || worker.pin_longitude || worker.longitude;
+                const cityName = worker.city?.name || (typeof worker.city === 'string' ? worker.city : '');
+
+                if (pinAddress) {
+                    setLocationData({
+                        address: pinAddress,
+                        city: cityName,
+                        latitude: pinLat || 0,
+                        longitude: pinLng || 0,
+                    });
+                }
+            }
+        } catch (error) {
+            toast.error('Failed to load worker data');
+        } finally {
+            setIsLoadingWorker(false);
+        }
+    };
+
     const searchLocations = async (query: string) => {
         if (query.trim().length < 2) {
             setLocationSearchResults([]);
@@ -169,10 +266,6 @@ export default function AddWorkerScreen() {
         }, 500);
         return () => clearTimeout(timer);
     }, [locationSearchQuery]);
-
-    useEffect(() => {
-        fetchLanguages();
-    }, []);
 
     const fetchLanguages = async () => {
         try {
@@ -248,51 +341,34 @@ export default function AddWorkerScreen() {
         setIsMapVisible(true);
         if (!locationData) {
             getCurrentLocation();
-        } else {
-            setMapRegion({
-                latitude: locationData.latitude,
-                longitude: locationData.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            });
-            setSelectedCoordinate({
-                latitude: locationData.latitude,
-                longitude: locationData.longitude
-            });
         }
     };
 
     const handleMapConfirm = async () => {
         if (!selectedCoordinate) return;
 
-        setIsGeocoding(true);
         try {
-            const reverseGeocode = await Location.reverseGeocodeAsync({
-                latitude: selectedCoordinate.latitude,
-                longitude: selectedCoordinate.longitude
-            });
+            setIsGeocoding(true);
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${selectedCoordinate.latitude}&lon=${selectedCoordinate.longitude}&addressdetails=1`,
+                { headers: { 'User-Agent': 'KamwaalayApp/1.0' } }
+            );
+            const data = await response.json();
 
-            let addressString = '';
-            let cityString = 'Karachi'; // Default
+            if (data && data.display_name) {
+                const address = data.address || {};
+                const city = address.city || address.town || address.village || address.state || '';
 
-            if (reverseGeocode.length > 0) {
-                const addr = reverseGeocode[0];
-                addressString = `${addr.street || ''} ${addr.name || ''}, ${addr.city || ''}, ${addr.region || ''}`.replace(/\s+/g, ' ').trim();
-                if (addr.city) cityString = addr.city;
-            } else {
-                addressString = `${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)}`;
+                setLocationData({
+                    address: data.display_name,
+                    city,
+                    latitude: selectedCoordinate.latitude,
+                    longitude: selectedCoordinate.longitude,
+                });
+                setIsMapVisible(false);
             }
-
-            setLocationData({
-                address: addressString,
-                city: cityString,
-                latitude: selectedCoordinate.latitude,
-                longitude: selectedCoordinate.longitude
-            });
-
-            setIsMapVisible(false);
         } catch (error) {
-            Alert.alert('Error', 'Failed to get address details');
+            Alert.alert('Error', 'Failed to get address');
         } finally {
             setIsGeocoding(false);
         }
@@ -304,27 +380,17 @@ export default function AddWorkerScreen() {
             return;
         }
 
-        if (!phone.trim()) {
-            toast.error('Phone number is required');
-            return;
-        }
-
-        if (!locationData) {
-            toast.error('Please pin the location on the map');
-            return;
-        }
-
         if (selectedServices.length === 0) {
             toast.error('Please select at least one service type');
             return;
         }
 
-        if (!experienceYears.trim()) {
-            toast.error('Experience is required');
+        if (!experienceYears) {
+            toast.error('Years of experience is required');
             return;
         }
 
-        if (!age.trim()) {
+        if (!age) {
             toast.error('Age is required');
             return;
         }
@@ -359,59 +425,57 @@ export default function AddWorkerScreen() {
                 return lang?.id ? (typeof lang.id === 'number' ? lang.id : parseInt(lang.id as string)) : null;
             }).filter((id): id is number => id !== null);
 
-            const workerData = {
+            const workerData: any = {
                 name: fullName.trim(),
-                phone: `+92${phone.trim()}`,
                 service_types: serviceTypeIds,
                 experience_years: parseInt(experienceYears),
                 age: parseInt(age),
-                gender,
-                religion,
+                gender: gender,
+                religion: religion,
                 languages: JSON.stringify(languageIdsArray),
-                availability,
+                availability: availability,
                 bio: bio.trim() || null,
-                pin_address: locationData.address,
-                city: locationData.city,
-                latitude: locationData.latitude,
-                longitude: locationData.longitude,
             };
 
+            // Only include location data if set
+            if (locationData) {
+                workerData.pin_address = locationData.address;
+                workerData.city = locationData.city;
+                workerData.latitude = locationData.latitude;
+                workerData.longitude = locationData.longitude;
+            }
 
-            const response = await apiService.post(API_ENDPOINTS.WORKERS.CREATE, workerData);
+            const endpoint = API_ENDPOINTS.WORKERS.UPDATE.replace(':id', id as string);
+            const response = await apiService.put(endpoint, workerData);
 
             if (response.success) {
-                toast.success('Worker added successfully!');
-
-                // Reset form
-                setFullName('');
-                setPhone('');
-                setSelectedServices([]);
-                setExperienceYears('');
-                setAge('');
-                setGender('');
-                setReligion('');
-                setLanguages([]);
-                setAvailability('full_time');
-
-                setBio('');
-                setLocationData(null);
-
-                // Navigate back after a short delay
+                toast.success('Worker updated successfully!');
                 setTimeout(() => router.back(), 1000);
             } else {
-                toast.error(response.message || 'Failed to add worker. Please try again.');
+                toast.error(response.message || 'Failed to update worker. Please try again.');
             }
         } catch (error) {
-            toast.error('Failed to add worker. Please try again.');
+            toast.error('Failed to update worker. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    if (isLoadingWorker) {
+        return (
+            <View style={[styles.container, { backgroundColor }]}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={primaryColor} />
+                    <Text style={[styles.loadingText, { color: textSecondary }]}>Loading worker...</Text>
+                </View>
+            </View>
+        );
+    }
+
     return (
         <View style={[styles.container, { backgroundColor }]}>
             {/* Header */}
-            <ScreenHeader title="Add New Worker" />
+            <ScreenHeader title="Edit Worker" />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -449,8 +513,8 @@ export default function AddWorkerScreen() {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: textColor }]}>Phone Number <Text style={styles.required}>*</Text></Text>
-                            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+                            <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
+                            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor, opacity: 0.6 }]}>
                                 <IconSymbol name="phone" size={20} color={textMuted} style={styles.inputIcon} />
                                 <View style={styles.phonePrefixContainer}>
                                     <Text style={[styles.phonePrefixText, { color: textSecondary }]}>+92</Text>
@@ -464,8 +528,10 @@ export default function AddWorkerScreen() {
                                     onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
                                     keyboardType="phone-pad"
                                     maxLength={10}
+                                    editable={false}
                                 />
                             </View>
+                            <Text style={[styles.helperText, { color: textMuted }]}>Phone number cannot be changed</Text>
                         </View>
 
 
@@ -758,7 +824,7 @@ export default function AddWorkerScreen() {
                             {isSubmitting ? (
                                 <ActivityIndicator size="small" color="#FFFFFF" />
                             ) : (
-                                <Text style={styles.submitButtonText}>Add Worker</Text>
+                                <Text style={styles.submitButtonText}>Update Worker</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -887,6 +953,15 @@ const styles = StyleSheet.create({
         width: width,
         maxWidth: width,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+    },
     headerBackground: {
         backgroundColor: '#6366F1',
         borderBottomLeftRadius: 30,
@@ -983,6 +1058,10 @@ const styles = StyleSheet.create({
     inputText: {
         flex: 1,
         fontSize: 16,
+    },
+    helperText: {
+        fontSize: 12,
+        marginTop: 6,
     },
     textAreaWrapper: {
         height: 'auto',

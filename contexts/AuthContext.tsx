@@ -1,7 +1,7 @@
 import { API_ENDPOINTS, buildStorageUrl } from '@/constants/api';
 import { apiService } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export type UserType = 'user' | 'helper' | 'business' | null;
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed';
@@ -101,6 +101,9 @@ export interface HelperProfile {
   gender?: string;
   religion?: string;
   languages?: number[];
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface BusinessProfile {
@@ -115,6 +118,8 @@ export interface BusinessProfile {
   locations: string[];
   rating?: number;
   reviews?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface ServiceOffering {
@@ -180,6 +185,12 @@ interface AuthContextType {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  isBeginningGuidePassed: boolean;
+  hasSeenGuide: boolean;
+  hasSeenUserGuide: boolean;
+  hasSeenHelperGuide: boolean;
+  hasSeenBusinessGuide: boolean;
+  completeGuide: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -188,6 +199,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBeginningGuidePassed, setIsBeginningGuidePassed] = useState(false);
+  const [hasSeenUserGuide, setHasSeenUserGuide] = useState(false);
+  const [hasSeenHelperGuide, setHasSeenHelperGuide] = useState(false);
+  const [hasSeenBusinessGuide, setHasSeenBusinessGuide] = useState(false);
+  const [isInitializingAuth, setIsInitializingAuth] = useState(true);
+
+  const hasSeenGuide = React.useMemo(() => {
+    // If user is not logged in, we only care about the beginning guide
+    if (!user) return isBeginningGuidePassed;
+
+    const normalizedType = user?.userType?.toLowerCase();
+    if (normalizedType === 'helper') return hasSeenHelperGuide;
+    if (normalizedType === 'business') return hasSeenBusinessGuide;
+    if (normalizedType === 'user') return hasSeenUserGuide;
+    return hasSeenUserGuide;
+  }, [user, isBeginningGuidePassed, hasSeenUserGuide, hasSeenHelperGuide, hasSeenBusinessGuide]);
+
 
   useEffect(() => {
     loadUser();
@@ -195,6 +223,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUser = async () => {
     try {
+      // Load guide statuses first
+      const userGuideStatus = await AsyncStorage.getItem('has_seen_user_guide');
+      const helperGuideStatus = await AsyncStorage.getItem('has_seen_helper_guide');
+      const businessGuideStatus = await AsyncStorage.getItem('has_seen_business_guide');
+
+      // Note: beginning_guide_passed is no longer loaded from AsyncStorage 
+      // to ensure the guide flow is shown on every app opening.
+      setIsBeginningGuidePassed(false);
+      setHasSeenUserGuide(userGuideStatus === 'true');
+      setHasSeenHelperGuide(helperGuideStatus === 'true');
+      setHasSeenBusinessGuide(businessGuideStatus === 'true');
+
       const userData = await AsyncStorage.getItem('user');
       if (userData) {
         const parsed = JSON.parse(userData);
@@ -202,6 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (parsed.isVerified === undefined) {
           parsed.isVerified = false;
         }
+
         // Only load user if they are verified, otherwise clear unverified users
         if (parsed.isVerified === true) {
           setUser(parsed);
@@ -218,10 +259,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Error loading user
     } finally {
       setIsLoading(false);
+      setIsInitializingAuth(false);
     }
   };
 
-  const refreshProfile = async (currentUser?: User) => {
+  const saveUser = useCallback(async (userData: User) => {
+    try {
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+    } catch (error) {
+      // Error saving user
+    }
+  }, []);
+
+  const refreshProfile = useCallback(async (currentUser?: User) => {
     try {
       const activeUser = currentUser || user;
       if (!activeUser) return;
@@ -261,18 +312,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
     }
-  };
+  }, [user, saveUser]);
 
-  const saveUser = async (userData: User) => {
-    try {
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-    } catch (error) {
-      // Error saving user
-    }
-  };
-
-  const login = async (data: {
+  const login = useCallback(async (data: {
     phone?: string;
     email?: string;
     password?: string;
@@ -404,9 +446,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = error.message || error.error || 'Login failed. Please try again.';
       throw new Error(errorMessage);
     }
-  };
+  }, [saveUser]);
 
-  const register = async (data: { name: string; phone?: string; email?: string; password: string; password_confirmation: string; role: 'user' | 'helper' | 'business', city_id?: number }) => {
+  const register = useCallback(async (data: { name: string; phone?: string; email?: string; password: string; password_confirmation: string; role: 'user' | 'helper' | 'business', city_id?: number }) => {
     try {
       const response = await apiService.post(
         API_ENDPOINTS.AUTH.REGISTER,
@@ -445,6 +487,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         await saveUser(userData);
 
+        // Reset guide flags for new user
+        if (data.role === 'helper') {
+          setHasSeenHelperGuide(false);
+        } else if (data.role === 'business') {
+          setHasSeenBusinessGuide(false);
+        } else {
+          setHasSeenUserGuide(false);
+        }
+
         // Return success message from backend if available
         return {
           success: true,
@@ -475,9 +526,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Re-throw with the extracted error message
       throw new Error(errorMessage);
     }
-  };
+  }, []);
 
-  const verifyOTP = async (otp: string): Promise<boolean> => {
+  const verifyOTP = useCallback(async (otp: string): Promise<boolean> => {
     if (!user) {
       throw new Error('No user found. Please login again.');
     }
@@ -547,13 +598,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             // Store token separately in AsyncStorage
             await AsyncStorage.setItem('authToken', token);
-            // Also store in user object for backward compatibility
-            (userData as any).token = token;
           } catch (tokenError) {
             // Error saving token
             // Continue even if token save fails, but log the error
           }
-        } else {
+          // Also store token in user object
+          (userData as any).token = token;
         }
 
         // Save user data (this also updates the user state)
@@ -590,9 +640,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Re-throw with the extracted error message
       throw new Error(errorMessage);
     }
-  };
+  }, [user, saveUser]);
 
-  const resendOTP = async () => {
+  const resendOTP = useCallback(async () => {
     if (!user) {
       throw new Error('No user found. Please login again.');
     }
@@ -635,9 +685,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = error.message || error.error || 'Failed to resend OTP. Please try again.';
       throw new Error(errorMessage);
     }
-  };
+  }, [user]);
 
-  const selectUserType = async (userType: UserType) => {
+  const selectUserType = useCallback(async (userType: UserType) => {
     if (!user) return;
 
     try {
@@ -649,25 +699,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         { role: userType }
       );
 
-      if (response.success && response.data) {
-        const updatedUser = {
-          ...user,
-          ...response.data,
-          userType,
-          onboardingStatus: 'in_progress' as OnboardingStatus,
-        };
+      if (response.success) {
+        const updatedUser = { ...user, userType };
         await saveUser(updatedUser);
       } else {
-        // Fallback to local update
-        const updatedUser = {
-          ...user,
-          userType,
-          onboardingStatus: 'in_progress' as OnboardingStatus,
-        };
+        // Fallback to local update if API fails (for demo)
+        const updatedUser = { ...user, userType };
         await saveUser(updatedUser);
       }
     } catch (error) {
-      // Fallback to local update
       const updatedUser = {
         ...user,
         userType,
@@ -675,9 +715,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       await saveUser(updatedUser);
     }
-  };
+  }, [user, saveUser]);
 
-  const updateUser = async (userData: Partial<User> | FormData) => {
+  const updateUser = useCallback(async (userData: Partial<User> | FormData) => {
     if (!user) return;
 
     try {
@@ -698,9 +738,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!token) {
         throw new Error('Authentication token not found. Please login again.');
       }
-
-      // Call API to update user profile (PATCH method according to API docs)
-      // The apiService.patch() will automatically include the token in the Authorization header
 
       const response = await apiService.patch(
         API_ENDPOINTS.PROFILE.UPDATE,
@@ -745,16 +782,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorMessage);
       }
     } catch (error: any) {
-
       // Extract error message
       const errorMessage = error.message || error.error || 'Failed to update profile. Please try again.';
 
       // Re-throw error so calling code can handle it
       throw new Error(errorMessage);
     }
-  };
+  }, [user, saveUser]);
 
-  const uploadProfilePhoto = async (photoUri: string) => {
+  const uploadProfilePhoto = useCallback(async (photoUri: string) => {
     if (!user) return;
 
     try {
@@ -799,9 +835,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       throw new Error(error.message || 'Failed to upload photo');
     }
-  };
+  }, [user, saveUser]);
 
-  const completeOnboarding = async (
+  const completeOnboarding = useCallback(async (
     profileData: HelperProfile | BusinessProfile,
     additionalData?: {
       verification?: {
@@ -984,9 +1020,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Re-throw error so the UI can handle it
       throw error;
     }
-  };
+  }, [user, saveUser]);
 
-  const changePassword = async (currentPassword: string, newPassword: string) => {
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!user) {
       throw new Error('User not found');
     }
@@ -1024,9 +1060,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       await saveUser(updatedUser);
     }
-  };
+  }, [user, saveUser]);
 
-  const logout = async () => {
+  const completeGuide = useCallback(async () => {
+    try {
+      // Always mark as passed for this session no matter the user type
+      setIsBeginningGuidePassed(true);
+
+      if (!user) {
+        // Unauthenticated user completing the beginning guide
+        await AsyncStorage.setItem('beginning_guide_passed', 'true');
+        return;
+      }
+
+      const type = user?.userType?.toLowerCase();
+      if (type === 'helper') {
+        await AsyncStorage.setItem('has_seen_helper_guide', 'true');
+        setHasSeenHelperGuide(true);
+      } else if (type === 'business') {
+        await AsyncStorage.setItem('has_seen_business_guide', 'true');
+        setHasSeenBusinessGuide(true);
+      } else {
+        await AsyncStorage.setItem('has_seen_user_guide', 'true');
+        setHasSeenUserGuide(true);
+      }
+      // Also set legacy flag just in case
+      await AsyncStorage.setItem('has_seen_guide', 'true');
+    } catch (error) {
+      // Error saving guide status
+    }
+  }, [user]);
+
+  const logout = useCallback(async () => {
     // Capture user ID before clearing state
     const userId = user?.id;
     // Check if this is a demo user by phone number
@@ -1058,7 +1123,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'authToken',
           'jobs',
           'helpers',
+          'has_seen_user_guide',
+          'has_seen_helper_guide',
+          'has_seen_business_guide',
+          'has_seen_guide',
+          'beginning_guide_passed',
         ]);
+
+        // Reset state
+        setIsBeginningGuidePassed(false);
+        setHasSeenUserGuide(false);
+        setHasSeenHelperGuide(false);
+        setHasSeenBusinessGuide(false);
       } catch (error) {
         // Try individual removals as fallback
         try {
@@ -1071,27 +1147,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  };
+  }, [user]);
+
+  const contextValue = useMemo(() => ({
+    user,
+    isLoading,
+    login,
+    register,
+    verifyOTP,
+    resendOTP,
+    selectUserType,
+    updateUser,
+    completeOnboarding,
+    isBeginningGuidePassed,
+    hasSeenGuide,
+    hasSeenUserGuide,
+    hasSeenHelperGuide,
+    hasSeenBusinessGuide,
+    completeGuide,
+    changePassword,
+    logout,
+    refreshProfile: () => refreshProfile(),
+    uploadProfilePhoto,
+    isAuthenticated: !!user,
+  }), [
+    user,
+    isLoading,
+    login,
+    register,
+    verifyOTP,
+    resendOTP,
+    selectUserType,
+    updateUser,
+    completeOnboarding,
+    isBeginningGuidePassed,
+    hasSeenGuide,
+    hasSeenUserGuide,
+    hasSeenHelperGuide,
+    hasSeenBusinessGuide,
+    completeGuide,
+    changePassword,
+    logout,
+    refreshProfile,
+    uploadProfilePhoto,
+  ]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        login,
-        register,
-        verifyOTP,
-        resendOTP,
-        selectUserType,
-        updateUser,
-        completeOnboarding,
-        changePassword,
-        logout,
-        refreshProfile: () => refreshProfile(),
-        uploadProfilePhoto,
-        isAuthenticated: !!user,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -1115,9 +1217,14 @@ export function useAuth() {
       logout: async () => { },
       refreshProfile: async () => { },
       uploadProfilePhoto: async () => { },
+      isBeginningGuidePassed: false,
+      hasSeenGuide: false,
+      hasSeenUserGuide: false,
+      hasSeenHelperGuide: false,
+      hasSeenBusinessGuide: false,
+      completeGuide: async () => { },
       isAuthenticated: false,
     } as AuthContextType;
   }
   return context;
 }
-

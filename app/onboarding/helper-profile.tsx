@@ -49,9 +49,9 @@ interface CompleteProfileData {
   gender: string;
   religion: string;
   languages: number[];
-  address?: string; // New
-  latitude?: number; // New
-  longitude?: number; // New
+  address: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const STEP_LABELS = ['Service Offer', 'Verification', 'Complete Profile'];
@@ -95,8 +95,6 @@ export default function HelperProfileScreen() {
     religion: '',
     languages: [],
     address: '',
-    latitude: undefined,
-    longitude: undefined,
   });
 
   const handleNext = () => {
@@ -117,9 +115,9 @@ export default function HelperProfileScreen() {
       return;
     }
 
-    if (!profileData.address || !profileData.latitude || !profileData.longitude) {
-      setErrorMessage('Please pin your location on the map in the final step.');
-      setErrorModalVisible(true);
+    if (!profileData.address) {
+      toast.error('Please pin your location in Step 3');
+      setCurrentStep(3);
       return;
     }
 
@@ -134,7 +132,7 @@ export default function HelperProfileScreen() {
         description: serviceOfferData.description,
         price: serviceOfferData.monthlyRate ? parseFloat(serviceOfferData.monthlyRate) : undefined,
         priceUnit: 'month' as const,
-        locations: [profileData.address || ''], // Use specific address
+        locations: [user.pin_address || ''],
       }));
 
       // Create HelperProfile with all data
@@ -143,11 +141,14 @@ export default function HelperProfileScreen() {
         bio: profileData.bio,
         experience: profileData.experience,
         serviceOfferings,
-        locations: [profileData.address || ''],
+        locations: [user.pin_address || ''],
         age: profileData.age,
         gender: profileData.gender,
         religion: profileData.religion,
         languages: profileData.languages,
+        address: profileData.address,
+        latitude: profileData.latitude,
+        longitude: profileData.longitude,
       };
 
       // Store verification and service offer data in a way that completeOnboarding can access
@@ -176,16 +177,14 @@ export default function HelperProfileScreen() {
           // We can add fields to additionalData object even if type definition in this file doesn't show it, if we cast or update type.
           // Let's pass it in serviceOffer or a new field.
           // We'll add it to 'serviceOffer' part of additionalData as that seems most relevant place for 'locations'.
-          ...({
-            latitude: profileData.latitude,
-            longitude: profileData.longitude,
-            address: profileData.address
-          } as any)
-        }
+          latitude: profileData.latitude,
+          longitude: profileData.longitude,
+          address: profileData.address
+        } as any
       });
 
       // Navigate to tabs
-      router.replace('/(tabs)');
+      router.replace('/');
     } catch (error: any) {
       // Stay on the same screen so user can retry
       // Stay on the same screen so user can retry
@@ -273,9 +272,9 @@ export default function HelperProfileScreen() {
           stepLabels={STEP_LABELS}
         />
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
           <View style={[styles.stepContainer, { paddingBottom: 0 }]}>
             {renderStep()}

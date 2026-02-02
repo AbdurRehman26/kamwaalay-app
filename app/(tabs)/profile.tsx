@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -129,10 +130,18 @@ export default function ProfileScreen() {
         contentContainerStyle={{ width: '100%' }}
       >
         <View style={styles.profileInfoContainer}>
-          <View style={[styles.avatar, { backgroundColor: primaryLight }]}>
-            <Text style={[styles.avatarText, { color: primaryColor }]}>
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
-            </Text>
+          <View style={[styles.avatar, { backgroundColor: primaryLight, overflow: 'hidden' }]}>
+            {user?.profileImage ? (
+              <ExpoImage
+                source={{ uri: user.profileImage }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <Text style={[styles.avatarText, { color: primaryColor }]}>
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            )}
           </View>
           <ThemedText type="title" style={styles.name}>
             {user?.name || 'User'}
@@ -310,6 +319,10 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   name: {
     fontSize: 24,

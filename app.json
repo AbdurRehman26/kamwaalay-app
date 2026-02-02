@@ -2,7 +2,7 @@
   "expo": {
     "name": "kamwaalay-app",
     "slug": "kamwaalay-app",
-    "version": "1.1.1",
+    "version": "1.1.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kamwaalayapp",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.kamwaalay.app",
-      "versionCode": 27,
+      "versionCode": 32,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/icon.png"

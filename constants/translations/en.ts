@@ -51,6 +51,9 @@ export const en = {
         selectRole: 'Select your role',
         enterDetails: 'Enter your details',
         setPassword: 'Set your password',
+        signIn: 'Sign In',
+        businessOwnerName: 'Business Owner Name',
+        enterOwnerName: 'Enter owner name',
     },
     profile: {
         title: 'Profile',
@@ -617,6 +620,29 @@ export const en = {
         start: {
             title: "Let's get started",
             subtitle: 'Tell us a bit about yourself to personalize your experience',
+        },
+        steps: {
+            title: 'Your Profile',
+            subtitle: 'Complete your profile to find relevant opportunities nearby',
+            yearsOfExperience: 'Years of Experience',
+            selectLanguages: 'Select Languages',
+            languagesHelper: 'Select languages you can speak',
+            pinnedLocation: 'Pinned location',
+            updatingAddress: 'Updating address...',
+            completeProfile: 'Complete Profile',
+        },
+        business: {
+            title: 'Business Profile',
+            subtitle: 'Enter your business details to get started',
+            name: 'Business Name',
+            enterName: 'Enter your business name',
+            address: 'Business Address / Location',
+            nicImage: 'NIC Image',
+            uploadNic: 'Upload NIC Image',
+            nicNumber: 'NIC Number',
+            enterNic: 'e.g. 4210112345678',
+            complete: 'Complete Onboarding',
+            saving: 'Saving...',
         }
     },
     helperProfile: {

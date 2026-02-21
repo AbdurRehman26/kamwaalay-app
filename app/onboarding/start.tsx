@@ -191,7 +191,7 @@ export default function OnboardingStartScreen() {
               <IconSymbol name="magnifyingglass" size={20} color={textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: textColor }]}
-                placeholder="Search city..."
+                placeholder={t('auth.searchCity')}
                 placeholderTextColor={textSecondary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -248,7 +248,7 @@ export default function OnboardingStartScreen() {
                 })
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={[styles.emptyStateText, { color: textSecondary }]}>No cities found</Text>
+                  <Text style={[styles.emptyStateText, { color: textSecondary }]}>{t('auth.noCitiesFound')}</Text>
                 </View>
               )}
             </ScrollView>
@@ -284,13 +284,13 @@ export default function OnboardingStartScreen() {
               {/* Name Selection */}
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: textColor }]}>
-                  {user?.userType === 'business' ? 'Business Owner Name' : 'Full Name'}
+                  {user?.userType === 'business' ? t('auth.businessOwnerName') : t('auth.fullName')}
                 </Text>
                 <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                   <IconSymbol name="person.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: textColor }]}
-                    placeholder={user?.userType === 'business' ? 'Enter owner name' : 'Enter your name'}
+                    placeholder={user?.userType === 'business' ? t('auth.enterOwnerName') : t('auth.enterFullName')}
                     placeholderTextColor={textSecondary}
                     value={name}
                     onChangeText={setName}
@@ -303,14 +303,14 @@ export default function OnboardingStartScreen() {
 
               {/* City Selection */}
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: textColor }]}>City</Text>
+                <Text style={[styles.label, { color: textColor }]}>{t('auth.city')}</Text>
                 <TouchableOpacity
                   style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}
                   onPress={() => setIsCityModalVisible(true)}
                 >
                   <IconSymbol name="mappin.and.ellipse" size={20} color={textSecondary} style={styles.inputIcon} />
                   <Text style={[styles.input, { color: cityId ? textColor : textSecondary, paddingVertical: 16 }]}>
-                    {cityId ? cities.find(c => c.id === cityId)?.name : 'Select City'}
+                    {cityId ? cities.find(c => c.id === cityId)?.name : t('auth.selectCity')}
                   </Text>
                   <IconSymbol name="chevron.down" size={20} color={textSecondary} style={{ marginRight: 16 }} />
                 </TouchableOpacity>
@@ -342,6 +342,19 @@ export default function OnboardingStartScreen() {
                 <IconSymbol name="arrow.right" size={20} color="#FFF" />
               </>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.signInButton, { borderColor: borderColor }]}
+            onPress={async () => {
+              await logout();
+              router.replace('/auth/phone-login');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.signInButtonText, { color: primaryColor }]}>
+              {t('auth.signIn') || 'Sign in'}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -458,6 +471,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  signInButton: {
+    alignSelf: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    borderWidth: 1.5,
+    borderRadius: 16,
+  },
+  signInButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   errorCard: {
     flexDirection: 'row',

@@ -51,6 +51,9 @@ export const ur = {
         selectRole: 'اپنا کردار منتخب کریں',
         enterDetails: 'اپنی تفصیلات درج کریں',
         setPassword: 'اپنا پاس ورڈ سیٹ کریں',
+        signIn: 'سائن ان',
+        businessOwnerName: 'کاروبار کے مالک کا نام',
+        enterOwnerName: 'مالک کا نام درج کریں',
     },
     profile: {
         title: 'پروفائل',
@@ -617,6 +620,29 @@ export const ur = {
         start: {
             title: 'آئیے شروع کریں',
             subtitle: 'اپنے تجربے کو ذاتی بنانے کے لیے ہمیں اپنے بارے میں تھوڑا بتائیں',
+        },
+        steps: {
+            title: 'آپ کا پروفائل',
+            subtitle: 'اپنے قریب سے متعلقہ مواقع تلاش کرنے کے لیے اپنا پروفائل مکمل کریں',
+            yearsOfExperience: 'تجربے کے سال',
+            selectLanguages: 'زبانیں منتخب کریں',
+            languagesHelper: 'وہ زبانیں منتخب کریں جو آپ بول سکتے ہیں',
+            pinnedLocation: 'پن کیا ہوا مقام',
+            updatingAddress: 'پتہ اپ ڈیٹ ہو رہا ہے...',
+            completeProfile: 'پروفائل مکمل کریں',
+        },
+        business: {
+            title: 'بزنس پروفائل',
+            subtitle: 'شروع کرنے کے لیے اپنے کاروبار کی تفصیلات درج کریں',
+            name: 'کاروبار کا نام',
+            enterName: 'اپنے کاروبار کا نام درج کریں',
+            address: 'کاروبار کا پتہ / مقام',
+            nicImage: 'شناختی کارڈ کی تصویر',
+            uploadNic: 'شناختی کارڈ کی تصویر اپ لوڈ کریں',
+            nicNumber: 'شناختی کارڈ نمبر',
+            enterNic: 'مثال کے طور پر 4210112345678',
+            complete: 'آن بورڈنگ مکمل کریں',
+            saving: 'محفوظ ہو رہا ہے...',
         }
     },
     helperProfile: {

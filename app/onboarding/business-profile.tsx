@@ -303,21 +303,21 @@ export default function BusinessProfileScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.headerSection, { marginTop: insets.top + 20 }]}>
-            <Text style={[styles.title, { color: textColor }]}>Business Profile</Text>
+            <Text style={[styles.title, { color: textColor }]}>{t('onboarding.business.title')}</Text>
             <Text style={[styles.subtitle, { color: textSecondary }]}>
-              Enter your business details to get started
+              {t('onboarding.business.subtitle')}
             </Text>
           </View>
 
           <View style={styles.form}>
             {/* Business Name */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Business Name</Text>
+              <Text style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.businessName')}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                 <IconSymbol name="building.2.fill" size={20} color={textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: textColor }]}
-                  placeholder="Enter your business name"
+                  placeholder={t('onboarding.business.enterName')}
                   placeholderTextColor={textSecondary}
                   value={businessName}
                   onChangeText={setBusinessName}
@@ -328,11 +328,11 @@ export default function BusinessProfileScreen() {
 
             {/* Pin Location UI */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Business Address / Location</Text>
+              <Text style={[styles.label, { color: textColor }]}>{t('onboarding.business.address')}</Text>
               <View style={{ gap: 10 }}>
                 <TextInput
                   style={[styles.input, styles.locationPlaceholder, { backgroundColor: cardBg, borderColor, color: textMuted }]}
-                  placeholder="Pinned location"
+                  placeholder={t('onboarding.steps.pinnedLocation')}
                   placeholderTextColor={textMuted}
                   value={address}
                   editable={false}
@@ -343,21 +343,21 @@ export default function BusinessProfileScreen() {
                 >
                   <IconSymbol name="location.fill" size={20} color={primaryColor} />
                   <Text style={[styles.pinButtonText, { color: primaryColor }]}>
-                    {address ? "Change Location" : "Pin Location"}
+                    {address ? t('profileEdit.actions.changeLocation') : t('profileEdit.actions.pinLocation')}
                   </Text>
                 </TouchableOpacity>
               </View>
               {isGeocoding && (
                 <View style={styles.geocodingContainer}>
                   <ActivityIndicator size="small" color={primaryColor} />
-                  <Text style={[styles.helperText, { color: textMuted }]}>Updating address...</Text>
+                  <Text style={[styles.helperText, { color: textMuted }]}>{t('onboarding.steps.updatingAddress')}</Text>
                 </View>
               )}
             </View>
 
             {/* NIC Image Upload */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>NIC Image</Text>
+              <Text style={[styles.label, { color: textColor }]}>{t('onboarding.business.nicImage')}</Text>
               <TouchableOpacity
                 style={[styles.uploadArea, { borderColor: borderColor, backgroundColor: inputBg, borderStyle: 'dashed', borderWidth: 2 }]}
                 onPress={pickNicImage}
@@ -369,14 +369,14 @@ export default function BusinessProfileScreen() {
                       {nicImageName}
                     </Text>
                     <Text style={[styles.changeText, { color: primaryColor }]}>
-                      Tap to change
+                      {t('profileEdit.actions.changePhoto')}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.uploadPlaceholder}>
                     <IconSymbol name="plus.circle.fill" size={32} color={primaryColor} />
                     <Text style={[styles.uploadText, { color: textSecondary }]}>
-                      Upload NIC Image
+                      {t('onboarding.business.uploadNic')}
                     </Text>
                   </View>
                 )}
@@ -385,12 +385,12 @@ export default function BusinessProfileScreen() {
 
             {/* NIC Number */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>NIC Number</Text>
+              <Text style={[styles.label, { color: textColor }]}>{t('onboarding.business.nicNumber')}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                 <IconSymbol name="number" size={20} color={textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: textColor }]}
-                  placeholder="e.g. 4210112345678"
+                  placeholder={t('onboarding.business.enterNic')}
                   placeholderTextColor={textSecondary}
                   value={nicNumber}
                   onChangeText={(text) => setNicNumber(text.replace(/[^0-9]/g, ''))}
@@ -410,7 +410,7 @@ export default function BusinessProfileScreen() {
             onPress={handleContinue}
             disabled={!businessName.trim() || !address || !nicImage || nicNumber.length < 13 || isLoading}
           >
-            <Text style={styles.buttonText}>{isLoading ? 'Saving...' : 'Complete Onboarding'}</Text>
+            <Text style={styles.buttonText}>{isLoading ? t('onboarding.business.saving') : t('onboarding.business.complete')}</Text>
             {!isLoading && <IconSymbol name="arrow.right" size={20} color="#FFF" />}
           </TouchableOpacity>
         </ScrollView>

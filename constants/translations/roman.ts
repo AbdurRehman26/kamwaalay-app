@@ -51,6 +51,9 @@ export const roman = {
         selectRole: 'Apna kirdaar muntakhib karen',
         enterDetails: 'Apni tafseelat darj karen',
         setPassword: 'Apna password set karen',
+        signIn: 'Sign In',
+        businessOwnerName: 'Business Owner Name',
+        enterOwnerName: 'Owner ka naam darj karen',
     },
     profile: {
         title: 'Profile',
@@ -617,6 +620,29 @@ export const roman = {
         start: {
             title: 'Aaiye shuru karein',
             subtitle: 'Apne tajurba ko zaati banane ke liye hamein apne baray mein batayein',
+        },
+        steps: {
+            title: 'Aap Ka Profile',
+            subtitle: 'Apne qareeb se mutaliqa mawaqay talash karne ke liye apna profile mukammal karen',
+            yearsOfExperience: 'Tajurbay ke Saal',
+            selectLanguages: 'Zabanain muntakhib karen',
+            languagesHelper: 'Woh zabanain muntakhib karen jo aap bol sakte hain',
+            pinnedLocation: 'Pin kiya hua muqam',
+            updatingAddress: 'Pata update ho raha hai...',
+            completeProfile: 'Profile Mukammal Karen',
+        },
+        business: {
+            title: 'Business Profile',
+            subtitle: 'Shuru karne ke liye apne karobar ki tafseelat darj karen',
+            name: 'Karobar ka Naam',
+            enterName: 'Apne karobar ka naam darj karen',
+            address: 'Karobar ka Pata / Muqam',
+            nicImage: 'NIC Image',
+            uploadNic: 'NIC Image upload karen',
+            nicNumber: 'NIC Number',
+            enterNic: 'Maslan 4210112345678',
+            complete: 'Onboarding Mukammal Karen',
+            saving: 'Saving...',
         }
     },
     helperProfile: {

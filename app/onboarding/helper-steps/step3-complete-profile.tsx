@@ -13,7 +13,6 @@ import * as Location from 'expo-location';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Keyboard,
   Modal,
   ScrollView,
   StyleSheet,
@@ -269,21 +268,21 @@ export default function Step3CompleteProfile({
       >
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
-            Your Profile
+            {t('onboarding.steps.title')}
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: textSecondary }]}>
-            Complete your profile to find relevant opportunities nearby
+            {t('onboarding.steps.subtitle')}
           </ThemedText>
         </View>
 
         <View style={styles.form}>
           {/* Address / Location Pin */}
           <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>Address / Location</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.address')}</ThemedText>
             <View style={{ gap: 10 }}>
               <TextInput
                 style={[styles.input, styles.locationPlaceholder, { backgroundColor: cardBg, borderColor, color: textMuted }]}
-                placeholder="Pinned location"
+                placeholder={t('onboarding.steps.pinnedLocation')}
                 placeholderTextColor={textMuted}
                 value={data.address}
                 editable={false}
@@ -294,21 +293,21 @@ export default function Step3CompleteProfile({
               >
                 <IconSymbol name="location.fill" size={20} color={primaryColor} />
                 <Text style={[styles.pinButtonText, { color: primaryColor }]}>
-                  {data.address ? "Change Location" : "Pin Location"}
+                  {data.address ? t('profileEdit.actions.changeLocation') : t('profileEdit.actions.pinLocation')}
                 </Text>
               </TouchableOpacity>
             </View>
             {isGeocoding && (
               <View style={styles.geocodingContainer}>
                 <ActivityIndicator size="small" color={primaryColor} />
-                <Text style={[styles.helperText, { color: textMuted }]}>Updating address...</Text>
+                <Text style={[styles.helperText, { color: textMuted }]}>{t('onboarding.steps.updatingAddress')}</Text>
               </View>
             )}
           </View>
 
           {/* Years of Experience */}
           <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>Years of Experience</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>{t('onboarding.steps.yearsOfExperience')}</ThemedText>
             <TextInput
               style={[styles.input, { backgroundColor: cardBg, borderColor, color: textColor }]}
               placeholder="e.g., 5"
@@ -323,7 +322,7 @@ export default function Step3CompleteProfile({
           <View style={styles.row}>
             {/* Age */}
             <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              <ThemedText style={[styles.label, { color: textColor }]}>Age</ThemedText>
+              <ThemedText style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.age')}</ThemedText>
               <TextInput
                 style={[styles.input, { backgroundColor: cardBg, borderColor, color: textColor }]}
                 placeholder="e.g., 25"
@@ -337,7 +336,7 @@ export default function Step3CompleteProfile({
 
             {/* Gender */}
             <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <ThemedText style={[styles.label, { color: textColor }]}>Gender</ThemedText>
+              <ThemedText style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.gender')}</ThemedText>
               <View style={styles.genderContainer}>
                 {['Male', 'Female'].map((genderOption) => (
                   <TouchableOpacity
@@ -356,7 +355,7 @@ export default function Step3CompleteProfile({
                         data.gender === genderOption && { color: '#FFFFFF' }
                       ]}
                     >
-                      {genderOption}
+                      {genderOption === 'Male' ? t('profileEdit.options.male') : t('profileEdit.options.female')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -367,7 +366,7 @@ export default function Step3CompleteProfile({
 
           {/* Religion */}
           <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>Religion</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.religion')}</ThemedText>
             <View style={styles.religionContainer}>
               {RELIGION_OPTIONS.map((option) => (
                 <TouchableOpacity
@@ -386,7 +385,7 @@ export default function Step3CompleteProfile({
                       data.religion === option.id && { color: '#FFFFFF' }
                     ]}
                   >
-                    {option.label}
+                    {t(`profileEdit.options.${option.id}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -395,8 +394,8 @@ export default function Step3CompleteProfile({
 
           {/* Languages */}
           <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>Languages</ThemedText>
-            <ThemedText style={[styles.helperText, { color: textSecondary }]}>Select languages you can speak</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.languages')}</ThemedText>
+            <ThemedText style={[styles.helperText, { color: textSecondary }]}>{t('onboarding.steps.languagesHelper')}</ThemedText>
 
             {/* Selected Languages Chips */}
             {data.languages && data.languages.length > 0 ? (
@@ -425,7 +424,7 @@ export default function Step3CompleteProfile({
               onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
             >
               <Text style={[styles.dropdownSelectorText, { color: textColor }]}>
-                Select Languages
+                {t('onboarding.steps.selectLanguages')}
               </Text>
               <IconSymbol name="chevron.down" size={20} color={textSecondary} />
             </TouchableOpacity>
@@ -464,10 +463,10 @@ export default function Step3CompleteProfile({
 
           {/* Bio */}
           <View style={styles.inputGroup}>
-            <ThemedText style={[styles.label, { color: textColor }]}>Bio</ThemedText>
+            <ThemedText style={[styles.label, { color: textColor }]}>{t('profileEdit.labels.bio')}</ThemedText>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: cardBg, borderColor, color: textColor }]}
-              placeholder="Tell us about yourself..."
+              placeholder={t('profileEdit.placeholders.bio')}
               placeholderTextColor={textMuted}
               multiline
               numberOfLines={6}
@@ -480,7 +479,7 @@ export default function Step3CompleteProfile({
 
       <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity style={[styles.backButton, { backgroundColor: cardBg }]} onPress={onBack}>
-          <Text style={[styles.backButtonText, { color: textSecondary }]}>Back</Text>
+          <Text style={[styles.backButtonText, { color: textSecondary }]}>{t('auth.back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.submitButton, { backgroundColor: primaryColor, opacity: isLoading ? 0.7 : 1 }]}
@@ -490,7 +489,7 @@ export default function Step3CompleteProfile({
           {isLoading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={styles.submitButtonText}>Complete Profile</Text>
+            <Text style={styles.submitButtonText}>{t('onboarding.steps.completeProfile')}</Text>
           )}
         </TouchableOpacity>
       </View>

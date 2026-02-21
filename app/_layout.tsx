@@ -118,7 +118,7 @@ function RootLayoutNav() {
     const isOnAuthScreen = currentPath === 'auth/phone-login' || currentPath === 'auth/signup' || currentPath === 'auth/user-type';
 
     // 0. MANDATORY GLOBAL GUIDE GATE (Always show on app opening)
-    if (!isBeginningGuidePassed && currentPath !== 'guide' && !isPublicRoute) {
+    if (!isBeginningGuidePassed && currentPath !== 'guide' && !isPublicRoute && !isOnAuthScreen) {
       try {
         router.replace('/guide');
       } catch (error) { }
